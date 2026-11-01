@@ -60,6 +60,8 @@ export default function App() {
   const [aiFormat, setAiFormat] = useState("9:16");
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
+  const [aiWorkflowStage, setAiWorkflowStage] = useState<"idea" | "planning" | "review" | "editing">("idea");
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Welcome to NEXUS AI Studio. Tell me what you want to create. I’ll guide you through the idea, creative plan, visuals and approval before we open the editing workspace." }]);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string }[]; sourcingNote: string }>(null);
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
@@ -226,11 +228,11 @@ export default function App() {
     applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable timeline scenes");
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
-    setActiveTool("edit"); setActiveSubtool("select"); setPage("editor");
+    setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
     setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes use native NEXUS title-card assets. You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
-  function createAIProjectPlan() {
-    const brief = aiBrief.trim();
+  function createAIProjectPlan(briefOverride?: string) {
+    const brief = (briefOverride ?? aiBrief).trim();
     if (!brief) { setAiReply("Describe the video you want to make first."); return; }
     const words = brief.toLowerCase();
     const duration = /\b(\d+)\s*(seconds?|secs?|s)\b/.exec(words);
@@ -243,7 +245,8 @@ export default function App() {
       { title: "The payoff", visual: "A powerful final shot that resolves the story", narration: "End with the key message and a clear final thought.", searchTerms: [topic + " cinematic final shot", topic + " inspirational footage"], fallback: "Bold closing title card with animated shapes" }
     ];
     const scenes = sceneIdeas.map((scene, index) => ({ ...scene, title: scene.title, narration: scene.narration, visual: scene.visual, searchTerms: scene.searchTerms }));
-    setAiPlan({ title: topic.charAt(0).toUpperCase() + topic.slice(1), duration: totalSeconds, scenes, sourcingNote: assets.length ? "Your imported media can be analysed and matched to these scenes in the next creation step." : "No personal media detected. NEXUS should search approved stock/public-domain sources first; if suitable reusable media is unavailable, use the listed editor-native fallback scenes. Online provider search is not connected in this build yet." });
+    setAiPlan({ title: topic.charAt(0).toUpperCase() + topic.slice(1), duration: totalSeconds, scenes, sourcingNote: assets.length ? "Your imported media can be analysed and matched to these scenes in the next creation step." : "No personal media detected. Search approved stock/public-domain sources first; if suitable reusable media is unavailable, use the listed editor-native fallback scenes. Wikimedia Commons search is available in the editor media panel." });
+    setAiWorkflowStage("review");
     setAiReply("I've prepared an editable storyboard draft for your brief. Review the scenes and asset needs below. I haven't downloaded or imported any online media.");
     setProjectName(topic.charAt(0).toUpperCase() + topic.slice(1));
     setAspectRatio(aiFormat);
@@ -326,6 +329,7 @@ export default function App() {
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
+    { id: "ai" as Page, label: "AI Studio", icon: Sparkles },
     { id: "settings" as Page, label: "Settings", icon: Settings }
   ];
   const pageTitle = nav.find(n => n.id === page)?.label || "Home";
@@ -344,7 +348,7 @@ export default function App() {
     <aside className="sidebar">
       <button className="brand-lockup" onClick={() => setPage("home")}><span className="brand-mark">N</span><span className="brand-words">NEXUS<strong>EDITOR</strong></span></button>
       <div className="side-caption">WORKSPACE</div>
-      <nav>{nav.map(item => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? "nav-item active" : "nav-item"} onClick={() => { if(item.id === "ai"){setPage("editor");setAiWorkspaceOpen(true);}else{setPage(item.id);setAiWorkspaceOpen(false);} }}><Icon size={18}/><span>{item.label}</span>{item.id === "ai" && <i>NEW</i>}</button>; })}</nav>
+      <nav>{nav.map(item => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? "nav-item active" : "nav-item"} onClick={() => { setPage(item.id); setAiWorkspaceOpen(false); }}><Icon size={18}/><span>{item.label}</span>{item.id === "ai" && <i>NEW</i>}</button>; })}</nav>
       <div className="sidebar-bottom">
         <div className="cloud-card"><Cloud size={19}/><b>Your workspace</b><span>Projects saved on this device</span><div className="cloud-meter"><i/></div><small>Local storage · Ready</small></div>
         <button className="profile-row" onClick={() => setPage("settings")}><span className="avatar">N</span><span><b>Creator workspace</b><small>Personal account</small></span><ChevronDown size={15}/></button>
@@ -366,11 +370,45 @@ export default function App() {
         <div className="quick-grid">
           <button className="quick-card" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("editor"); }}><span className="quick-icon purple"><Plus/></span><b>New project</b><small>Start from scratch</small></button>
           <button className="quick-card" onClick={() => setPage("templates")}><span className="quick-icon cyan"><Grid2X2/></span><b>Explore templates</b><small>Find your style</small></button>
-          <button className="quick-card" onClick={() => {setPage("editor");setAiWorkspaceOpen(true);}}><span className="quick-icon violet"><WandSparkles/></span><b>AI Studio</b><small>Creative assistance</small></button>
+          <button className="quick-card" onClick={() => {setPage("ai");setAiWorkspaceOpen(false);}}><span className="quick-icon violet"><WandSparkles/></span><b>AI Studio</b><small>Plan your creation with AI</small></button>
           <button className="quick-card" onClick={() => setPage("projects")}><span className="quick-icon amber"><Folder/></span><b>My projects</b><small>Your creations</small></button>
         </div>
         <div className="section-heading"><div><h2>Recent projects</h2><p>Pick up where you left off</p></div><button className="text-link" onClick={() => setPage("projects")}>View all <span>→</span></button></div>
         <div className="recent-grid">{recent.map((name, i) => <button className="recent-card" key={name} onClick={() => { setProjectName(name); setPage("editor"); }}><div className={"recent-art art-" + i}><span>{i === 0 ? "VLOG / 01" : i === 1 ? "TECH / 02" : "MOMENTS / 03"}</span><b>{i === 0 ? "Make it a story." : i === 1 ? "Ideas in motion." : "Keep the moment."}</b></div><div className="recent-info"><span><b>{name}</b><small>{i === 0 ? "Edited recently" : i === 1 ? "Yesterday" : "2 days ago"}</small></span><span className="more-dots">•••</span></div></button>)}</div>
+      </section>}
+
+      {page === "ai" && <section className="page-content ai-studio-page">
+        <div className="page-title-row"><div><div className="eyebrow">STAGE 1 · IDEA & CREATIVE DIRECTION</div><h1>NEXUS AI Studio <span>✦</span></h1><p>Develop the idea, review every scene, and approve the plan before editing begins.</p></div><button className="outline-button" onClick={()=>{setAiPlan(null);setAiWorkflowStage("idea");setAiChatMessages([{role:"assistant",text:"New idea ready. What would you like to create?"}]);setAiBrief("");}}>＋ New idea</button></div>
+        <div className="ai-live-steps"><div className={aiWorkflowStage==="idea"?"current": "complete"}><b>01</b><span>Idea & brief</span><small>Understand what you want</small></div><div className={aiWorkflowStage==="planning"?"current":aiWorkflowStage==="review"||aiWorkflowStage==="editing"?"complete":""}><b>02</b><span>Creative plan</span><small>Scenes, visuals and narration</small></div><div className={aiWorkflowStage==="review"?"current":aiWorkflowStage==="editing"?"complete":""}><b>03</b><span>Review & approve</span><small>Request changes or approve</small></div><div className={aiWorkflowStage==="editing"?"current":""}><b>04</b><span>Editing workspace</span><small>Build the timeline</small></div></div>
+        <div className="ai-studio-layout">
+          <div className="ai-studio-chat">
+            <div className="ai-studio-chat-head"><span className="ai-studio-orb"><Sparkles size={19}/></span><div><b>NEXUS CREATIVE PARTNER</b><small>IDEA DEVELOPMENT · LIVE WORKFLOW GUIDANCE</small></div><span className="ai-studio-stage">STAGE 1 / 3</span></div>
+            <div className="ai-studio-messages">{aiChatMessages.map((m,i)=><article key={i} className={"ai-studio-message "+m.role}><b>{m.role==="assistant"?"NEXUS AI":"YOU"}</b><p>{m.text}</p></article>)}</div>
+            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message, style or the change you want..." rows={3}/><button onClick={()=>{
+              const message=aiBrief.trim(); if(!message)return;
+              setAiChatMessages(old=>[...old,{role:"user",text:message}]);
+              if(!aiPlan){setAiWorkflowStage("planning");createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"I’ve drafted the creative blueprint. Review the scenes and visual direction on the right. You can ask for changes before approving it. Note: this deployment currently uses a local planning engine, not a connected generative AI model."}]);}
+              else {const lower=message.toLowerCase();let response="I’ve recorded your change request. The current planning engine supports simple structural revisions; deeper creative rewrites need the connected AI model.";let next=aiPlan;
+                if(/add (a )?scene|another scene/.test(lower)){const label=message.replace(/add (a )?scene( about| for| showing)?/i,"").trim()||"Additional scene";next={...next,scenes:[...next.scenes,{title:label.slice(0,48),visual:"A focused visual sequence showing "+label,narration:"Connect this moment to the main story and reinforce its message.",searchTerms:[label,next.title],fallback:"An editable NEXUS title card with supporting shapes and text"}]};response="Added a scene to the blueprint. Check its visuals and narration, then tell me if you want anything else changed.";}
+                else if(/remove (the )?(last )?scene|delete (the )?(last )?scene/.test(lower)&&next.scenes.length>1){next={...next,scenes:next.scenes.slice(0,-1)};response="Removed the last scene from the blueprint.";}
+                else if(/shorter|shorten/.test(lower)){next={...next,duration:Math.max(10,Math.round(next.duration*.75))};response="Shortened the target duration. Review the updated blueprint.";}
+                else if(/longer|extend/.test(lower)){next={...next,duration:Math.min(180,Math.round(next.duration*1.25))};response="Extended the target duration. Review the updated blueprint.";}
+                else {const match=lower.match(/(\d+)\s*(seconds?|secs?)\b/);if(match){next={...next,duration:Math.min(180,Math.max(10,Number(match[1])))};response="Updated the target duration to "+next.duration+" seconds.";}}
+                setAiPlan(next);setAiChatMessages(old=>[...old,{role:"assistant",text:response}]);
+              }
+              setAiBrief("");
+            }}><Sparkles size={15}/> Send</button></div>
+            <small className="ai-studio-hint">Each step is shown above as the project moves forward. Enter a change request any time before approval.</small>
+          </div>
+          <aside className="ai-studio-plan"><div className="ai-studio-plan-head"><div><div className="eyebrow">CREATIVE BLUEPRINT</div><h2>{aiPlan?.title||"Your idea, mapped out"}</h2></div><span className="ai-studio-stage">LIVE PLAN</span></div>
+            {!aiPlan?<div className="ai-studio-empty"><Sparkles size={28}/><b>Your visual plan will appear here</b><p>First, share the idea. The plan will show the story structure, scene-by-scene visuals, narration, media search terms and fallback options.</p><div><span>✓ Understand the brief</span><span>✓ Map the story</span><span>✓ Plan visuals and narration</span><span>✓ Review before editing</span></div></div>:<>
+              <div className="ai-studio-plan-meta"><span>{aiPlan.duration}s target</span><span>{aiPlan.scenes.length} scenes</span><span>{aiFormat}</span><span>{aiStyle}</span></div>
+              <div className="ai-studio-scenes">{aiPlan.scenes.map((scene,i)=><article key={i}><div className="ai-studio-scene-title"><b>{String(i+1).padStart(2,"0")} · {scene.title}</b><span>{Math.round(aiPlan.duration/aiPlan.scenes.length)}s</span></div><p><strong>Visuals</strong>{scene.visual}</p><p><strong>Voice / script</strong>{scene.narration}</p><small>Search: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}</div>
+              <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p><div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={()=>{setAiWorkflowStage("editing");buildAIProjectTimeline();}}>Approve & build timeline <ArrowRight size={15}/></button></div>
+            </>}
+          </aside>
+        </div>
+        <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The timeline is not created until you approve this blueprint. The AI planning page is separate from the editor.</p>
       </section>}
 
       {page === "editor" && <section className="editor-fullscreen">
