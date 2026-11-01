@@ -487,3 +487,21 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .ai-editor-trigger{display:flex;align-items:center;gap:5px}
 .ai-editor-trigger span{font-size:10px;font-weight:800}
 @media(max-width:650px){.ai-editor-drawer{top:54px;right:6px;bottom:6px;width:calc(100% - 12px);padding:12px;border-radius:13px}.ai-editor-trigger span{display:none}}
+
+/* Integrated AI guidance strip inside the editor workspace */
+.nexus-ai-inline{position:relative;z-index:2;margin:0 12px 10px;padding:11px 13px;border:1px solid #55447e;border-radius:13px;background:linear-gradient(110deg,rgba(112,76,177,.16),rgba(44,93,139,.13))}
+.nexus-ai-inline-head{display:flex;align-items:center;gap:9px;min-width:0}
+.nexus-ai-mark{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;border-radius:9px;background:rgba(164,124,255,.2);color:#d0b5ff}
+.nexus-ai-inline-head>div:nth-child(2){display:grid;gap:3px;min-width:0}
+.nexus-ai-inline-head b{font-size:10px;letter-spacing:.5px}
+.nexus-ai-inline-head small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:8px}
+.nexus-ai-quick-prompts{display:flex;gap:5px;margin-left:auto}
+.nexus-ai-quick-prompts button{padding:6px 8px;border:1px solid var(--border);border-radius:20px;background:rgba(255,255,255,.035);color:var(--muted);font-size:8px}
+.nexus-ai-close{display:grid;place-items:center;padding:5px;border:0;background:transparent;color:var(--muted)}
+.nexus-ai-inline-compose{display:flex;gap:7px;margin-top:9px}
+.nexus-ai-inline-compose input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:9px;outline:none;background:rgba(5,7,16,.45);color:var(--text);font:inherit;font-size:10px}
+.nexus-ai-inline-compose input:focus{border-color:#9270e8}
+.nexus-ai-inline-compose button{display:flex;align-items:center;gap:6px;padding:0 13px;border:0;border-radius:9px;background:linear-gradient(100deg,#8756e8,#476de2);color:#fff;font-size:9px;font-weight:750}
+.nexus-ai-inline>p{margin:7px 0 0;color:var(--muted);font-size:8px}
+.ai-editor-trigger.active{border-color:#8d6bd0;color:#d5c1ff;background:rgba(153,111,255,.16)}
+@media(max-width:600px){.nexus-ai-inline{margin:0 6px 7px;padding:9px}.nexus-ai-quick-prompts button{font-size:7px;padding:5px 6px}.nexus-ai-inline-head{gap:6px}.nexus-ai-inline-head small{max-width:170px}}
