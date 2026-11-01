@@ -7,6 +7,7 @@ export function detectEngineStack(): EngineStack {
  const audioContext=browser&&(!!window.AudioContext||!!(window as typeof window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext);
  const webgl=supportsWebGL(); const canvas2d=typeof document!=="undefined"&&!!document.createElement("canvas").getContext("2d");
  return {
+  checkedAt:new Date().toISOString(),
   editing:{name:"Editing Engine",active:webCodecs?"WebCodecs adapter":"HTML media adapter",fallback:webCodecs?"HTML media adapter":"browser-native media playback",mode:webCodecs?"primary":"fallback",available:browser,note:webCodecs?"WebCodecs detected; timeline composition and MP4 muxing remain separate tasks.":"Using native browser media playback; frame-accurate export is not available yet."},
   audio:{name:"Audio Engine",active:audioContext?"Web Audio API":"HTMLMediaElement audio",fallback:audioContext?"HTMLMediaElement audio":"browser-native audio playback",mode:audioContext?"primary":"fallback",available:browser,note:audioContext?"Web Audio is available for gain, mixing and effects integration.":"Using native media audio controls as the compatibility fallback."},
   graphics:{name:"Graphics Engine",active:webgl?"WebGL":canvas2d?"Canvas 2D":"DOM/CSS",fallback:webgl?"Canvas 2D / DOM-CSS":"DOM/CSS",mode:webgl?"primary":"fallback",available:webgl||canvas2d||browser,note:webgl?"WebGL detected; Canvas 2D and DOM/CSS remain the fallback path.":canvas2d?"Canvas 2D selected as the graphics fallback.":"DOM/CSS overlays selected as the compatibility fallback."}
