@@ -47,6 +47,11 @@ export default function App() {
   const [exportFps, setExportFps] = useState("30 FPS");
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
+  const [aiBrief, setAiBrief] = useState("");
+  const [aiFiles, setAiFiles] = useState<File[]>([]);
+  const [aiStyle, setAiStyle] = useState("Cinematic");
+  const [aiFormat, setAiFormat] = useState("9:16");
+  const [aiMode, setAiMode] = useState("create");
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -221,7 +226,53 @@ export default function App() {
 
       {page === "templates" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">A LITTLE CREATIVE INSPIRATION</div><h1>Explore templates</h1><p>Choose a starting point for your next story.</p></div></div><div className="category-tabs">{["All", "Lifestyle", "Gaming", "Business"].map(c => <button key={c} className={templateCategory === c ? "tab-active" : ""} onClick={() => setTemplateCategory(c)}>{c}</button>)}</div><div className="template-grid">{filteredTemplates.map(t => <button className="template-card" key={t.name} onClick={() => { setProjectName(t.name); setPage("editor"); setStatus("Template selected — add your own media to begin"); }}><div className={"template-art " + t.color}><span className="template-play"><Play size={18} fill="currentColor"/></span><small>{t.length}</small></div><div><b>{t.name}</b><small>{t.type} · Template preview</small></div></button>)}</div></section>}
 
-      {page === "ai" && <section className="page-content"><div className="ai-hero"><span className="ai-symbol"><Sparkles size={26}/></span><div className="eyebrow">CREATIVE INTELLIGENCE</div><h1>Meet your <em>AI Studio.</em></h1><p>Creative tools to help you plan, refine and find your next big idea.</p></div><div className="ai-tool-grid">{[{icon:WandSparkles,title:"Creative assistant",desc:"Get ideas and direction for your next edit."},{icon:Activity,title:"Edit insights",desc:"Explore ways to improve your video story."},{icon:Layers,title:"Scene planner",desc:"Organise your ideas into a clear sequence."},{icon:Compass,title:"Style explorer",desc:"Discover visual directions and moods."}].map(item => {const Icon=item.icon;return <button className="ai-tool-card" key={item.title} onClick={() => setStatus(item.title + " — this tool will be connected in a later feature phase")}><span><Icon size={21}/></span><b>{item.title}</b><small>{item.desc}</small><i>Explore <span>→</span></i></button>;})}</div></section>}
+      {page === "ai" && <section className="page-content ai-workspace-page">
+        <div className="ai-workspace-heading">
+          <div><div className="eyebrow"><Sparkles size={13}/> NEXUS CREATIVE INTELLIGENCE</div><h1>Your AI editing <em>workspace.</em></h1><p>Bring your idea and your own media. NEXUS will help you plan, organise and learn every step of the edit.</p></div>
+          <span className="ai-status-pill"><i/> AI workspace preview</span>
+        </div>
+        <div className="ai-mode-switch">
+          <button className={aiMode==="create"?"selected":""} onClick={()=>setAiMode("create")}><WandSparkles size={17}/> Create a project</button>
+          <button className={aiMode==="guide"?"selected":""} onClick={()=>setAiMode("guide")}><HelpCircle size={17}/> Teach me to edit</button>
+          <button className={aiMode==="ask"?"selected":""} onClick={()=>setAiMode("ask")}><Compass size={17}/> Ask editing AI</button>
+        </div>
+        <div className="ai-workspace-grid">
+          <div className="ai-setup-column">
+            {aiMode==="create" ? <>
+              <div className="ai-panel-card">
+                <div className="ai-panel-title"><span className="ai-step-number">01</span><div><b>Describe the video you imagine</b><small>Write naturally. You don't need editing terms.</small></div></div>
+                <textarea className="ai-brief-input" value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Example: Make a warm birthday video from my photos and clips. Start with the best moments, add gentle music, smooth transitions and a beautiful title..."/>
+                <div className="ai-prompt-suggestions"><span>Try an idea:</span>{["Birthday memories","Product promotion","Travel recap","Short social video"].map(x=><button key={x} onClick={()=>setAiBrief(x==="Birthday memories"?"Create an emotional birthday memories video using my photos and clips, with gentle music and elegant titles.":x==="Product promotion"?"Create a clean product promotion video that introduces the product, highlights its key features and ends with a clear call to action.":x==="Travel recap"?"Create an exciting travel recap from my clips and photos, with energetic pacing, location titles and music.":"Create a short vertical social video with an engaging opening, captions and a strong ending.")}>{x}</button>)}</div>
+              </div>
+              <div className="ai-panel-card">
+                <div className="ai-panel-title"><span className="ai-step-number">02</span><div><b>Add your own media</b><small>Photos, video clips and audio you want to use.</small></div></div>
+                <label className="ai-media-drop"><input type="file" accept="image/*,video/*,audio/*" multiple onChange={e=>setAiFiles(old=>[...old,...Array.from(e.target.files||[])])}/><span><Upload size={22}/></span><b>Add photos, videos or audio</b><small>Choose files from your device · Multiple files supported</small></label>
+                {aiFiles.length>0 && <div className="ai-selected-files">{aiFiles.map((f,i)=><div key={i}><span>{f.type.startsWith("audio/")?<Music2 size={15}/>:f.type.startsWith("image/")?<ImageIcon size={15}/>:<Film size={15}/>}</span><b>{f.name}</b><small>{(f.size/1048576).toFixed(1)} MB</small><button onClick={()=>setAiFiles(old=>old.filter((_,n)=>n!==i))} aria-label={"Remove "+f.name}><X size={14}/></button></div>)}</div>}
+              </div>
+              <div className="ai-panel-card">
+                <div className="ai-panel-title"><span className="ai-step-number">03</span><div><b>Choose your creative direction</b><small>These are starting preferences. You can change them later.</small></div></div>
+                <div className="ai-preference-row"><label>Visual mood</label><div className="ai-choice-chips">{["Cinematic","Energetic","Clean","Soft & emotional","Documentary"].map(x=><button className={aiStyle===x?"chosen":""} key={x} onClick={()=>setAiStyle(x)}>{x}</button>)}</div></div>
+                <div className="ai-preference-row"><label>Video format</label><div className="ai-choice-chips">{["9:16","16:9","1:1","4:5"].map(x=><button className={aiFormat===x?"chosen":""} key={x} onClick={()=>setAiFormat(x)}>{x}</button>)}</div></div>
+              </div>
+              <button className="ai-create-project-button" onClick={()=>{
+                const usable=aiFiles.filter(f=>/^(video|audio|image)\//.test(f.type));
+                if(!usable.length){setStatus("Add at least one photo, video or audio file to start your project.");return;}
+                const nextAssets:MediaAsset[]=usable.map(file=>({id:uid(),name:file.name,kind:file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":"image",duration:file.type.startsWith("image/")?5:0,mimeType:file.type,file,objectUrl:URL.createObjectURL(file)}));
+                let cursor=0;
+                const nextClips:TimelineClip[]=nextAssets.map(a=>{const d=a.kind==="image"?5:0;const c:TimelineClip={id:uid(),assetId:a.id,trackId:a.kind==="audio"?"audio-1":"video-1",start:cursor,sourceIn:0,sourceOut:d||5,label:a.name};cursor+=d||5;return c;});
+                setProjectName("AI Draft — "+(aiBrief.trim().slice(0,30)||"New video"));
+                setAssets(nextAssets);setClips(nextClips);setSelected(nextClips[0]?.id||null);setPlayhead(0);setAspectRatio(aiFormat);setActiveTool("edit");setEditorView("workspace");setPage("editor");
+                setStatus("Starter project created from your selected media. AI analysis and automatic arrangement will connect in the engine phase.");
+              }}><WandSparkles size={19}/> Prepare my editing project <span>→</span></button>
+              <p className="ai-engine-note"><CheckCircle2 size={14}/> Your files stay in your project. This UI creates a starter timeline; AI media analysis and automatic editing are the next engine phase.</p>
+            </> : aiMode==="guide" ? <div className="ai-panel-card ai-coming-panel"><span><HelpCircle size={28}/></span><h2>Learn while you edit</h2><p>Choose a tool in the editor and NEXUS AI will guide you through it one step at a time, highlight the right control and explain what each action does.</p><div className="ai-guide-examples"><span>Keyframes</span><span>Text & captions</span><span>Audio mixing</span><span>Transitions</span><span>Colour grading</span></div><button onClick={()=>setPage("editor")}>Open editing workspace <ArrowDownToLine size={16}/></button><small>Guided actions and live workspace awareness will be connected to the editing engine.</small></div> : <div className="ai-panel-card ai-coming-panel"><span><Compass size={28}/></span><h2>Ask NEXUS about editing</h2><p>Ask how to achieve an effect, improve a scene, choose a transition or fix an editing problem.</p><textarea className="ai-brief-input" value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="How do I make this clip slowly zoom in?"/><button onClick={()=>setStatus("AI question interface is designed. The AI assistant connection comes in the next engine phase.")}>Prepare question <ArrowRight size={16}/></button><small>The assistant will use your active project context once the AI engine is connected.</small></div>}
+          </div>
+          <aside className="ai-plan-column">
+            <div className="ai-plan-card"><div className="ai-plan-top"><span><Sparkles size={17}/></span><b>How NEXUS will help</b></div><ol><li><i>1</i><div><b>Understand your idea</b><small>Read your brief and identify the type of video you want.</small></div></li><li><i>2</i><div><b>Review your media</b><small>Inspect supported clips, images, audio and their details.</small></div></li><li><i>3</i><div><b>Prepare an editable plan</b><small>Suggest scene order, tracks, titles, music and transitions.</small></div></li><li><i>4</i><div><b>Guide you in the editor</b><small>Highlight controls and help you make each change yourself.</small></div></li></ol><div className="ai-plan-foot"><CheckCircle2 size={15}/> You stay in control. Nothing is flattened into a finished video.</div></div>
+            <div className="ai-capability-card"><div><Activity size={17}/><b>Designed for beginners and pros</b></div><p>Start with guided help, then take full manual control whenever you're ready.</p><div className="ai-capability-tags"><span>Editable timeline</span><span>Step-by-step help</span><span>Undo-friendly actions</span></div></div>
+          </aside>
+        </div>
+      </section>}
 
       {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="theme-picker-block">
             <div className="theme-picker-heading"><b>Colour theme</b><small>Pick the colour style for your entire workspace.</small></div>
