@@ -134,8 +134,8 @@ export default function App() {
       setActiveTool("text"); setActiveSubtool("add"); setOverlayText("Your text");
       setAiReply("Text editing is open and the preview text is ready to customise. Important: this text is currently a preview overlay, not yet a saved timeline text layer."); return;
     }
-    const ratioMatch = request.match(/\\b(9:16|16:9|1:1|4:5|3:4)\\b/);
-    if (ratioMatch && /\\b(ratio|format|canvas|aspect)\\b/.test(request)) {
+    const ratioMatch = request.match(/\b(9:16|16:9|1:1|4:5|3:4)\b/);
+    if (ratioMatch && /\b(ratio|format|canvas|aspect)\b/.test(request)) {
       setAspectRatio(ratioMatch[1]); setActiveTool("ratio"); setActiveSubtool(ratioMatch[1]);
       setAiReply("Canvas preview ratio changed to " + ratioMatch[1] + ". Export rendering is not connected yet."); return;
     }
