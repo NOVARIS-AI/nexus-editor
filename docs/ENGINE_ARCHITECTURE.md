@@ -155,3 +155,34 @@ LumaFusion: advanced audio mixing, colour scopes/LUTs, keyframes and multilayer 
 - VN editing guide: https://vlognow.me/help/getting-started/editing-101/
 - Adobe Premiere features: https://www.adobe.com/products/premiere/features.html
 - LumaFusion features: https://apps.apple.com/us/app/lumafusion/id1062022008
+
+## 12. AI-assisted media sourcing (including projects with no user media)
+
+Product rule: the AI must attempt a safe, useful media-sourcing path before asking the user to provide assets. An empty personal media library is a supported starting state, not a blocker.
+
+### Sourcing order
+
+1. Inspect the user's brief and create a scene-by-scene asset requirement list (subject, shot type, duration, orientation, mood, audio needs and intended platform).
+2. Search configured, approved stock-media providers and public-domain/Creative Commons catalogues through their documented APIs or permitted search interfaces.
+3. For every candidate, retain the original source page, creator/provider, asset identifier, licence name and URL, attribution text/requirements, permitted uses, download/API restrictions and retrieval date.
+4. Prefer assets whose licence and provider terms explicitly permit the intended use and the app's planned workflow. Do not treat a search-result thumbnail or a publicly viewable video as permission to download, edit or redistribute it.
+5. If direct import/download is not permitted or technically unavailable, show the source link and explain the user's next step. Do not bypass paywalls, DRM, access controls, platform download restrictions or copyright protections.
+6. If no suitable reusable media is found, fill the gap with editor-native graphics (text, shapes, colour/gradient backgrounds and simple motion) and clearly identify those scenes as generated in-editor. If an approved image-generation provider is later integrated, generated stills may be offered as a separate, labelled source type.
+7. Ask the user to supply media only for specific unresolved requirements, such as footage of themselves, a private event, a particular product, or a copyrighted clip they own or are authorised to use.
+
+### User experience and project model
+
+- Offer two entry paths in the same editor: "Use my media" and "Find media for me". The second path must work when the asset library is empty.
+- Before sourcing, explain that AI will search for reusable assets and show a brief of what it intends to find. Ask permission before downloading/importing files or using a provider that requires account access, payment or personal data.
+- Display source labels on every imported asset: Personal, Stock, Public domain/Creative Commons, or AI-generated. Keep source URL, creator, licence, attribution and retrieval metadata attached to the asset and preserved in the project.
+- Show licence/attribution notes before export and include required credits in the project/export workflow where the licence requires them. Flag assets whose licence is unknown or incompatible; do not silently include them in an export.
+- Search results are candidates, not guaranteed assets. Verify file type, dimensions, duration, availability and licence metadata before adding them to the project.
+- Keep sourcing cancellable and asynchronous. Run network discovery/download work away from the interactive editing thread, limit concurrency, cache verified metadata, enforce file-size/time limits, and release temporary resources. Network failure must never freeze the editor.
+- If the user is offline, provider APIs fail, or no suitable assets exist, continue with editor-native fallback scenes and clearly explain what is missing.
+- Never claim that a source was found, licensed, downloaded, imported or added unless the relevant operation actually succeeded.
+
+### Provider integration boundary
+
+Create provider adapters behind a common interface rather than scraping arbitrary sites. Each adapter must document API terms, authentication, rate limits, licence metadata quality, download permissions, attribution requirements and regional availability. Keep provider credentials on a trusted server where required; never ship secret API keys in the browser bundle. Add provider-specific tests and a manual review path for uncertain licence records.
+
+Acceptance gate: a no-media brief produces an editable storyboard/project draft; each external asset is traceable to its source and licence; restricted/unknown assets are not silently downloaded or exported; missing results trigger a useful in-editor fallback; and slow or failed searches do not block normal editing.
