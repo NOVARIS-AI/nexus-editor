@@ -8,6 +8,9 @@ export interface SourcedMediaResult {
   license: string;
   licenseUrl: string;
   attribution: string;
+  mediaKind: "image" | "video";
+  mimeType: string;
+  downloadUrl: string;
 }
 
 type CommonsResponse = {
@@ -18,7 +21,7 @@ const plain = (value?: string) => (value || "").replace(/<[^>]*>/g, " ").replace
 
 export async function searchWikimediaCommons(query: string, signal?: AbortSignal): Promise<SourcedMediaResult[]> {
   const params = new URLSearchParams({
-    action: "query", generator: "search", gsrsearch: query + " filetype:bitmap",
+    action: "query", generator: "search", gsrsearch: query,
     gsrnamespace: "6", gsrlimit: "10", prop: "imageinfo", iiprop: "url|extmetadata",
     iiurlwidth: "640", format: "json", origin: "*"
   });
@@ -29,15 +32,18 @@ export async function searchWikimediaCommons(query: string, signal?: AbortSignal
     const info = page.imageinfo?.[0];
     const meta = info?.extmetadata || {};
     const thumbnailUrl = info?.thumburl || info?.url;
+    const downloadUrl = info?.url;
+    const mimeType = plain(meta.MIMEType?.value) || "";
+    const mediaKind = mimeType.startsWith("video/") ? "video" : mimeType.startsWith("image/") ? "image" : null;
     const license = plain(meta.LicenseShortName?.value);
-    if (!thumbnailUrl || !license) return [];
+    if (!thumbnailUrl || !downloadUrl || !license || !mediaKind) return [];
     const creator = plain(meta.Artist?.value);
     const attribution = plain(meta.Attribution?.value || meta.Credit?.value || creator);
     return [{
       id: String(page.pageid), title: page.title.replace(/^File:/, ""),
       fileName: page.title.replace(/^File:/, ""), thumbnailUrl,
       pageUrl: info?.descriptionurl || "https://commons.wikimedia.org/wiki/" + encodeURIComponent(page.title.replace(/ /g, "_")),
-      creator, license, licenseUrl: plain(meta.LicenseUrl?.value), attribution
+      creator, license, licenseUrl: plain(meta.LicenseUrl?.value), attribution, mediaKind, mimeType, downloadUrl
     }];
   });
 }
