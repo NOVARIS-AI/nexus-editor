@@ -127,7 +127,7 @@ export default function App() {
     }
     if (/\b(delete|remove)\b/.test(request) && /\b(clip|selected)\b/.test(request)) {
       if (!selectedClip) { setAiReply("Select the clip you want to remove first."); return; }
-      setClips(old => old.filter(c => c.id !== selectedClip.id)); setSelected(null);
+      applyClipChange(clips.filter(c => c.id !== selectedClip.id), "Clip removed from timeline. You can undo this."); setSelected(null);
       setAiReply("Removed “" + selectedClip.label + "” from the timeline."); return;
     }
     if (/\b(add|insert|create)\b.*\b(text|title)\b|\b(text|title)\b.*\b(add|insert|create)\b/.test(request)) {
@@ -153,25 +153,6 @@ export default function App() {
       return;
     }
     setAiReply("I don’t have a connected language model in this build yet. I can understand a limited set of editor commands: split clip, mute/unmute preview, delete selected clip, add text overlay, change ratio, open a tool, or guide me.");
-  }
-  function handleAIRequest(raw = aiBrief) {
-    if (!raw.trim()) return;
-    const intent = understandEditorRequest(raw);
-    if (intent.type === "guide") {
-      if (!clips.length) { setActiveTool("media"); setShowAttachmentPicker(true); setStatus("Let's start with your own media. Import a video or photo, then I'll guide the next step."); }
-      else if (!selectedClip) { setActiveTool("edit"); setStatus("Select a clip on the timeline first. I'll then guide you using that clip."); }
-      else { setActiveTool("edit"); setActiveSubtool("select"); setStatus("Your clip is selected. Try Edit → Split to cut at the playhead, or tell me the change you want."); }
-      return;
-    }
-    if (intent.type === "split-selected") { split(); return; }
-    if (intent.type === "delete-selected") {
-      if (!selectedClip) { setStatus("Select a clip first so I know what to remove."); return; }
-      applyClipChange(clips.filter(c => c.id !== selected), "AI removed the selected clip. You can undo this."); setSelected(null); return;
-    }
-    if (intent.type === "toggle-mute") { setMuteClip(v => !v); setActiveTool("edit"); setActiveSubtool("volume"); setStatus("Clip mute setting toggled."); return; }
-    if (intent.type === "select-tool") { setActiveTool(intent.tool); setActiveSubtool(""); setStatus("Opened " + intent.tool + " tools. Choose a control in the ribbon above the tool dock."); return; }
-    if (intent.type === "set-ratio") { setAspectRatio(intent.ratio); setActiveTool("ratio"); setStatus("Canvas ratio changed to " + intent.ratio + "."); return; }
-    setStatus(intent.reason);
   }
   async function openProject(file?: File) {
     if (!file) return;
