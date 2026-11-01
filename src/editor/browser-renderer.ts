@@ -59,7 +59,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         imageByClip.set(clip.id, image);
       } else if (asset.kind === "video") {
         const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = true; video.playsInline = true; video.preload = "auto";
-        await waitForMedia(video); mediaByClip.set(clip.id, video); activeVideos.push(video);
+        await waitForMedia(video); const source = audioContext.createMediaElementSource(video); const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination); video.muted = false; mediaByClip.set(clip.id, video); activeVideos.push(video); audioNodes.set(clip.id, { element: video, gain });
       } else {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
         await waitForMedia(audio);
