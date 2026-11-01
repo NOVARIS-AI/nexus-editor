@@ -542,3 +542,5 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-modes{display:flex;gap:3px;margin-left:auto;padding:3px;border-radius:9px;background:rgba(120,110,180,.1)}
 .nexus-ai-modes button{padding:5px 8px;border:0;border-radius:6px;background:transparent;color:inherit;font-size:10px}
 .nexus-ai-modes button.active{background:rgba(130,105,255,.24);color:var(--text,#fff)}
+
+.nexus-ai-storyboard .nexus-ai-plan-button{width:100%;margin-top:4px;min-height:38px}
