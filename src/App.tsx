@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  Activity, ArrowDownToLine, ArrowLeft, Bell, Check, ChevronDown, Clapperboard,
+  Activity, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Check, ChevronDown, Clapperboard,
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Settings,
   SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X,
