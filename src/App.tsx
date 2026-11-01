@@ -7,6 +7,7 @@ import {
   Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines
 } from "lucide-react";
 import type { MediaAsset, TimelineClip } from "./types";
+import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -59,6 +60,10 @@ export default function App() {
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string }[]; sourcingNote: string }>(null);
+  const [mediaSearchQuery, setMediaSearchQuery] = useState("");
+  const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
+  const [mediaSearchStatus, setMediaSearchStatus] = useState("");
+  const [mediaSearchBusy, setMediaSearchBusy] = useState(false);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -144,6 +149,32 @@ export default function App() {
     const right = { ...selectedClip, id: uid(), start: playhead, sourceIn: at, label: selectedClip.label + " (split)" };
     applyClipChange([...clips.map(c => c.id === selected ? { ...c, sourceOut: at } : c), right], "Clip split successfully");
     setSelected(right.id);
+  }
+  async function findOnlineMedia(query = mediaSearchQuery) {
+    const term = query.trim();
+    if (!term) { setMediaSearchStatus("Enter a subject or scene to search for."); return; }
+    setMediaSearchBusy(true); setMediaSearchStatus("Searching Wikimedia Commons for reusable media…");
+    try {
+      const results = await searchWikimediaCommons(term);
+      setMediaSearchResults(results);
+      setMediaSearchStatus(results.length ? results.length + " candidate(s) found. Check each licence and attribution before use." : "No suitable reusable results found. Try another search phrase or use the storyboard fallback.");
+    } catch (error) {
+      setMediaSearchStatus(error instanceof Error ? error.message : "Online search failed. You can still use editor-native scenes.");
+    } finally { setMediaSearchBusy(false); }
+  }
+  async function addSourcedImage(item: SourcedMediaResult) {
+    try {
+      const response = await fetch(item.thumbnailUrl);
+      if (!response.ok) throw new Error("The source image could not be downloaded.");
+      const blob = await response.blob();
+      const file = new File([blob], item.fileName || "commons-image.jpg", { type: blob.type || "image/jpeg" });
+      const objectUrl = URL.createObjectURL(file);
+      const sourced: MediaAsset = { id: uid(), name: item.title, kind: "image", duration: 5, mimeType: file.type, file, objectUrl, source: { type: "commons", pageUrl: item.pageUrl, creator: item.creator, license: item.license, licenseUrl: item.licenseUrl, attribution: item.attribution } };
+      setAssets(old => [...old, sourced]);
+      setStatus("Added licensed-source image: " + item.title);
+    } catch (error) {
+      setMediaSearchStatus(error instanceof Error ? error.message : "Could not import this source image.");
+    }
   }
   function createAIProjectPlan() {
     const brief = aiBrief.trim();
@@ -323,7 +354,13 @@ export default function App() {
               </div>
               <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
               <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
-              {aiPlan && <div className="nexus-ai-storyboard">
+              {aiPlan && <div className="nexus-ai-online-search">
+                <b>Find media online</b>
+                <div><input value={mediaSearchQuery} onChange={e=>setMediaSearchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")findOnlineMedia();}} placeholder="Search a scene or subject…"/><button disabled={mediaSearchBusy} onClick={()=>findOnlineMedia()}>{mediaSearchBusy?"Searching…":"Search"}</button></div>
+                <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images. Video provider integrations can be added separately."}</small>
+                {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
+              </div>
+              <div className="nexus-ai-storyboard">
                 <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
                 <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
