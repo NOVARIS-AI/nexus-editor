@@ -123,8 +123,8 @@ export default function App() {
     const at = selectedClip.sourceIn + playhead - selectedClip.start;
     if (at <= selectedClip.sourceIn + .04 || at >= selectedClip.sourceOut - .04) { setStatus("Place the playhead inside the clip to split"); return; }
     const right = { ...selectedClip, id: uid(), start: playhead, sourceIn: at, label: selectedClip.label + " (split)" };
-    setClips(old => [...old.map(c => c.id === selected ? { ...c, sourceOut: at } : c), right]);
-    setSelected(right.id); setStatus("Clip split successfully");
+    applyClipChange([...clips.map(c => c.id === selected ? { ...c, sourceOut: at } : c), right], "Clip split successfully");
+    setSelected(right.id);
   }
   function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
@@ -172,10 +172,8 @@ export default function App() {
       setAiReply(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can currently execute split, preview mute, text-overlay setup and ratio changes; I won’t pretend the other operations are applied." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
       return;
     }
-    if (/\b(undo|redo)\b/.test(request)) {
-      setAiReply("Undo and redo are not implemented in the current editing engine yet, so I have not changed anything. They are a priority in the command-history phase.");
-      return;
-    }
+    if (/\bundo\b/.test(request)) { undoEdit(); setAiReply("Undo command sent. Check the timeline to confirm the restored edit."); return; }
+    if (/\bredo\b/.test(request)) { redoEdit(); setAiReply("Redo command sent. Check the timeline to confirm the edit."); return; }
     setAiReply("I don’t have a connected language model in this build yet. I can understand a limited set of editor commands: split clip, mute/unmute preview, delete selected clip, add text overlay, change ratio, open a tool, or guide me.");
   }
   async function openProject(file?: File) {
