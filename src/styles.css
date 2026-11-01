@@ -544,3 +544,9 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-modes button.active{background:rgba(130,105,255,.24);color:var(--text,#fff)}
 
 .nexus-ai-storyboard .nexus-ai-plan-button{width:100%;margin-top:4px;min-height:38px}
+
+.nexus-ai-analysis-results{display:grid;gap:7px;padding:10px;border:1px solid rgba(70,190,220,.2);border-radius:10px}
+.nexus-ai-analysis-results>article{display:grid;gap:3px;padding:8px;border-radius:8px;background:rgba(120,110,180,.07)}
+.nexus-ai-analysis-results b{font-size:11px;overflow-wrap:anywhere}
+.nexus-ai-analysis-results small{font-size:10px;line-height:1.45;color:var(--muted,#aaa);overflow-wrap:anywhere}
+.nexus-ai-create-options button:disabled{opacity:.5}
