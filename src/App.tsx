@@ -363,7 +363,7 @@ export default function App() {
               <div className="nexus-ai-create-options">
                 <label>Creation style<select value={aiStyle} onChange={e=>setAiStyle(e.target.value)}><option>Cinematic</option><option>Documentary</option><option>Motivational</option><option>Social media</option><option>Product promo</option><option>Educational</option></select></label>
                 <label>Format<select value={aiFormat} onChange={e=>setAiFormat(e.target.value)}><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option><option>3:4</option></select></label>
-                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({aiFiles.length})</button>
+                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({assets.length})</button>
               </div>
               <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
               <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
