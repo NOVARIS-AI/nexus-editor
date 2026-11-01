@@ -31,6 +31,7 @@ export default function App() {
   const [selected, setSelected] = useState<string | null>(null);
   const [playhead, setPlayhead] = useState(0);
   const [status, setStatus] = useState("Your creative space is ready");
+  const [editorTool, setEditorTool] = useState("Media");
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [darkMode, setDarkMode] = useState(true);
@@ -136,24 +137,62 @@ export default function App() {
         <div className="recent-grid">{recent.map((name, i) => <button className="recent-card" key={name} onClick={() => { setProjectName(name); setPage("editor"); }}><div className={"recent-art art-" + i}><span>{i === 0 ? "VLOG / 01" : i === 1 ? "TECH / 02" : "MOMENTS / 03"}</span><b>{i === 0 ? "Make it a story." : i === 1 ? "Ideas in motion." : "Keep the moment."}</b></div><div className="recent-info"><span><b>{name}</b><small>{i === 0 ? "Edited recently" : i === 1 ? "Yesterday" : "2 days ago"}</small></span><span className="more-dots">•••</span></div></button>)}</div>
       </section>}
 
-      {page === "editor" && <section className="page-content editor-page">
-        <div className="editor-heading"><div><div className="eyebrow">CREATIVE WORKSPACE / EDITOR</div><h1>Make something <em>amazing.</em></h1></div><div className="editor-actions"><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={15}/> Open</button><button className="outline-button" onClick={() => downloadProject(project, assets)}><Check size={15}/> Save project</button><button className="gradient-button" onClick={() => setStatus("The full multi-track renderer is being built in a later stage.")}><ArrowDownToLine size={15}/> Export</button></div></div>
-        <div className="editor-workspace">
-          <aside className="editor-library">
-            <div className="panel-heading"><span>MEDIA LIBRARY</span><button className="mini-icon" onClick={() => input.current?.click()}><Plus size={16}/></button></div>
-            <button className="import-drop" onClick={() => input.current?.click()}><Upload size={20}/><b>Import media</b><small>Video, audio or images</small></button>
-            <input ref={input} hidden type="file" multiple accept="video/*,audio/*,image/*" onChange={e => importMedia(e.target.files)}/>
-            <div className="library-list">{assets.map(a => <div className="library-asset" key={a.id}><span className="asset-type">{a.kind === "audio" ? <Music2/> : a.kind === "image" ? <ImageIcon/> : <Film/>}</span><span className="asset-label"><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration ? clock(a.duration) : "Reading..."}</small></span><button className="mini-icon" onClick={() => add(a)}><Plus size={15}/></button></div>)}{!assets.length && <div className="empty-state">Your imported media will appear here.</div>}</div>
-          </aside>
-          <section className="editor-center">
-            <div className="canvas-top"><span>PREVIEW CANVAS</span><span>16:9 <ChevronDown size={12}/></span></div>
-            <div className="preview-stage">{asset?.kind === "video" && asset.objectUrl ? <video ref={video} src={asset.objectUrl} controls playsInline/> : asset?.kind === "image" && asset.objectUrl ? <img src={asset.objectUrl} alt="Selected media preview"/> : <div className="preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media, then add it to your timeline</small></div>}</div>
-            <div className="preview-controls"><button onClick={() => { if (video.current) { video.current.currentTime = Math.max(0, video.current.currentTime - 1); setPlayhead(Math.max(0, playhead - 1)); } }}>−1s</button><button className="round-play" onClick={() => video.current?.play()}><Play size={16} fill="currentColor"/></button><button onClick={() => { if (video.current) { video.current.currentTime += 1; setPlayhead(playhead + 1); } }}>+1s</button><span>{clock(playhead)} <i>/</i> {clock(duration)}</span><button className="mini-icon" onClick={() => setStatus("Preview fit: 16:9")}><SlidersHorizontal size={15}/></button></div>
-          </section>
-          <aside className="editor-inspector"><div className="panel-heading"><span>PROPERTIES</span><SlidersHorizontal size={15}/></div>{selectedClip ? <><div className="selected-property"><small>SELECTED CLIP</small><b>{selectedClip.label}</b><span>{asset?.kind.toUpperCase()} · {clock(clipDuration(selectedClip))}</span></div><label>Clip position <b>{clock(selectedClip.start)}</b></label><input type="range" min="0" max={Math.max(duration, 1)} step=".1" value={selectedClip.start} onChange={e => setClips(old => old.map(c => c.id === selected ? { ...c, start: Number(e.target.value) } : c))}/><label>Source in <b>{clock(selectedClip.sourceIn)}</b></label><input type="range" min="0" max={Math.max(asset?.duration || 1, 1)} step=".1" value={selectedClip.sourceIn} onChange={e => setClips(old => old.map(c => c.id === selected ? { ...c, sourceIn: Number(e.target.value) } : c))}/><label>Source out <b>{clock(selectedClip.sourceOut)}</b></label><input type="range" min={selectedClip.sourceIn} max={Math.max(asset?.duration || 1, 1)} step=".1" value={Math.min(selectedClip.sourceOut, asset?.duration || selectedClip.sourceOut)} onChange={e => setClips(old => old.map(c => c.id === selected ? { ...c, sourceOut: Number(e.target.value) } : c))}/><p className="inspector-note">Your original media stays unchanged.</p></> : <div className="empty-state">Select a clip on the timeline to edit its properties.</div>}<div className="project-spec"><small>PROJECT SETTINGS</small><p>1920 × 1080 · 30 FPS</p><p>.nexusproj project</p></div></aside>
+      {page === "editor" && <section className="page-content editor-page editor-v2">
+        <div className="editor-heading editor-v2-heading">
+          <div><div className="eyebrow">NEXUS STUDIO / EDITOR</div><h1>{projectName}</h1><p>Build your story, one layer at a time.</p></div>
+          <div className="editor-actions">
+            <button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={15}/> Open</button>
+            <button className="outline-button" onClick={() => downloadProject(project, assets)}><Check size={15}/> Save</button>
+            <button className="gradient-button" onClick={() => setStatus("Export rendering is not available yet. Your project can be saved as .nexusproj.")}><ArrowDownToLine size={15}/> Export</button>
+          </div>
         </div>
-        <div className="timeline-panel"><div className="timeline-toolbar"><div><span className="panel-heading-text">TIMELINE</span><small>{clips.length} clips · {clock(duration)} total</small></div><div><button onClick={split}><Scissors size={14}/> Split</button><button onClick={() => { setClips(old => old.filter(c => c.id !== selected)); setSelected(null); setStatus("Clip removed"); }}><Trash2 size={14}/> Delete</button><button onClick={() => { setClips([]); setSelected(null); }}><X size={14}/> Clear</button></div></div><div className="timeline-body"><div className="track-names">{defaultTracks.map(t => <div key={t.id}>{t.name}</div>)}</div><div className="track-scroll"><div className="track-content">{defaultTracks.map(t => <div className="track-row" key={t.id}>{clips.filter(c => c.trackId === t.id).map(c => <button key={c.id} className={selected === c.id ? "timeline-clip chosen" : "timeline-clip"} style={{ left: c.start * 62, width: Math.max(74, clipDuration(c) * 62) }} onClick={() => { setSelected(c.id); setPlayhead(c.start); const a = assets.find(x => x.id === c.assetId); if (a?.kind === "video" && video.current) video.current.src = a.objectUrl || ""; }}>{c.label}</button>)}</div>)}<div className="timeline-playhead" style={{ left: playhead * 62 }}/><input aria-label="Timeline playhead" className="timeline-seek" type="range" min="0" max={Math.max(duration, 1)} step=".1" value={Math.min(playhead, Math.max(duration, 1))} onChange={e => setPlayhead(Number(e.target.value))}/></div></div></div><div className="editor-status"><span className="status-dot"/>{status}</div></div>
-        <input ref={projectInput} hidden type="file" accept=".nexusproj,.json" onChange={e => openProject(e.target.files?.[0])}/>
+        <div className="editor-v2-main">
+          <section className="editor-v2-preview">
+            <div className="editor-v2-preview-top"><span>PREVIEW</span><span>9:16 <ChevronDown size={13}/></span></div>
+            <div className="editor-v2-stage">
+              {asset?.kind === "video" && asset.objectUrl ? <video ref={video} src={asset.objectUrl} controls playsInline/> : asset?.kind === "image" && asset.objectUrl ? <img src={asset.objectUrl} alt="Selected media preview"/> : <div className="preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media and add it to your timeline</small></div>}
+            </div>
+            <div className="editor-v2-transport">
+              <button onClick={() => { if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button>
+              <button className="round-play" onClick={() => { if(video.current){if(video.current.paused) void video.current.play(); else video.current.pause();}}}><Play size={16} fill="currentColor"/></button>
+              <button onClick={() => {if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button>
+              <span>{clock(playhead)} <i>/</i> {clock(duration)}</span>
+            </div>
+          </section>
+          <section className="editor-v2-timeline">
+            <div className="editor-v2-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="timeline-quick-actions">
+              <button onClick={split} title="Split selected clip"><Scissors size={15}/></button>
+              <button disabled={!selectedClip} onClick={() => {setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip deleted");}} title="Delete selected clip"><Trash2 size={15}/></button>
+              <button onClick={() => setStatus("Undo history will be added with the editing-engine phase.")} title="Undo"><ArrowLeft size={15}/></button>
+              <button onClick={() => setStatus("Redo history will be added with the editing-engine phase.")} title="Redo"><Command size={15}/></button>
+            </div></div>
+            <div className="editor-v2-ruler"><span>00:00</span><span>00:05</span><span>00:10</span><span>00:15</span><span>00:20</span></div>
+            <div className="editor-v2-track-area">
+              <div className="editor-v2-track-labels"><div>V1 <small>Video</small></div><div>V2 <small>Overlay</small></div><div>T1 <small>Text</small></div><div>A1 <small>Audio</small></div></div>
+              <div className="editor-v2-track-scroll"><div className="editor-v2-track-content">
+                {["video-1","overlay-1","text-1","audio-1"].map((trackId,i)=><div className="editor-v2-track-row" key={trackId}>
+                  {clips.filter(c=>c.trackId===trackId).map(c=><button key={c.id} className={selected===c.id?"editor-v2-clip selected":"editor-v2-clip"} style={{left:c.start*54,width:Math.max(68,clipDuration(c)*54)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}}>{c.label}</button>)}
+                  {i===2&&<span className="track-placeholder">Text layers will appear here</span>}
+                  {i===3&&clips.some(c=>c.trackId===trackId)&&<span className="waveform-placeholder" aria-label="Audio clip lane">{Array.from({length:42},(_,n)=><i key={n} style={{height:(7+(n*17%23))+"px"}}/>)}</span>}
+                </div>)}
+                <div className="editor-v2-playhead" style={{left:playhead*54}}/>
+                <input aria-label="Timeline playhead" className="editor-v2-seek" type="range" min="0" max={Math.max(duration,1)} step=".1" value={Math.min(playhead,Math.max(duration,1))} onChange={e=>setPlayhead(Number(e.target.value))}/>
+              </div></div>
+            </div>
+            <div className="editor-v2-timeline-foot"><span>Drag the playhead to choose an edit point</span><span>{clock(playhead)}</span></div>
+          </section>
+          <section className="editor-v2-tools">
+            <div className="editor-v2-tool-tabs">{[{id:"Media",icon:Film},{id:"Audio",icon:Music2},{id:"Text",icon:Command},{id:"Stickers",icon:Sparkles},{id:"Effects",icon:WandSparkles},{id:"Filters",icon:SlidersHorizontal}].map(item=>{const Icon=item.icon;return <button key={item.id} className={editorTool===item.id?"active":""} onClick={()=>{setEditorTool(item.id);if(item.id==="Media"||item.id==="Audio")input.current?.click();else setStatus(item.id+" tools are planned for the next editor phase.");}}><Icon size={17}/><span>{item.id}</span></button>;})}</div>
+            <div className="editor-v2-library">
+              <div className="editor-v2-library-head"><b>{editorTool} library</b><button className="mini-icon" onClick={()=>input.current?.click()}><Plus size={16}/></button></div>
+              <input ref={input} hidden type="file" multiple accept="video/*,audio/*,image/*" onChange={e=>importMedia(e.target.files)}/>
+              {assets.length? <div className="editor-v2-assets">{assets.filter(a=>editorTool==="Audio"?a.kind==="audio":editorTool==="Media"?true:false).map(a=><button key={a.id} className="editor-v2-asset" onClick={()=>add(a)}><span>{a.kind==="audio"?<Music2 size={18}/>:a.kind==="image"?<ImageIcon size={18}/>:<Film size={18}/>}</span><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?clock(a.duration):"Reading…"}</small><Plus size={15}/></button>)}{!assets.some(a=>editorTool==="Audio"?a.kind==="audio":editorTool==="Media")&&<small className="editor-v2-hint">No {editorTool.toLowerCase()} imported yet. Use + to import files.</small>}</div>:<button className="editor-v2-import" onClick={()=>input.current?.click()}><Upload size={18}/><b>Import media</b><small>Video, audio and images from your device</small></button>}
+            </div>
+          </section>
+          <aside className="editor-v2-properties"><div className="panel-heading"><span>CLIP PROPERTIES</span><SlidersHorizontal size={15}/></div>{selectedClip?<><div className="selected-property"><small>SELECTED CLIP</small><b>{selectedClip.label}</b><span>{asset?.kind.toUpperCase()||"MEDIA"} · {clock(clipDuration(selectedClip))}</span></div><label>Position <b>{clock(selectedClip.start)}</b></label><input type="range" min="0" max={Math.max(duration,1)} step=".1" value={selectedClip.start} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,start:Number(e.target.value)}:c))}/><label>Trim start <b>{clock(selectedClip.sourceIn)}</b></label><input type="range" min="0" max={Math.max(asset?.duration||1,1)} step=".1" value={selectedClip.sourceIn} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceIn:Number(e.target.value)}:c))}/><label>Trim end <b>{clock(selectedClip.sourceOut)}</b></label><input type="range" min={selectedClip.sourceIn} max={Math.max(asset?.duration||1,1)} step=".1" value={Math.min(selectedClip.sourceOut,asset?.duration||selectedClip.sourceOut)} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceOut:Number(e.target.value)}:c))}/></>:<div className="empty-state">Select a timeline clip to adjust its position and trim points.</div>}<div className="project-spec"><small>PROJECT</small><p>Vertical 9:16 preview · 30 FPS</p><p>Saved as .nexusproj</p></div></aside>
+        </div>
+        <div className="editor-status"><span className="status-dot"/>{status}</div>
+        <input ref={projectInput} hidden type="file" accept=".nexusproj,.json" onChange={e=>openProject(e.target.files?.[0])}/>
       </section>}
 
       {page === "projects" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIONS</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("editor"); }}><Plus size={16}/> New project</button></div><div className="project-filter"><button className="filter-active">All projects</button><button>Videos</button><button>Drafts</button><span>{recent.length} projects</span></div><div className="project-grid">{recent.filter(n => n.toLowerCase().includes(search.toLowerCase())).map((name, i) => <button className="project-tile" key={name} onClick={() => { setProjectName(name); setPage("editor"); }}><div className={"recent-art art-" + i}><span>PROJECT / 0{i + 1}</span></div><div><b>{name}</b><small>Local project · {i === 0 ? "Today" : i === 1 ? "Yesterday" : "2 days ago"}</small></div></button>)}</div></section>}
