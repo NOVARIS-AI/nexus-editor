@@ -512,3 +512,18 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-inline .nexus-ai-inline-compose button{flex-shrink:0}
 
 .nexus-ai-context-status{display:block;margin-top:7px;color:#77749e;font-size:8px;letter-spacing:.2px;line-height:1.45}.nexus-ai-inline{contain:layout style;}
+
+.nexus-ai-create{display:grid;gap:9px;margin:10px 0;padding:11px;border:1px solid rgba(150,130,255,.2);border-radius:13px;background:rgba(110,90,180,.06)}
+.nexus-ai-create-options{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.nexus-ai-create-options label{display:grid;gap:4px;color:var(--muted,#aaa);font-size:11px}
+.nexus-ai-create-options select,.nexus-ai-create textarea{min-width:0;border:1px solid rgba(150,130,255,.22);border-radius:8px;padding:8px;background:rgba(10,12,25,.8);color:inherit}
+.nexus-ai-create-options button,.nexus-ai-plan-button{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(150,130,255,.3);border-radius:8px;padding:8px 11px;background:rgba(120,90,220,.13);color:inherit}
+.nexus-ai-create textarea{width:100%;resize:vertical;font:inherit}
+.nexus-ai-plan-button{justify-content:center;background:linear-gradient(100deg,#7048d9,#267eae);border:0;font-weight:650}
+.nexus-ai-storyboard{display:grid;gap:8px;max-height:260px;overflow:auto}
+.nexus-ai-storyboard>div{display:grid;gap:3px}
+.nexus-ai-storyboard small{font-size:10px;color:var(--muted,#aaa)}
+.nexus-ai-storyboard article{padding:9px;border-radius:9px;background:rgba(120,110,180,.08)}
+.nexus-ai-storyboard article p{margin:5px 0;font-size:12px}
+.nexus-ai-storyboard article small{display:block;margin-top:3px}
+.nexus-ai-sourcing-note{font-size:11px;line-height:1.5;color:var(--muted,#aaa)}
