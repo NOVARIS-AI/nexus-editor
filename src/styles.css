@@ -510,3 +510,5 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-inline .nexus-ai-reply{margin:7px 2px 0;color:#c7c1df;font-size:10px;line-height:1.5;white-space:normal}
 .nexus-ai-inline .nexus-ai-inline-compose input{min-width:0}
 .nexus-ai-inline .nexus-ai-inline-compose button{flex-shrink:0}
+
+.nexus-ai-context-status{display:block;margin-top:7px;color:#77749e;font-size:8px;letter-spacing:.2px;line-height:1.45}.nexus-ai-inline{contain:layout style;}
