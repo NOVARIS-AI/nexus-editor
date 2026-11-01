@@ -151,7 +151,7 @@ export default function App() {
     setStatus(added.length + " media file(s) imported");
   }
   function add(a: MediaAsset) {
-    const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? "audio-1" : "video-1", start: timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name };
+    const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? "audio-1" : "video-1", start: a.kind === "audio" ? 0 : timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
     if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
