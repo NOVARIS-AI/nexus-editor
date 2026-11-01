@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import type { MediaAsset, TimelineClip } from "./types";
 import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
+import { analyzeMediaAsset, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -64,6 +65,9 @@ export default function App() {
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
   const [mediaSearchStatus, setMediaSearchStatus] = useState("");
   const [mediaSearchBusy, setMediaSearchBusy] = useState(false);
+  const [mediaAnalyses, setMediaAnalyses] = useState<MediaAnalysis[]>([]);
+  const [analysisBusy, setAnalysisBusy] = useState(false);
+  const [engineReport, setEngineReport] = useState<string[]>([]);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -177,6 +181,23 @@ export default function App() {
       setMediaSearchStatus(error instanceof Error ? error.message : "Could not import this source image.");
     }
   }
+  async function analyzeAllMedia() {
+    if (!assets.length) { setAiReply("Import media or search for reusable media first. There is nothing to analyse yet."); return; }
+    setAnalysisBusy(true); setAiReply("Analysing media locally in the browser. Large files may take a little while.");
+    const results: MediaAnalysis[] = [];
+    for (const item of assets) {
+      try { results.push(await analyzeMediaAsset(item)); }
+      catch (error) { results.push({ assetId:item.id,name:item.name,kind:item.kind,duration:item.duration,fileSize:item.file?.size||0,notes:[error instanceof Error?error.message:"Analysis failed"] }); }
+      setMediaAnalyses([...results]);
+    }
+    setMediaAnalyses(results); setAnalysisBusy(false);
+    setAiReply("Media analysis finished for "+results.length+" asset(s). Image dimensions, video metadata/brightness samples and audio energy/silence estimates are available. Semantic object recognition and speech transcription are not connected yet.");
+  }
+  function runProjectVerification() {
+    const result=verifyProject(assets,clips); const render=getRenderCapabilities();
+    const lines=[result.ok?"Project structure check passed.":"Project structure check found issues.",...result.issues,render.summary];
+    setEngineReport(lines);setAiReply(lines.join(" "));
+  }
   function buildAIProjectTimeline() {
     if (!aiPlan) return;
     const visualAssets = assets.filter(item => item.kind === "video" || item.kind === "image");
@@ -243,6 +264,9 @@ export default function App() {
       setAiReply(context + " I can answer basic questions about the current workspace and explain supported controls. A connected reasoning model is not configured in this build yet.");
       return;
     }
+    const engineCommand = interpretEditorCommand(request);
+    if (engineCommand.type === "analyze") { void analyzeAllMedia(); return; }
+    if (engineCommand.type === "guide") { setAiReply(makeEditingGuidance(selectedClip, mediaAnalyses.find(item=>item.assetId===selectedClip?.assetId), playhead)); return; }
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\\b" + name + "\\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
@@ -394,7 +418,7 @@ export default function App() {
               <div className="nexus-ai-create-options">
                 <label>Creation style<select value={aiStyle} onChange={e=>setAiStyle(e.target.value)}><option>Cinematic</option><option>Documentary</option><option>Motivational</option><option>Social media</option><option>Product promo</option><option>Educational</option></select></label>
                 <label>Format<select value={aiFormat} onChange={e=>setAiFormat(e.target.value)}><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option><option>3:4</option></select></label>
-                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({assets.length})</button>
+                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({assets.length})</button><button disabled={analysisBusy||!assets.length} onClick={()=>void analyzeAllMedia()}>{analysisBusy?"Analysing…":"Analyse media"}</button><button onClick={runProjectVerification}>Verify project</button>
               </div>
               <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
               <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
@@ -404,7 +428,7 @@ export default function App() {
                 <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images and video files. Review the licence before using any result."}</small>
                 {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.mediaKind.toUpperCase()} · {item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
               </div>
-              {aiPlan && <div className="nexus-ai-storyboard">
+              {aiPlan && {mediaAnalyses.length>0 && <div className="nexus-ai-analysis-results"><b>Media analysis · {mediaAnalyses.length} assets</b>{mediaAnalyses.map(item=><article key={item.assetId}><b>{item.name}</b><small>{item.kind.toUpperCase()} · {item.duration.toFixed(1)}s · {item.width?item.width+"×"+item.height:"dimensions unavailable"} · {(item.fileSize/1048576).toFixed(1)} MB</small>{item.audio&&<small>Audio RMS {(item.audio.rms*100).toFixed(1)}% · estimated silence {(item.audio.silenceRatio*100).toFixed(0)}% · {item.audio.beatCandidates.length} transient candidates</small>}{item.visual&&<small>{item.visual.sampledFrames} visual samples · {item.visual.sceneChanges.length} brightness-change candidates · average brightness {(item.visual.averageLuminance*100).toFixed(0)}%</small>}<small>{item.notes.join(" ")}</small></article>)}</div>}{engineReport.length>0&&<div className="nexus-ai-analysis-results"><b>Project verification</b>{engineReport.map((line,i)=><small key={i}>{line}</small>)}</div>}<div className="nexus-ai-storyboard">
                 <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
                 <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p><button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
