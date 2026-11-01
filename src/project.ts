@@ -8,7 +8,7 @@ export const defaultTracks: TimelineTrack[] = [
 export function makeProject(name = "Untitled Project"): NexusProject {
   const now = new Date().toISOString();
   return { format: "nexusproj", schemaVersion: 1, name, createdAt: now, updatedAt: now,
-    frameRate: 30, width: 1920, height: 1080, assets: [], tracks: defaultTracks, clips: [] };
+    frameRate: 30, width: 1920, height: 1080, assets: [], tracks: defaultTracks, clips: [], textLayers: [] };
 }
 export function serialiseProject(project: NexusProject, assets: MediaAsset[]): NexusProject {
   return { ...project, updatedAt: new Date().toISOString(),
@@ -25,7 +25,7 @@ export function parseProject(text: string): NexusProject {
   if (value.format !== "nexusproj" || value.schemaVersion !== 1 ||
       !Array.isArray(value.assets) || !Array.isArray(value.tracks) || !Array.isArray(value.clips))
     throw new Error("This file is not a supported NEXUS EDITOR project.");
-  return value;
+  return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [] };
 }
 export function clipDuration(clip: TimelineClip) { return Math.max(0, clip.sourceOut - clip.sourceIn); }
 export function timelineDuration(clips: TimelineClip[]) {
