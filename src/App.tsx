@@ -164,14 +164,15 @@ export default function App() {
   }
   async function addSourcedImage(item: SourcedMediaResult) {
     try {
-      const response = await fetch(item.thumbnailUrl);
+      const response = await fetch(item.downloadUrl);
       if (!response.ok) throw new Error("The source image could not be downloaded.");
       const blob = await response.blob();
-      const file = new File([blob], item.fileName || "commons-image.jpg", { type: blob.type || "image/jpeg" });
+      const file = new File([blob], item.fileName || (item.mediaKind === "video" ? "commons-video.webm" : "commons-image.jpg"), { type: blob.type || item.mimeType });
       const objectUrl = URL.createObjectURL(file);
-      const sourced: MediaAsset = { id: uid(), name: item.title, kind: "image", duration: 5, mimeType: file.type, file, objectUrl, source: { type: "commons", pageUrl: item.pageUrl, creator: item.creator, license: item.license, licenseUrl: item.licenseUrl, attribution: item.attribution } };
+      const sourced: MediaAsset = { id: uid(), name: item.title, kind: item.mediaKind, duration: item.mediaKind === "image" ? 5 : 0, mimeType: file.type, file, objectUrl, source: { type: "commons", pageUrl: item.pageUrl, creator: item.creator, license: item.license, licenseUrl: item.licenseUrl, attribution: item.attribution } };
       setAssets(old => [...old, sourced]);
-      setStatus("Added licensed-source image: " + item.title);
+      if (sourced.kind === "video") { const probe = document.createElement("video"); probe.preload = "metadata"; probe.src = objectUrl; probe.onloadedmetadata = () => setAssets(old => old.map(asset => asset.id === sourced.id ? { ...asset, duration: Number.isFinite(probe.duration) ? probe.duration : 5 } : asset)); }
+      setStatus("Added licensed-source " + item.mediaKind + ": " + item.title);
     } catch (error) {
       setMediaSearchStatus(error instanceof Error ? error.message : "Could not import this source image.");
     }
@@ -357,8 +358,8 @@ export default function App() {
               {aiPlan && <div className="nexus-ai-online-search">
                 <b>Find media online</b>
                 <div><input value={mediaSearchQuery} onChange={e=>setMediaSearchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")findOnlineMedia();}} placeholder="Search a scene or subject…"/><button disabled={mediaSearchBusy} onClick={()=>findOnlineMedia()}>{mediaSearchBusy?"Searching…":"Search"}</button></div>
-                <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images. Video provider integrations can be added separately."}</small>
-                {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
+                <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images and video files. Review the licence before using any result."}</small>
+                {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.mediaKind.toUpperCase()} · {item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
               </div>
               <div className="nexus-ai-storyboard">
                 <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
