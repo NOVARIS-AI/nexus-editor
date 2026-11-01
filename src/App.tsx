@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Check, ChevronDown, Clapperboard,
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
@@ -50,7 +50,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [aiBrief, setAiBrief] = useState("");
-  const [aiReply, setAiReply] = useState("I can guide the editor and run a few supported actions. Try “split this clip”, “mute clip”, “add text”, or “change ratio to 16:9”.");
+  const [aiReply, setAiReply] = useState("I can guide the editor and run a few supported actions. Try “split this clip”, “mute clip”, “add text”, or “change ratio to 16:9”.");\n  const [aiContextStatus, setAiContextStatus] = useState("Preparing editor context…");
   const [aiFiles, setAiFiles] = useState<File[]>([]);
   const [aiStyle, setAiStyle] = useState("Cinematic");
   const [aiFormat, setAiFormat] = useState("9:16");
@@ -63,11 +63,11 @@ export default function App() {
   const audioInput = useRef<HTMLInputElement>(null);
   const filesInput = useRef<HTMLInputElement>(null);
   const projectInput = useRef<HTMLInputElement>(null);
-  const video = useRef<HTMLVideoElement>(null);
+  const video = useRef<HTMLVideoElement>(null);\n  const aiWorker = useRef<Worker | null>(null);\n  useEffect(() => {\n    try {\n      const worker = new Worker(new URL("./editor/ai.worker.ts", import.meta.url), { type: "module" });\n      aiWorker.current = worker;\n      worker.onmessage = (event: MessageEvent<{ summary: string; toolCount: number; actionCount: number; capabilityCounts: { working: number; guidance: number; planned: number } }>) => {\n        const data = event.data;\n        setAiContextStatus(`Background context ready · ${data.toolCount} tools · ${data.actionCount} actions indexed · ${data.capabilityCounts.working} active, ${data.capabilityCounts.guidance} guidance, ${data.capabilityCounts.planned} planned`);\n      };\n      worker.onerror = () => setAiContextStatus("Background helper unavailable · editor remains usable");\n    } catch { setAiContextStatus("Background helper unavailable · editor remains usable"); }\n    return () => { aiWorker.current?.terminate(); aiWorker.current = null; };\n  }, []);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
   const duration = useMemo(() => timelineDuration(clips), [clips]);
-  const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };
+  const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };\n  useEffect(() => {\n    aiWorker.current?.postMessage({ type: "context", payload: { projectName, clipCount: clips.length, assetCount: assets.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, sourceIn: selectedClip.sourceIn, sourceOut: selectedClip.sourceOut } : null, activeTool, activeSubtool, playhead, aspectRatio } });\n  }, [projectName, clips, assets.length, selectedClip?.id, selectedClip?.label, selectedClip?.trackId, selectedClip?.start, selectedClip?.sourceIn, selectedClip?.sourceOut, activeTool, activeSubtool, playhead, aspectRatio]);
 
   function applyClipChange(next: TimelineClip[], message: string) {
     setUndoStack(old => [...old.slice(-49), clips]);
@@ -276,7 +276,7 @@ export default function App() {
           {aiWorkspaceOpen && <div className="nexus-ai-inline">
             <div className="nexus-ai-inline-head"><span className="nexus-ai-mark"><Sparkles size={16}/></span><div><b>NEXUS AI</b><small>{selectedClip ? "Working with selected clip · "+(selectedClip.label||"Media") : clips.length ? "Your editing workspace is ready" : "Tell me what you want to create"}</small></div><div className="nexus-ai-quick-prompts">{["Guide me","Improve this edit","What next?"].map(x=><button key={x} onClick={()=>setAiBrief(x)}>{x}</button>)}</div><button className="nexus-ai-close" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close AI assistant"><X size={16}/></button></div>
             <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Tell NEXUS what you want to do… e.g. split this clip"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
-            <p className="nexus-ai-reply" aria-live="polite">{aiReply}</p>
+            <p className="nexus-ai-reply" aria-live="polite">{aiReply}</p><small className="nexus-ai-context-status">{aiContextStatus}</small>
           </div>}
           <div className="editor-bottom-tools nexus-tool-stack">
             <div className="nexus-subtool-ribbon">
