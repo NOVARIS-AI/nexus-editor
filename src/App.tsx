@@ -7,7 +7,6 @@ import {
   Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines
 } from "lucide-react";
 import type { MediaAsset, TimelineClip } from "./types";
-import { understandEditorRequest } from "./editor/ai-engine";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
