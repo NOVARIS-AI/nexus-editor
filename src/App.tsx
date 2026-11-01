@@ -50,12 +50,15 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [aiBrief, setAiBrief] = useState("");
-  const [aiReply, setAiReply] = useState("I can guide the editor and run a few supported actions. Try “split this clip”, “mute clip”, “add text”, or “change ratio to 16:9”.");\n  const [aiContextStatus, setAiContextStatus] = useState("Preparing editor context…");\n  const [aiContextSummary, setAiContextSummary] = useState("");
+  const [aiReply, setAiReply] = useState("I can guide the editor and run a few supported actions. Try “split this clip”, “mute clip”, “add text”, or “change ratio to 16:9”.");
+  const [aiContextStatus, setAiContextStatus] = useState("Preparing editor context…");
+  const [aiContextSummary, setAiContextSummary] = useState("");
   const [aiFiles, setAiFiles] = useState<File[]>([]);
   const [aiStyle, setAiStyle] = useState("Cinematic");
   const [aiFormat, setAiFormat] = useState("9:16");
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
+  const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string }[]; sourcingNote: string }>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -63,11 +66,28 @@ export default function App() {
   const audioInput = useRef<HTMLInputElement>(null);
   const filesInput = useRef<HTMLInputElement>(null);
   const projectInput = useRef<HTMLInputElement>(null);
-  const video = useRef<HTMLVideoElement>(null);\n  const aiWorker = useRef<Worker | null>(null);\n  useEffect(() => {\n    try {\n      const worker = new Worker(new URL("./editor/ai.worker.ts", import.meta.url), { type: "module" });\n      aiWorker.current = worker;\n      worker.onmessage = (event: MessageEvent<{ summary: string; toolCount: number; actionCount: number; capabilityCounts: { working: number; guidance: number; planned: number } }>) => {\n        const data = event.data;\n        setAiContextSummary(data.summary);\n        setAiContextStatus(`Background context ready · ${data.toolCount} tools · ${data.actionCount} actions indexed · ${data.capabilityCounts.working} active, ${data.capabilityCounts.guidance} guidance, ${data.capabilityCounts.planned} planned`);\n      };\n      worker.onerror = () => setAiContextStatus("Background helper unavailable · editor remains usable");\n    } catch { setAiContextStatus("Background helper unavailable · editor remains usable"); }\n    return () => { aiWorker.current?.terminate(); aiWorker.current = null; };\n  }, []);
+  const video = useRef<HTMLVideoElement>(null);
+  const aiWorker = useRef<Worker | null>(null);
+  useEffect(() => {
+    try {
+      const worker = new Worker(new URL("./editor/ai.worker.ts", import.meta.url), { type: "module" });
+      aiWorker.current = worker;
+      worker.onmessage = (event: MessageEvent<{ summary: string; toolCount: number; actionCount: number; capabilityCounts: { working: number; guidance: number; planned: number } }>) => {
+        const data = event.data;
+        setAiContextSummary(data.summary);
+        setAiContextStatus(`Background context ready · ${data.toolCount} tools · ${data.actionCount} actions indexed · ${data.capabilityCounts.working} active, ${data.capabilityCounts.guidance} guidance, ${data.capabilityCounts.planned} planned`);
+      };
+      worker.onerror = () => setAiContextStatus("Background helper unavailable · editor remains usable");
+    } catch { setAiContextStatus("Background helper unavailable · editor remains usable"); }
+    return () => { aiWorker.current?.terminate(); aiWorker.current = null; };
+  }, []);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
   const duration = useMemo(() => timelineDuration(clips), [clips]);
-  const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };\n  useEffect(() => {\n    aiWorker.current?.postMessage({ type: "context", payload: { projectName, clipCount: clips.length, assetCount: assets.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, sourceIn: selectedClip.sourceIn, sourceOut: selectedClip.sourceOut } : null, activeTool, activeSubtool, playhead, aspectRatio } });\n  }, [projectName, clips, assets.length, selectedClip?.id, selectedClip?.label, selectedClip?.trackId, selectedClip?.start, selectedClip?.sourceIn, selectedClip?.sourceOut, activeTool, activeSubtool, playhead, aspectRatio]);
+  const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };
+  useEffect(() => {
+    aiWorker.current?.postMessage({ type: "context", payload: { projectName, clipCount: clips.length, assetCount: assets.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, sourceIn: selectedClip.sourceIn, sourceOut: selectedClip.sourceOut } : null, activeTool, activeSubtool, playhead, aspectRatio } });
+  }, [projectName, clips, assets.length, selectedClip?.id, selectedClip?.label, selectedClip?.trackId, selectedClip?.start, selectedClip?.sourceIn, selectedClip?.sourceOut, activeTool, activeSubtool, playhead, aspectRatio]);
 
   function applyClipChange(next: TimelineClip[], message: string) {
     setUndoStack(old => [...old.slice(-49), clips]);
@@ -124,6 +144,26 @@ export default function App() {
     const right = { ...selectedClip, id: uid(), start: playhead, sourceIn: at, label: selectedClip.label + " (split)" };
     applyClipChange([...clips.map(c => c.id === selected ? { ...c, sourceOut: at } : c), right], "Clip split successfully");
     setSelected(right.id);
+  }
+  function createAIProjectPlan() {
+    const brief = aiBrief.trim();
+    if (!brief) { setAiReply("Describe the video you want to make first."); return; }
+    const words = brief.toLowerCase();
+    const duration = /\b(\d+)\s*(seconds?|secs?|s)\b/.exec(words);
+    const totalSeconds = Math.min(180, Math.max(15, duration ? Number(duration[1]) : 30));
+    const topic = brief.replace(/\b(create|make|build|a|an|video|about|for|me|please|of)\b/gi, " ").replace(/\s+/g, " ").trim() || brief;
+    const sceneIdeas = [
+      { title: "Opening hook", visual: "A strong establishing shot that introduces the subject", narration: "Start with a short hook that makes the viewer curious.", searchTerms: [topic + " cinematic establishing shot", topic + " wide shot"], fallback: "Animated title, gradient background and subtle motion graphics" },
+      { title: "The story", visual: "A close-up or action shot that shows the main idea", narration: "Explain the central idea with one clear, memorable point.", searchTerms: [topic + " close up footage", topic + " action b roll"], fallback: "Layered shapes, icons and kinetic typography" },
+      { title: "The detail", visual: "A supporting scene that adds context or emotion", narration: "Add a useful detail, example or emotional beat.", searchTerms: [topic + " people lifestyle footage", topic + " detail b roll"], fallback: "A simple illustrated scene with editable text callouts" },
+      { title: "The payoff", visual: "A powerful final shot that resolves the story", narration: "End with the key message and a clear final thought.", searchTerms: [topic + " cinematic final shot", topic + " inspirational footage"], fallback: "Bold closing title card with animated shapes" }
+    ];
+    const scenes = sceneIdeas.map((scene, index) => ({ ...scene, title: scene.title, narration: scene.narration, visual: scene.visual, searchTerms: scene.searchTerms }));
+    setAiPlan({ title: topic.charAt(0).toUpperCase() + topic.slice(1), duration: totalSeconds, scenes, sourcingNote: assets.length ? "Your imported media can be analysed and matched to these scenes in the next creation step." : "No personal media detected. NEXUS should search approved stock/public-domain sources first; if suitable reusable media is unavailable, use the listed editor-native fallback scenes. Online provider search is not connected in this build yet." });
+    setAiReply("I've prepared an editable storyboard draft for your brief. Review the scenes and asset needs below. I haven't downloaded or imported any online media.");
+    setProjectName(topic.charAt(0).toUpperCase() + topic.slice(1));
+    setAspectRatio(aiFormat);
+    setActiveTool("media");
   }
   function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
@@ -275,7 +315,21 @@ export default function App() {
           </div>
           {aiWorkspaceOpen && <div className="nexus-ai-inline">
             <div className="nexus-ai-inline-head"><span className="nexus-ai-mark"><Sparkles size={16}/></span><div><b>NEXUS AI</b><small>{selectedClip ? "Working with selected clip · "+(selectedClip.label||"Media") : clips.length ? "Your editing workspace is ready" : "Tell me what you want to create"}</small></div><div className="nexus-ai-quick-prompts">{["Guide me","Improve this edit","What next?"].map(x=><button key={x} onClick={()=>setAiBrief(x)}>{x}</button>)}</div><button className="nexus-ai-close" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close AI assistant"><X size={16}/></button></div>
-            <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Tell NEXUS what you want to do… e.g. split this clip"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
+            {aiMode === "create" && <div className="nexus-ai-create">
+              <div className="nexus-ai-create-options">
+                <label>Creation style<select value={aiStyle} onChange={e=>setAiStyle(e.target.value)}><option>Cinematic</option><option>Documentary</option><option>Motivational</option><option>Social media</option><option>Product promo</option><option>Educational</option></select></label>
+                <label>Format<select value={aiFormat} onChange={e=>setAiFormat(e.target.value)}><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option><option>3:4</option></select></label>
+                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({aiFiles.length})</button>
+              </div>
+              <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
+              <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
+              {aiPlan && <div className="nexus-ai-storyboard">
+                <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
+                {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
+                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
+              </div>}
+            </div>}
+            <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Ask about your edit or give an editing command…"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
             <p className="nexus-ai-reply" aria-live="polite">{aiReply}</p><small className="nexus-ai-context-status" title={aiContextSummary}>{aiContextStatus}</small>
           </div>}
           <div className="editor-bottom-tools nexus-tool-stack">
