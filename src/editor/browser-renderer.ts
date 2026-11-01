@@ -88,7 +88,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     };
     const started = performance.now();
     let raf = 0;
-    let lastFrame = -1;
+    let lastFrame = -1;\n    let lastProgress = -1;
     const draw = () => {
       const time = Math.min(input.duration, (performance.now() - started) / 1000);
       const frame = Math.floor(time * input.fps);
@@ -129,7 +129,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 12;
           ctx.fillText(layer.text, canvas.width * ((layer.x ?? 50) / 100), canvas.height * ((layer.y ?? 50) / 100), canvas.width * .88); ctx.restore();
         });
-        input.onProgress?.(Math.min(99, Math.round(time / input.duration * 100)));
+        const progress = Math.min(99, Math.round(time / input.duration * 100));\n        if (progress !== lastProgress) { lastProgress = progress; input.onProgress?.(progress); }
       }
       if (time >= input.duration) { activeVideos.forEach(v => v.pause()); audioNodes.forEach(({element}) => element.pause()); recorder.stop(); canvasStream.getTracks().forEach(track => track.stop()); return; }
       raf = requestAnimationFrame(draw);
