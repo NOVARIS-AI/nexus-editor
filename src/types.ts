@@ -7,6 +7,7 @@ export interface MediaAsset {
 export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
   sourceIn: number; sourceOut: number; label: string;
+  aiScene?: { title: string; visual: string; narration: string; sourceType: "personal" | "commons" | "native-fallback" };
 }
 export interface TimelineTrack {
   id: string; name: string; kind: "video" | "audio" | "overlay"; muted: boolean; hidden: boolean;
