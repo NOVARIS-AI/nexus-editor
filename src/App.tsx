@@ -10,6 +10,14 @@ import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
+const themes = [
+  { id: "violet", name: "Midnight Violet", colors: ["#a923ed", "#5d42ff", "#00bfe9"] },
+  { id: "ocean", name: "Ocean Blue", colors: ["#168cff", "#2855e8", "#20d5e8"] },
+  { id: "emerald", name: "Emerald Green", colors: ["#10b981", "#087f69", "#7ee6b7"] },
+  { id: "sunset", name: "Sunset Orange", colors: ["#ff8a32", "#e34b38", "#ffc15c"] },
+  { id: "rose", name: "Rose Pink", colors: ["#f04486", "#bd347d", "#ff9ab8"] },
+  { id: "crimson", name: "Crimson Red", colors: ["#ef4444", "#b91c3c", "#ff8b73"] }
+] as const;
 const clock = (n: number) => {
   const m = Math.floor(n / 60), s = Math.floor(n % 60);
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
@@ -26,6 +34,8 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [darkMode, setDarkMode] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
+  function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
   const input = useRef<HTMLInputElement>(null);
   const projectInput = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -93,7 +103,7 @@ export default function App() {
   ];
   const filteredTemplates = templates.filter(t => (templateCategory === "All" || t.type === templateCategory) && t.name.toLowerCase().includes(search.toLowerCase()));
 
-  return <div className={darkMode ? "nexus-shell" : "nexus-shell light"}>
+  return <div className={darkMode ? "nexus-shell" : "nexus-shell light"} data-theme={theme}>
     <aside className="sidebar">
       <button className="brand-lockup" onClick={() => setPage("home")}><span className="brand-mark">N</span><span className="brand-words">NEXUS<strong>EDITOR</strong></span></button>
       <div className="side-caption">WORKSPACE</div>
@@ -152,7 +162,11 @@ export default function App() {
 
       {page === "ai" && <section className="page-content"><div className="ai-hero"><span className="ai-symbol"><Sparkles size={26}/></span><div className="eyebrow">CREATIVE INTELLIGENCE</div><h1>Meet your <em>AI Studio.</em></h1><p>Creative tools to help you plan, refine and find your next big idea.</p></div><div className="ai-tool-grid">{[{icon:WandSparkles,title:"Creative assistant",desc:"Get ideas and direction for your next edit."},{icon:Activity,title:"Edit insights",desc:"Explore ways to improve your video story."},{icon:Layers,title:"Scene planner",desc:"Organise your ideas into a clear sequence."},{icon:Compass,title:"Style explorer",desc:"Discover visual directions and moods."}].map(item => {const Icon=item.icon;return <button className="ai-tool-card" key={item.title} onClick={() => setStatus(item.title + " — this tool will be connected in a later feature phase")}><span><Icon size={21}/></span><b>{item.title}</b><small>{item.desc}</small><i>Explore <span>→</span></i></button>;})}</div></section>}
 
-      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="setting-row"><span><b>Workspace storage</b><small>Projects and media remain on this device.</small></span><span className="setting-value">Local</span></div><div className="setting-row"><span><b>Project format</b><small>Portable NEXUS project metadata.</small></span><span className="setting-value">.nexusproj</span></div><div className="about-card"><span className="brand-mark">N</span><div><b>NEXUS EDITOR</b><small>VELTRONIX NEXUS · Creative workspace</small></div></div></div></div></section>}
+      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="theme-picker-block">
+            <div className="theme-picker-heading"><b>Colour theme</b><small>Pick the colour style for your entire workspace.</small></div>
+            <div className="theme-options">{themes.map(t => <button key={t.id} className={theme === t.id ? "theme-option selected" : "theme-option"} onClick={() => changeTheme(t.id)} aria-pressed={theme === t.id}><span className="theme-swatches">{t.colors.map((color, i) => <i key={i} style={{ background: color }} />)}</span><span className="theme-option-name">{t.name}</span>{theme === t.id && <Check size={15} className="theme-check" />}</button>)}</div>
+          </div>
+          <div className="setting-row"><span><b>Workspace storage</b><small>Projects and media remain on this device.</small></span><span className="setting-value">Local</span></div><div className="setting-row"><span><b>Project format</b><small>Portable NEXUS project metadata.</small></span><span className="setting-value">.nexusproj</span></div><div className="about-card"><span className="brand-mark">N</span><div><b>NEXUS EDITOR</b><small>VELTRONIX NEXUS · Creative workspace</small></div></div></div></div></section>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
   </div>;
