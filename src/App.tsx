@@ -107,30 +107,30 @@ export default function App() {
     if (!request) return;
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\\b" + name + "\\b").test(request));
-    if (/\\b(guide me|what next|help|how do i|how to)\\b/.test(request)) {
+    if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
       if (!selectedClip) { setAiReply("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
       setActiveTool("edit"); setActiveSubtool("select");
       setAiReply("Your clip “" + selectedClip.label + "” is selected. The playhead is at " + clock(playhead) + ". Choose a tool from the bottom dock; for a clean cut, move the playhead inside the clip and tap Split. I’ve highlighted Edit for you.");
       return;
     }
-    if (/\\b(split|cut)\\b/.test(request)) {
+    if (/\b(split|cut)\b/.test(request)) {
       if (!selectedClip) { setAiReply("Select the clip you want to split first."); return; }
       setActiveTool("edit"); setActiveSubtool("split"); split();
       setAiReply("I sent the split command for “" + selectedClip.label + "”. If the playhead is too close to either end, move it inside the clip and try again. Check the timeline to confirm the cut.");
       return;
     }
-    if (/\\b(unmute)\\b/.test(request)) {
+    if (/\b(unmute)\b/.test(request)) {
       setMuteClip(false); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio unmuted in the preview. This mute switch currently affects preview playback only, not exported audio."); return;
     }
-    if (/\\b(mute|silence)\\b/.test(request)) {
+    if (/\b(mute|silence)\b/.test(request)) {
       setMuteClip(true); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio muted in the preview. Note: the current mute switch affects preview playback only; track-level audio export is not implemented yet."); return;
     }
-    if (/\\b(delete|remove)\\b/.test(request) && /\\b(clip|selected)\\b/.test(request)) {
+    if (/\b(delete|remove)\b/.test(request) && /\b(clip|selected)\b/.test(request)) {
       if (!selectedClip) { setAiReply("Select the clip you want to remove first."); return; }
       setClips(old => old.filter(c => c.id !== selectedClip.id)); setSelected(null);
       setAiReply("Removed “" + selectedClip.label + "” from the timeline."); return;
     }
-    if (/\\b(add|insert|create)\\b.*\\b(text|title)\\b|\\b(text|title)\\b.*\\b(add|insert|create)\\b/.test(request)) {
+    if (/\b(add|insert|create)\b.*\b(text|title)\b|\b(text|title)\b.*\b(add|insert|create)\b/.test(request)) {
       setActiveTool("text"); setActiveSubtool("add"); setOverlayText("Your text");
       setAiReply("Text editing is open and the preview text is ready to customise. Important: this text is currently a preview overlay, not yet a saved timeline text layer."); return;
     }
@@ -144,11 +144,11 @@ export default function App() {
       setAiReply("Opened the " + requestedTool + " tools in the editor. Its available controls are shown above the bottom dock. Some advanced operations are still under development.");
       return;
     }
-    if (/\\b(improve|better|suggest)\\b/.test(request)) {
+    if (/\b(improve|better|suggest)\b/.test(request)) {
       setAiReply(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can currently execute split, preview mute, text-overlay setup and ratio changes; I won’t pretend the other operations are applied." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
       return;
     }
-    if (/\\b(undo|redo)\\b/.test(request)) {
+    if (/\b(undo|redo)\b/.test(request)) {
       setAiReply("Undo and redo are not implemented in the current editing engine yet, so I have not changed anything. They are a priority in the command-history phase.");
       return;
     }
