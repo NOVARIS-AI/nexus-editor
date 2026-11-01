@@ -110,7 +110,6 @@ export default function App() {
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
-    { id: "ai" as Page, label: "AI Studio", icon: Sparkles },
     { id: "settings" as Page, label: "Settings", icon: Settings }
   ];
   const pageTitle = nav.find(n => n.id === page)?.label || "Home";
