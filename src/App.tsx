@@ -128,7 +128,7 @@ export default function App() {
   function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
     if (!request) return;
-    const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio" };
+    const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\\b" + name + "\\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
       if (!selectedClip) { setAiReply("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
