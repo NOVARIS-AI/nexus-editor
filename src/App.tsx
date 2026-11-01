@@ -6,7 +6,7 @@ import {
   SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X,
   Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines
 } from "lucide-react";
-import type { MediaAsset, TimelineClip } from "./types";
+import type { MediaAsset, TimelineClip, TimelineTextLayer } from "./types";
 import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
 import { analyzeMediaAsset, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
@@ -32,6 +32,8 @@ export default function App() {
   const [projectName, setProjectName] = useState("Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>([]);
+  const [textLayers, setTextLayers] = useState<TimelineTextLayer[]>([]);
+  const [selectedTextLayer, setSelectedTextLayer] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<TimelineClip[][]>([]);
   const [redoStack, setRedoStack] = useState<TimelineClip[][]>([]);
   const [selected, setSelected] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function App() {
   const [textFont, setTextFont] = useState("Arial");
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [muteClip, setMuteClip] = useState(false);
+  const [clipGain, setClipGain] = useState(1);
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [exportQuality, setExportQuality] = useState("1080p");
   const [exportFps, setExportFps] = useState("30 FPS");
@@ -79,6 +82,7 @@ export default function App() {
   const filesInput = useRef<HTMLInputElement>(null);
   const projectInput = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
+  const audioPreview = useRef<HTMLAudioElement>(null);
   const aiWorker = useRef<Worker | null>(null);
   useEffect(() => {
     try {
@@ -95,9 +99,10 @@ export default function App() {
   }, []);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
+  const visibleTextLayer = textLayers.filter(layer => playhead >= layer.start && playhead <= layer.start + layer.duration).sort((a,b)=>b.start-a.start)[0];
   const duration = useMemo(() => timelineDuration(clips), [clips]);
   const engineStack = useMemo(() => detectEngineStack(), []);
-  const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };
+  const project = { ...makeProject(projectName), clips, textLayers, assets: assets.map(({ file, objectUrl, ...a }) => a) };
   useEffect(() => {
     aiWorker.current?.postMessage({ type: "context", payload: { projectName, clipCount: clips.length, assetCount: assets.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, sourceIn: selectedClip.sourceIn, sourceOut: selectedClip.sourceOut } : null, activeTool, activeSubtool, playhead, aspectRatio } });
   }, [projectName, clips, assets.length, selectedClip?.id, selectedClip?.label, selectedClip?.trackId, selectedClip?.start, selectedClip?.sourceIn, selectedClip?.sourceOut, activeTool, activeSubtool, playhead, aspectRatio]);
@@ -147,7 +152,7 @@ export default function App() {
   function add(a: MediaAsset) {
     const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? "audio-1" : "video-1", start: timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name };
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
-    if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
+    if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;\n    if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
     setPage("editor");
   }
   function trimSelectedAtPlayhead() {
@@ -161,7 +166,7 @@ export default function App() {
     const moved = moveClip(clips, selectedClip.id, delta);
     applyClipChange(moved, "Selected clip moved " + (delta < 0 ? "earlier" : "later") + " on the timeline.");
   }
-  function split() {
+  function addTextLayer() {\n    const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || "Your text", color: textColor, fontSize: textSize, fontFamily: textFont, x: 50, y: 50 };\n    setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus("Timed text layer added to the project timeline.");\n  }\n  function updateSelectedText(patch: Partial<TimelineTextLayer>) {\n    if (!selectedTextLayer) return; setTextLayers(old => old.map(layer => layer.id === selectedTextLayer ? { ...layer, ...patch } : layer));\n  }\n  function updateSelectedClip(patch: Partial<TimelineClip>) {\n    if (!selectedClip) return; applyClipChange(clips.map(clip => clip.id === selectedClip.id ? { ...clip, ...patch } : clip), "Clip settings updated.");\n  }\n  function split() {
     if (!selectedClip) return;
     const at = selectedClip.sourceIn + playhead - selectedClip.start;
     if (at <= selectedClip.sourceIn + .04 || at >= selectedClip.sourceOut - .04) { setStatus("Place the playhead inside the clip to split"); return; }
@@ -334,7 +339,7 @@ export default function App() {
     if (!file) return;
     try {
       const p = parseProject(await file.text());
-      setProjectName(p.name); setClips(p.clips); setStatus("Project opened — re-import source media to relink assets"); setPage("editor");
+      setProjectName(p.name); setClips(p.clips); setTextLayers(p.textLayers || []); setStatus("Project opened — re-import source media to relink assets"); setPage("editor");
     } catch { setStatus("Could not open this project file"); }
   }
   const nav = [
@@ -450,7 +455,7 @@ export default function App() {
             <div className="editor-preview-meta"><span>PREVIEW</span><div className="preview-meta-actions"><button onClick={()=>setShowAttachmentPicker(true)} className="preview-add-media"><Plus size={14}/> Add media</button><button onClick={()=>{setActiveTool("adjust");setActiveSubtool("Position");}}><SlidersHorizontal size={14}/> Adjust</button></div></div>
             <div className={"editor-preview-frame ratio-frame ratio-"+aspectRatio.replace(":","-")}>
               {asset?.kind==="video"&&asset.objectUrl?<video ref={video} src={asset.objectUrl} controls playsInline muted={muteClip} style={{filter: activeTool === "filters" ? (activeSubtool === "B&W" ? "grayscale(1)" : activeSubtool === "Vintage" ? "sepia(.45) contrast(1.08)" : activeSubtool === "Warm" ? "sepia(.2) saturate(1.2)" : activeSubtool === "Cool" ? "hue-rotate(12deg) saturate(.9)" : activeSubtool === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none") : "none"}}/>:asset?.kind==="image"&&asset.objectUrl?<img src={asset.objectUrl} alt="Selected media preview"/>:<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>}
-              {activeTool==="text" && <div className="nexus-text-overlay" style={getGraphicsFallbackStyle(overlayText, textColor, textSize, textFont)}>{overlayText || "Type your text"}</div>}
+              {(visibleTextLayer || (activeTool==="text" && !textLayers.length)) && <div className="nexus-text-overlay" style={getGraphicsFallbackStyle(visibleTextLayer?.text || overlayText, visibleTextLayer?.color || textColor, visibleTextLayer?.fontSize || textSize, visibleTextLayer?.fontFamily || textFont)}>{visibleTextLayer?.text || overlayText || "Type your text"}</div>}\n              {asset?.kind==="audio" && asset.objectUrl && <audio ref={audioPreview} src={asset.objectUrl} controls style={{width:"90%",maxWidth:420}}/>}
             </div>
             <div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
@@ -458,7 +463,7 @@ export default function App() {
             <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
             <div className="editor-timeline-scroll"><div className="editor-timeline-ruler"><span>00:00</span><span>00:05</span><span>00:10</span><span>00:15</span><span>00:20</span></div>
               <div className="editor-timeline-rows"><div className="editor-lane-labels"><span>V1 <small>Video</small></span><span>V2 <small>Overlay</small></span><span>T1 <small>Text</small></span><span className="audio-lane-label">A1 <small>Audio</small><button onClick={()=>audioInput.current?.click()} aria-label="Add audio"><Plus size={13}/></button></span></div><div className="editor-lanes"><div className="editor-lanes-inner">
-                {["video-1","overlay-1","text-1","audio-1"].map((id,i)=><div className="editor-lane" key={id}>{clips.filter(c=>c.trackId===id).map(c=><button key={c.id} className={selected===c.id?"editor-clip active":"editor-clip"} style={{left:c.start*50,width:Math.max(70,clipDuration(c)*50)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}}>{c.label}</button>)}{i===2&&<small className="empty-lane-note">Text layers</small>}</div>)}
+                {["video-1","overlay-1","text-1","audio-1"].map((id,i)=><div className="editor-lane" key={id}>{clips.filter(c=>c.trackId===id).map(c=><button key={c.id} className={selected===c.id?"editor-clip active":"editor-clip"} style={{left:c.start*50,width:Math.max(70,clipDuration(c)*50)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";if(a?.kind==="audio"&&audioPreview.current)audioPreview.current.src=a.objectUrl||"";setClipGain(c.gain ?? 1);}}>{c.label}</button>)}{i===2&&textLayers.map(layer=><button key={layer.id} className={selectedTextLayer===layer.id?"editor-clip active":"editor-clip"} style={{left:layer.start*50,width:Math.max(70,layer.duration*50),background:"linear-gradient(90deg,#9b73ff,#6449b8)"}} onClick={()=>{setSelectedTextLayer(layer.id);setPlayhead(layer.start);setOverlayText(layer.text);setTextColor(layer.color);setTextSize(layer.fontSize);setTextFont(layer.fontFamily);setActiveTool("text");}}>{layer.text}</button>)}</div>)}
                 <div className="editor-playhead" style={{left:playhead*50}}/><input aria-label="Timeline playhead" className="editor-timeline-scrub" type="range" min="0" max={Math.max(duration,1)} step=".1" value={Math.min(playhead,Math.max(duration,1))} onChange={e=>setPlayhead(Number(e.target.value))}/>
               </div></div></div>
             </div>
@@ -503,9 +508,9 @@ export default function App() {
               {activeTool==="background" && <>{["Color","Blur","Canvas"].map(x=><button key={x} onClick={()=>{setActiveSubtool(x);setStatus(x+" background controls selected.");}}>{x}</button>)}</>}
               {activeTool==="ratio" && <>{["9:16","16:9","1:1","4:5","3:4"].map(x=><button key={x} className={aspectRatio===x?"active":""} onClick={()=>setAspectRatio(x)}>{x}</button>)}</>}
             </div>
-            {activeTool==="text" && <div className="nexus-context-controls"><input aria-label="Edit preview text" value={overlayText} onChange={e=>setOverlayText(e.target.value)} placeholder="Type text"/><select aria-label="Font" value={textFont} onChange={e=>setTextFont(e.target.value)}><option>Arial</option><option>Georgia</option><option>Impact</option><option>Courier New</option></select><label>Size <input type="range" min="12" max="72" value={textSize} onChange={e=>setTextSize(Number(e.target.value))}/></label><input aria-label="Text colour" type="color" value={textColor} onChange={e=>setTextColor(e.target.value)}/></div>}
+            {activeTool==="text" && <div className="nexus-context-controls"><input aria-label="Edit text" value={overlayText} onChange={e=>{setOverlayText(e.target.value);updateSelectedText({text:e.target.value});}} placeholder="Type text"/><select aria-label="Font" value={textFont} onChange={e=>{setTextFont(e.target.value);updateSelectedText({fontFamily:e.target.value});}}><option>Arial</option><option>Georgia</option><option>Impact</option><option>Courier New</option></select><label>Size <input type="range" min="12" max="72" value={textSize} onChange={e=>{setTextSize(Number(e.target.value));updateSelectedText({fontSize:Number(e.target.value)});}}/></label><input aria-label="Text colour" type="color" value={textColor} onChange={e=>{setTextColor(e.target.value);updateSelectedText({color:e.target.value});}}/><button onClick={addTextLayer}><Plus size={14}/> Add timed text</button>{selectedTextLayer&&<button onClick={()=>{setTextLayers(old=>old.filter(layer=>layer.id!==selectedTextLayer));setSelectedTextLayer(null);}}>Delete text layer</button>}</div>}
             {activeTool==="adjust" && <div className="nexus-context-controls"><label>{activeSubtool}<input type="range" min="0" max="200" defaultValue="100"/></label></div>}
-            {activeTool==="edit" && selectedClip && <div className="nexus-context-controls"><button onClick={split}><Scissors size={15}/> Split at playhead</button><button className={muteClip?"active":""} onClick={()=>setMuteClip(v=>!v)}><Volume2 size={15}/> {muteClip?"Unmute":"Mute clip"}</button><button onClick={trimSelectedAtPlayhead}>Trim end here</button><button onClick={()=>nudgeSelectedClip(-1)}>← 1s</button><button onClick={()=>nudgeSelectedClip(1)}>1s →</button></div>}
+            {activeTool==="edit" && selectedClip && <div className="nexus-context-controls"><button onClick={split}><Scissors size={15}/> Split at playhead</button><button className={muteClip?"active":""} onClick={()=>{setMuteClip(v=>!v);updateSelectedClip({muted:!muteClip});}}><Volume2 size={15}/> {muteClip?"Unmute":"Mute clip"}</button><button onClick={trimSelectedAtPlayhead}>Trim end here</button><button onClick={()=>nudgeSelectedClip(-1)}>← 1s</button><button onClick={()=>nudgeSelectedClip(1)}>1s →</button><label>Gain <input type="range" min="0" max="1" step=".05" value={clipGain} onChange={e=>{const value=Number(e.target.value);setClipGain(value);updateSelectedClip({gain:value});if(video.current)applyMediaElementGain(video.current,value);if(audioPreview.current)applyMediaElementGain(audioPreview.current,value);}}/></label><label>Fade in <input type="range" min="0" max="5" step=".1" value={selectedClip.fadeIn||0} onChange={e=>updateSelectedClip({fadeIn:Number(e.target.value)})}/></label><label>Fade out <input type="range" min="0" max="5" step=".1" value={selectedClip.fadeOut||0} onChange={e=>updateSelectedClip({fadeOut:Number(e.target.value)})}/></label></div>}
             <nav className="editor-tool-dock" aria-label="Editing tools">{[{id:"edit",label:"Edit",icon:Scissors},{id:"audio",label:"Audio",icon:Music2},{id:"text",label:"Text",icon:Type},{id:"overlay",label:"Overlay",icon:Layers},{id:"effects",label:"Effects",icon:WandSparkles},{id:"captions",label:"Captions",icon:Captions},{id:"filters",label:"Filters",icon:SlidersHorizontal},{id:"adjust",label:"Adjust",icon:Palette},{id:"media",label:"Media",icon:Film},{id:"stickers",label:"Stickers",icon:Sticker},{id:"background",label:"Background",icon:ImageIcon},{id:"ratio",label:"Ratio",icon:Crop}].map(item=>{const Icon=item.icon;return <button key={item.id} className={activeTool===item.id?"active":""} onClick={()=>{setActiveTool(item.id);setActiveSubtool(item.id==="edit"?"select":"");if(item.id==="media")setShowAttachmentPicker(true);}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>
           </div>
           <div className="editor-status-line"><i/>{status}<small className="engine-adapter-status"> · Editing: {engineStack.editing.active} · Audio: {engineStack.audio.active} · Graphics: {engineStack.graphics.active}</small></div>
