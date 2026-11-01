@@ -177,6 +177,37 @@ export default function App() {
       setMediaSearchStatus(error instanceof Error ? error.message : "Could not import this source image.");
     }
   }
+  function buildAIProjectTimeline() {
+    if (!aiPlan) return;
+    const visualAssets = assets.filter(item => item.kind === "video" || item.kind === "image");
+    const sceneLength = aiPlan.duration / aiPlan.scenes.length;
+    const additions: MediaAsset[] = [];
+    const newClips: TimelineClip[] = [];
+    let cursor = timelineDuration(clips);
+    aiPlan.scenes.forEach((scene, index) => {
+      const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
+      const matched = visualAssets.find(item => terms.some(word => item.name.toLowerCase().includes(word))) || (visualAssets.length ? visualAssets[index % visualAssets.length] : undefined);
+      let chosen = matched;
+      if (!chosen) {
+        const safeTitle = scene.title.replace(/[<>&"]/g, "");
+        const safeTopic = aiPlan.title.replace(/[<>&"]/g, "");
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#17143c"/><stop offset="1" stop-color="#07566b"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#g)"/><circle cx="850" cy="320" r="300" fill="#8c70ff" opacity=".18"/><circle cx="120" cy="1600" r="380" fill="#20d7dc" opacity=".13"/><text x="90" y="820" fill="#9eeaf1" font-family="Arial" font-size="38" letter-spacing="9">NEXUS EDITOR</text><text x="90" y="980" fill="white" font-family="Arial" font-size="76" font-weight="700">' + safeTitle + '</text><foreignObject x="90" y="1060" width="900" height="360"><div xmlns="http://www.w3.org/1999/xhtml" style="font:32px Arial;color:#e5e7ff;line-height:1.4">' + safeTopic + '</div></foreignObject><text x="90" y="1770" fill="#b5b6d9" font-family="Arial" font-size="26">EDITABLE PROJECT STARTER · SCENE ' + (index + 1) + '</text></svg>';
+        const file = new File([svg], 'nexus-scene-' + (index + 1) + '.svg', { type: "image/svg+xml" });
+        const objectUrl = URL.createObjectURL(file);
+        chosen = { id: uid(), name: scene.title + " · Native scene", kind: "image", duration: sceneLength, mimeType: "image/svg+xml", file, objectUrl, source: { type: "generated", attribution: "Created inside NEXUS Editor from editable project brief" } };
+        additions.push(chosen);
+      }
+      const sourceDuration = chosen.kind === "image" ? sceneLength : Math.min(sceneLength, Math.max(0.5, chosen.duration || sceneLength));
+      newClips.push({ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } });
+      cursor += sourceDuration;
+    });
+    setAssets(old => [...old, ...additions]);
+    applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable timeline scenes");
+    setSelected(newClips[0]?.id || null);
+    setPlayhead(newClips[0]?.start || 0);
+    setActiveTool("edit"); setActiveSubtool("select"); setPage("editor");
+    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes use native NEXUS title-card assets. You can select, reorder, split or replace the clips. No finished video has been rendered.");
+  }
   function createAIProjectPlan() {
     const brief = aiBrief.trim();
     if (!brief) { setAiReply("Describe the video you want to make first."); return; }
@@ -376,7 +407,7 @@ export default function App() {
               <div className="nexus-ai-storyboard">
                 <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
-                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
+                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p><button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
               </div>}
             </div>}
             <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Ask about your edit or give an editing command…"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
