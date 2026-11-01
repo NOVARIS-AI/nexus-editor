@@ -38,11 +38,11 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is unavailable on this device.");
   const assets = new Map(input.assets.map(asset => [asset.id, asset]));
-  const mediaByClip = new Map<string, HTMLMediaElement>();
+  const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
   const audioContext = new AudioContext();
   const audioDestination = audioContext.createMediaStreamDestination();
-  const audioNodes = new Map<string, { element: HTMLAudioElement; gain: GainNode }>();
+  const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   const cleanup = () => {
     activeVideos.forEach(v => { v.pause(); v.removeAttribute("src"); v.load(); });
