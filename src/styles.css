@@ -603,3 +603,5 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .ai-studio-disclaimer svg{flex:none;color:#55cda7}
 @media(max-width:900px){.ai-studio-layout{grid-template-columns:1fr}.ai-studio-scenes{max-height:420px}}
 @media(max-width:600px){.ai-live-steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.ai-live-steps>div{padding:9px;grid-template-columns:29px 1fr;column-gap:7px}.ai-live-steps>div b{width:27px;height:27px}.ai-live-steps>div span{font-size:10px}.ai-live-steps>div small{font-size:8px}.ai-studio-compose{flex-direction:column}.ai-studio-compose button{min-height:40px}.ai-studio-plan-actions{grid-template-columns:1fr}.ai-studio-stage{font-size:8px;padding:4px 6px}.ai-studio-chat-head small{font-size:8px}}
+
+.nexus-export-progress{height:6px;margin:12px 0;border-radius:20px;background:#282442;overflow:hidden}.nexus-export-progress i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#a923ed,#00bfe9);transition:width .18s ease}
