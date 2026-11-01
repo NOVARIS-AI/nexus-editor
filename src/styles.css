@@ -375,3 +375,38 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
  .editor-tool-dock button,.editor-clip-toolbar button{flex-basis:54px;min-width:54px}
  .editor-status-line{height:14px;min-height:14px}
 }
+
+
+/* Contextual editing dock: parent tools + live subtool ribbon */
+.editor-screen{grid-template-rows:minmax(0,1.05fr) minmax(112px,.82fr) 138px 16px}
+.editor-bottom-tools.nexus-tool-stack{height:138px;min-height:138px;display:flex;flex-direction:column;overflow:hidden;gap:0}
+.nexus-subtool-ribbon{height:43px;min-height:43px;display:flex;align-items:center;gap:6px;padding:4px 8px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:#151428;border-bottom:1px solid #302d50;scrollbar-width:none}
+.nexus-subtool-ribbon::-webkit-scrollbar{display:none}
+.nexus-subtool-ribbon button,.nexus-context-controls button{flex:0 0 auto;padding:7px 11px;border:1px solid #393553;border-radius:8px;background:#211f36;color:#e8e4f4;font-size:9px;white-space:nowrap}
+.nexus-subtool-ribbon button.active,.nexus-subtool-ribbon button:active,.nexus-context-controls button.active{border-color:var(--accent-a);background:var(--accent-soft);color:var(--accent-text)}
+.nexus-context-controls{height:43px;min-height:43px;display:flex;align-items:center;gap:8px;padding:4px 8px;overflow-x:auto;background:#111020;border-bottom:1px solid #292747}
+.nexus-context-controls input:not([type=color]){min-width:80px;max-width:180px;padding:7px 8px;border:1px solid #393553;border-radius:7px;background:#211f36;color:#fff;font-size:10px}
+.nexus-context-controls select{max-width:110px;padding:7px;border:1px solid #393553;border-radius:7px;background:#211f36;color:#fff;font-size:9px}
+.nexus-context-controls label{display:flex;align-items:center;gap:5px;color:#c9c3dc;font-size:9px;white-space:nowrap}
+.nexus-context-controls input[type=range]{width:76px;accent-color:var(--accent-a)}
+.nexus-context-controls input[type=color]{width:28px;height:28px;padding:2px;border:1px solid #393553;border-radius:6px;background:#211f36}
+.editor-bottom-tools.nexus-tool-stack .editor-tool-dock{height:52px;min-height:52px;flex:1 1 auto;border-top:0;padding:3px 5px}
+.editor-bottom-tools.nexus-tool-stack .editor-tool-dock button.active{background:var(--accent-soft);color:var(--accent-text)}
+.editor-preview-frame{position:relative}
+.nexus-text-overlay{position:absolute;z-index:5;left:50%;top:42%;max-width:88%;transform:translate(-50%,-50%);padding:5px 9px;border:1px dashed rgba(255,255,255,.8);background:rgba(0,0,0,.12);font-weight:700;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;pointer-events:none;text-shadow:0 1px 4px rgba(0,0,0,.75)}
+@media(max-width:700px){
+ .editor-screen{grid-template-rows:minmax(0,1.02fr) minmax(106px,.8fr) 138px 16px}
+ .editor-bottom-tools.nexus-tool-stack{height:138px;min-height:138px}
+ .nexus-subtool-ribbon{height:39px;min-height:39px;padding:3px 6px}
+ .nexus-context-controls{height:43px;min-height:43px;gap:5px;padding:3px 6px}
+ .nexus-context-controls input:not([type=color]){max-width:118px}
+ .editor-bottom-tools.nexus-tool-stack .editor-tool-dock{height:56px;min-height:56px}
+ .editor-bottom-tools.nexus-tool-stack .editor-tool-dock button{flex-basis:57px;min-width:57px}
+}
+@media(max-height:650px) and (max-width:700px){
+ .editor-screen{grid-template-rows:minmax(0,1fr) minmax(92px,.72fr) 128px 14px}
+ .editor-bottom-tools.nexus-tool-stack{height:128px;min-height:128px}
+ .nexus-subtool-ribbon{height:35px;min-height:35px}
+ .nexus-context-controls{height:39px;min-height:39px}
+ .editor-bottom-tools.nexus-tool-stack .editor-tool-dock{height:54px;min-height:54px}
+}
