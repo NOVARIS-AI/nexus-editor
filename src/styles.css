@@ -527,3 +527,14 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-storyboard article p{margin:5px 0;font-size:12px}
 .nexus-ai-storyboard article small{display:block;margin-top:3px}
 .nexus-ai-sourcing-note{font-size:11px;line-height:1.5;color:var(--muted,#aaa)}
+
+.nexus-ai-online-search{display:grid;gap:8px;padding:10px;border:1px solid rgba(70,190,220,.22);border-radius:10px}
+.nexus-ai-online-search>div{display:flex;gap:7px}
+.nexus-ai-online-search input{flex:1;min-width:0;padding:8px;border:1px solid rgba(150,130,255,.25);border-radius:8px;background:rgba(10,12,25,.8);color:inherit}
+.nexus-ai-online-search button{padding:7px 10px;border:1px solid rgba(150,130,255,.25);border-radius:8px;background:rgba(100,90,200,.15);color:inherit}
+.nexus-ai-online-search>small{font-size:10px;line-height:1.45;color:var(--muted,#aaa)}
+.nexus-ai-online-search article{display:grid;grid-template-columns:64px minmax(0,1fr);gap:9px;padding:8px;background:rgba(120,110,180,.07);border-radius:8px}
+.nexus-ai-online-search article img{width:64px;height:64px;object-fit:cover;border-radius:6px}
+.nexus-ai-online-search article span{display:grid;gap:3px;min-width:0}
+.nexus-ai-online-search article span b{font-size:11px;overflow-wrap:anywhere}
+.nexus-ai-online-search article span small,.nexus-ai-online-search article a{font-size:10px;color:var(--muted,#aaa);overflow-wrap:anywhere}
