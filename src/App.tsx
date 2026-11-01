@@ -257,7 +257,7 @@ export default function App() {
               <button className="ai-create-project-button" onClick={()=>{
                 const usable=aiFiles.filter(f=>/^(video|audio|image)\//.test(f.type));
                 if(!usable.length){setStatus("Add at least one photo, video or audio file to start your project.");return;}
-                const nextAssets:MediaAsset[]=usable.map(file=>({id:uid(),name:file.name,kind:file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":"image",duration:file.type.startsWith("image/")?5:0,mimeType:file.type,file,objectUrl:URL.createObjectURL(file)}));
+                const nextAssets:MediaAsset[]=usable.map(file=>({id:uid(),name:file.name,kind:(file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":"image") as MediaAsset["kind"],duration:file.type.startsWith("image/")?5:0,mimeType:file.type,file,objectUrl:URL.createObjectURL(file)}));
                 let cursor=0;
                 const nextClips:TimelineClip[]=nextAssets.map(a=>{const d=a.kind==="image"?5:0;const c:TimelineClip={id:uid(),assetId:a.id,trackId:a.kind==="audio"?"audio-1":"video-1",start:cursor,sourceIn:0,sourceOut:d||5,label:a.name};cursor+=d||5;return c;});
                 setProjectName("AI Draft — "+(aiBrief.trim().slice(0,30)||"New video"));
