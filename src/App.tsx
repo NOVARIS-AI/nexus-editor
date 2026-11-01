@@ -200,6 +200,18 @@ export default function App() {
   function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
     if (!request) return;
+    if (aiMode === "teach") {
+      if (!selectedClip) { setAiReply("Teaching mode: import or add media, then select a timeline clip. I can then walk you through the controls that are currently available."); return; }
+      if (/split|cut/.test(request)) { setActiveTool("edit"); setActiveSubtool("split"); setAiReply("Teaching: move the playhead to the exact point inside the selected clip, then tap Split in the Edit ribbon. The two resulting pieces should appear on the timeline. I have highlighted the Split control; I have not changed the clip."); return; }
+      if (/text|title/.test(request)) { setActiveTool("text"); setActiveSubtool("add"); setAiReply("Teaching: open Text, choose Add text, then edit the wording, font, size and colour in the controls. The current text is still a preview overlay, not a saved timed text layer."); return; }
+      setAiReply("Teaching mode uses your current selection and tool. Try asking how to split a clip, add a title, or change the canvas ratio. I'll guide the steps instead of silently making the edit.");
+      return;
+    }
+    if (aiMode === "ask") {
+      const context = "Current project: " + projectName + ". Imported assets: " + assets.length + ". Timeline clips: " + clips.length + ". Selected clip: " + (selectedClip?.label || "none") + ". Active tool: " + activeTool + ". Canvas: " + aspectRatio + ".";
+      setAiReply(context + " I can answer basic questions about the current workspace and explain supported controls. A connected reasoning model is not configured in this build yet.");
+      return;
+    }
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\\b" + name + "\\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
