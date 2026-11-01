@@ -478,3 +478,12 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .ai-coming-panel .ai-brief-input{min-height:90px}
 @media(max-width:850px){.ai-workspace-grid{grid-template-columns:1fr}.ai-plan-column{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.ai-workspace-heading{display:block}.ai-status-pill{display:inline-flex;margin-top:12px}.ai-workspace-grid{gap:11px}.ai-panel-card,.ai-plan-card,.ai-capability-card{padding:13px}.ai-plan-column{grid-template-columns:1fr}.ai-mode-switch{display:grid;grid-template-columns:1fr}.ai-mode-switch button{justify-content:flex-start}.ai-create-project-button{font-size:10px}.ai-workspace-heading p{font-size:11px}}
+
+/* AI stays embedded in the editor as a contextual side workspace */
+.editor-fullscreen{position:relative}
+.ai-editor-drawer{position:absolute;z-index:40;top:62px;right:12px;bottom:12px;width:min(760px,calc(100% - 24px));overflow:auto;padding:18px;border:1px solid #514276;border-radius:16px;background:rgba(12,13,25,.97);box-shadow:0 20px 70px rgba(0,0,0,.58);backdrop-filter:blur(22px)}
+.ai-drawer-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;color:#bba6ff;font-size:9px;font-weight:800;letter-spacing:1px}
+.ai-drawer-top button{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--border);border-radius:9px;background:var(--panel);color:var(--text)}
+.ai-editor-trigger{display:flex;align-items:center;gap:5px}
+.ai-editor-trigger span{font-size:10px;font-weight:800}
+@media(max-width:650px){.ai-editor-drawer{top:54px;right:6px;bottom:6px;width:calc(100% - 12px);padding:12px;border-radius:13px}.ai-editor-trigger span{display:none}}
