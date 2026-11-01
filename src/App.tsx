@@ -152,7 +152,8 @@ export default function App() {
   function add(a: MediaAsset) {
     const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? "audio-1" : "video-1", start: timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name };
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
-    if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;\n    if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
+    if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
+    if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
     setPage("editor");
   }
   function trimSelectedAtPlayhead() {
@@ -166,7 +167,17 @@ export default function App() {
     const moved = moveClip(clips, selectedClip.id, delta);
     applyClipChange(moved, "Selected clip moved " + (delta < 0 ? "earlier" : "later") + " on the timeline.");
   }
-  function addTextLayer() {\n    const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || "Your text", color: textColor, fontSize: textSize, fontFamily: textFont, x: 50, y: 50 };\n    setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus("Timed text layer added to the project timeline.");\n  }\n  function updateSelectedText(patch: Partial<TimelineTextLayer>) {\n    if (!selectedTextLayer) return; setTextLayers(old => old.map(layer => layer.id === selectedTextLayer ? { ...layer, ...patch } : layer));\n  }\n  function updateSelectedClip(patch: Partial<TimelineClip>) {\n    if (!selectedClip) return; applyClipChange(clips.map(clip => clip.id === selectedClip.id ? { ...clip, ...patch } : clip), "Clip settings updated.");\n  }\n  function split() {
+  function addTextLayer() {
+    const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || "Your text", color: textColor, fontSize: textSize, fontFamily: textFont, x: 50, y: 50 };
+    setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus("Timed text layer added to the project timeline.");
+  }
+  function updateSelectedText(patch: Partial<TimelineTextLayer>) {
+    if (!selectedTextLayer) return; setTextLayers(old => old.map(layer => layer.id === selectedTextLayer ? { ...layer, ...patch } : layer));
+  }
+  function updateSelectedClip(patch: Partial<TimelineClip>) {
+    if (!selectedClip) return; applyClipChange(clips.map(clip => clip.id === selectedClip.id ? { ...clip, ...patch } : clip), "Clip settings updated.");
+  }
+  function split() {
     if (!selectedClip) return;
     const at = selectedClip.sourceIn + playhead - selectedClip.start;
     if (at <= selectedClip.sourceIn + .04 || at >= selectedClip.sourceOut - .04) { setStatus("Place the playhead inside the clip to split"); return; }
@@ -454,8 +465,9 @@ export default function App() {
           <div className="editor-preview-zone">
             <div className="editor-preview-meta"><span>PREVIEW</span><div className="preview-meta-actions"><button onClick={()=>setShowAttachmentPicker(true)} className="preview-add-media"><Plus size={14}/> Add media</button><button onClick={()=>{setActiveTool("adjust");setActiveSubtool("Position");}}><SlidersHorizontal size={14}/> Adjust</button></div></div>
             <div className={"editor-preview-frame ratio-frame ratio-"+aspectRatio.replace(":","-")}>
-              {asset?.kind==="video"&&asset.objectUrl?<video ref={video} src={asset.objectUrl} controls playsInline muted={muteClip} style={{filter: activeTool === "filters" ? (activeSubtool === "B&W" ? "grayscale(1)" : activeSubtool === "Vintage" ? "sepia(.45) contrast(1.08)" : activeSubtool === "Warm" ? "sepia(.2) saturate(1.2)" : activeSubtool === "Cool" ? "hue-rotate(12deg) saturate(.9)" : activeSubtool === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none") : "none"}}/>:asset?.kind==="image"&&asset.objectUrl?<img src={asset.objectUrl} alt="Selected media preview"/>:<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>}
-              {(visibleTextLayer || (activeTool==="text" && !textLayers.length)) && <div className="nexus-text-overlay" style={getGraphicsFallbackStyle(visibleTextLayer?.text || overlayText, visibleTextLayer?.color || textColor, visibleTextLayer?.fontSize || textSize, visibleTextLayer?.fontFamily || textFont)}>{visibleTextLayer?.text || overlayText || "Type your text"}</div>}\n              {asset?.kind==="audio" && asset.objectUrl && <audio ref={audioPreview} src={asset.objectUrl} controls style={{width:"90%",maxWidth:420}}/>}
+              {asset?.kind==="video"&&asset.objectUrl?<video ref={video} src={asset.objectUrl} controls playsInline muted={muteClip || !!selectedClip?.muted} style={{volume: selectedClip?.gain ?? clipGain, filter: activeTool === "filters" ? (activeSubtool === "B&W" ? "grayscale(1)" : activeSubtool === "Vintage" ? "sepia(.45) contrast(1.08)" : activeSubtool === "Warm" ? "sepia(.2) saturate(1.2)" : activeSubtool === "Cool" ? "hue-rotate(12deg) saturate(.9)" : activeSubtool === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none") : "none"}}/>:asset?.kind==="image"&&asset.objectUrl?<img src={asset.objectUrl} alt="Selected media preview"/>:<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>}
+              {(visibleTextLayer || (activeTool==="text" && !textLayers.length)) && <div className="nexus-text-overlay" style={getGraphicsFallbackStyle(visibleTextLayer?.text || overlayText, visibleTextLayer?.color || textColor, visibleTextLayer?.fontSize || textSize, visibleTextLayer?.fontFamily || textFont)}>{visibleTextLayer?.text || overlayText || "Type your text"}</div>}
+              {asset?.kind==="audio" && asset.objectUrl && <audio ref={audioPreview} src={asset.objectUrl} controls style={{width:"90%",maxWidth:420}}/>}
             </div>
             <div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
