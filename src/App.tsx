@@ -7,6 +7,7 @@ import {
   Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines
 } from "lucide-react";
 import type { MediaAsset, TimelineClip } from "./types";
+import { understandEditorRequest } from "./editor/ai-engine";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -29,6 +30,8 @@ export default function App() {
   const [projectName, setProjectName] = useState("Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>([]);
+  const [undoStack, setUndoStack] = useState<TimelineClip[][]>([]);
+  const [redoStack, setRedoStack] = useState<TimelineClip[][]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [playhead, setPlayhead] = useState(0);
   const [status, setStatus] = useState("Your creative space is ready");
@@ -67,7 +70,7 @@ export default function App() {
   const duration = useMemo(() => timelineDuration(clips), [clips]);
   const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };
 
-  function importMedia(files: FileList | null) {
+  function applyClipChange(next: TimelineClip[], message: string) {\n    setUndoStack(old => [...old.slice(-49), clips]);\n    setRedoStack([]);\n    setClips(next);\n    setStatus(message);\n  }\n  function undoEdit() {\n    if (!undoStack.length) { setStatus("Nothing to undo yet."); return; }\n    const previous = undoStack[undoStack.length - 1];\n    setRedoStack(old => [...old, clips]); setUndoStack(old => old.slice(0, -1));\n    setClips(previous); setSelected(previous.some(c => c.id === selected) ? selected : previous[previous.length - 1]?.id || null);\n    setStatus("Undo complete");\n  }\n  function redoEdit() {\n    if (!redoStack.length) { setStatus("Nothing to redo yet."); return; }\n    const next = redoStack[redoStack.length - 1];\n    setUndoStack(old => [...old, clips]); setRedoStack(old => old.slice(0, -1));\n    setClips(next); setSelected(next.some(c => c.id === selected) ? selected : next[next.length - 1]?.id || null);\n    setStatus("Redo complete");\n  }\n  function importMedia(files: FileList | null) {
     if (!files) return;
     const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => ({
       id: uid(), name: file.name,
@@ -87,7 +90,7 @@ export default function App() {
   }
   function add(a: MediaAsset) {
     const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? "audio-1" : "video-1", start: timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name };
-    setClips(old => [...old, c]); setSelected(c.id); setPlayhead(c.start); setStatus("Added to timeline");
+    applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
     setPage("editor");
   }
@@ -150,6 +153,25 @@ export default function App() {
       return;
     }
     setAiReply("I don’t have a connected language model in this build yet. I can understand a limited set of editor commands: split clip, mute/unmute preview, delete selected clip, add text overlay, change ratio, open a tool, or guide me.");
+  }
+  function handleAIRequest(raw = aiBrief) {
+    if (!raw.trim()) return;
+    const intent = understandEditorRequest(raw);
+    if (intent.type === "guide") {
+      if (!clips.length) { setActiveTool("media"); setShowAttachmentPicker(true); setStatus("Let's start with your own media. Import a video or photo, then I'll guide the next step."); }
+      else if (!selectedClip) { setActiveTool("edit"); setStatus("Select a clip on the timeline first. I'll then guide you using that clip."); }
+      else { setActiveTool("edit"); setActiveSubtool("select"); setStatus("Your clip is selected. Try Edit → Split to cut at the playhead, or tell me the change you want."); }
+      return;
+    }
+    if (intent.type === "split-selected") { split(); return; }
+    if (intent.type === "delete-selected") {
+      if (!selectedClip) { setStatus("Select a clip first so I know what to remove."); return; }
+      applyClipChange(clips.filter(c => c.id !== selected), "AI removed the selected clip. You can undo this."); setSelected(null); return;
+    }
+    if (intent.type === "toggle-mute") { setMuteClip(v => !v); setActiveTool("edit"); setActiveSubtool("volume"); setStatus("Clip mute setting toggled."); return; }
+    if (intent.type === "select-tool") { setActiveTool(intent.tool); setActiveSubtool(""); setStatus("Opened " + intent.tool + " tools. Choose a control in the ribbon above the tool dock."); return; }
+    if (intent.type === "set-ratio") { setAspectRatio(intent.ratio); setActiveTool("ratio"); setStatus("Canvas ratio changed to " + intent.ratio + "."); return; }
+    setStatus(intent.reason);
   }
   async function openProject(file?: File) {
     if (!file) return;
@@ -241,7 +263,7 @@ export default function App() {
             <div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
           <div className="editor-timeline-zone">
-            <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip deleted");}} title="Delete"><Trash2 size={16}/></button><button onClick={()=>setStatus("Undo history is planned for the editing-engine phase.")} title="Undo"><ArrowLeft size={16}/></button><button onClick={()=>setStatus("Redo history is planned for the editing-engine phase.")} title="Redo"><Command size={16}/></button></div></div>
+            <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip deleted");}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
             <div className="editor-timeline-scroll"><div className="editor-timeline-ruler"><span>00:00</span><span>00:05</span><span>00:10</span><span>00:15</span><span>00:20</span></div>
               <div className="editor-timeline-rows"><div className="editor-lane-labels"><span>V1 <small>Video</small></span><span>V2 <small>Overlay</small></span><span>T1 <small>Text</small></span><span className="audio-lane-label">A1 <small>Audio</small><button onClick={()=>audioInput.current?.click()} aria-label="Add audio"><Plus size={13}/></button></span></div><div className="editor-lanes"><div className="editor-lanes-inner">
                 {["video-1","overlay-1","text-1","audio-1"].map((id,i)=><div className="editor-lane" key={id}>{clips.filter(c=>c.trackId===id).map(c=><button key={c.id} className={selected===c.id?"editor-clip active":"editor-clip"} style={{left:c.start*50,width:Math.max(70,clipDuration(c)*50)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}}>{c.label}</button>)}{i===2&&<small className="empty-lane-note">Text layers</small>}</div>)}
@@ -256,7 +278,7 @@ export default function App() {
           </div>}
           <div className="editor-bottom-tools nexus-tool-stack">
             <div className="nexus-subtool-ribbon">
-              {activeTool==="edit" && <>{[["select","Select"],["split","Split"],["volume","Mute clip"],["speed","Speed"],["animation","Animation"],["cover","Cover"],["delete","Delete"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} onClick={()=>{setActiveSubtool(id);if(id==="split")split();if(id==="volume")setMuteClip(v=>!v);if(id==="delete"&&selectedClip){setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);}if(["speed","animation","cover"].includes(id))setStatus(label+" controls are not connected to the render engine yet.");}}>{label}</button>)}</>}
+              {activeTool==="edit" && <>{[["select","Select"],["split","Split"],["volume","Mute clip"],["speed","Speed"],["animation","Animation"],["cover","Cover"],["delete","Delete"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} onClick={()=>{setActiveSubtool(id);if(id==="split")split();if(id==="volume")setMuteClip(v=>!v);if(id==="delete"&&selectedClip){applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}if(["speed","animation","cover"].includes(id))setStatus(label+" controls are not connected to the render engine yet.");}}>{label}</button>)}</>}
               {activeTool==="audio" && <>{[["sounds","Sounds"],["extract","Extract"],["voiceover","Voiceover"],["effects","Effects"],["fade","Fade"],["volume","Volume"]].map(([id,label])=><button key={id} onClick={()=>{setActiveSubtool(id);if(id==="sounds"||id==="extract")audioInput.current?.click();else setStatus(label+" controls selected.");}}>{label}</button>)}</>}
               {activeTool==="text" && <>{[["add","Add text"],["font","Fonts"],["style","Style"],["animation","Animation"],["align","Align"],["captions","Auto captions"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} onClick={()=>{setActiveSubtool(id);if(id==="add"){setOverlayText("Your text");setStatus("Text added to preview.");}else if(id==="captions")setStatus("Auto captions need speech recognition and caption-layer support.");}}>{label}</button>)}</>}
               {activeTool==="overlay" && <>{["Add overlay","Mask","Blend","Position","Opacity"].map(x=><button key={x} onClick={()=>{setActiveSubtool(x);if(x==="Add overlay")setShowAttachmentPicker(true);else setStatus(x+" controls selected.");}}>{x}</button>)}</>}
