@@ -10,7 +10,8 @@ import type { MediaAsset, TimelineClip, TimelineTextLayer } from "./types";
 import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
 import { analyzeMediaAsset, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
-import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";\nimport { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
+import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
+import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -52,7 +53,9 @@ export default function App() {
   const [clipGain, setClipGain] = useState(1);
   const [aspectRatio, setAspectRatio] = useState("9:16");
   const [exportQuality, setExportQuality] = useState("1080p");
-  const [exportFps, setExportFps] = useState("30 FPS");\n  const [exportBusy, setExportBusy] = useState(false);\n  const [exportProgress, setExportProgress] = useState(0);
+  const [exportFps, setExportFps] = useState("30 FPS");
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [aiBrief, setAiBrief] = useState("");
