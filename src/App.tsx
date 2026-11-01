@@ -398,13 +398,13 @@ export default function App() {
               </div>
               <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
               <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
-              {aiPlan && <div className="nexus-ai-online-search">
+              <div className="nexus-ai-online-search">
                 <b>Find media online</b>
                 <div><input value={mediaSearchQuery} onChange={e=>setMediaSearchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")findOnlineMedia();}} placeholder="Search a scene or subject…"/><button disabled={mediaSearchBusy} onClick={()=>findOnlineMedia()}>{mediaSearchBusy?"Searching…":"Search"}</button></div>
                 <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images and video files. Review the licence before using any result."}</small>
                 {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.mediaKind.toUpperCase()} · {item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
               </div>
-              <div className="nexus-ai-storyboard">
+              {aiPlan && <div className="nexus-ai-storyboard">
                 <div><b>{aiPlan.title}</b><small>{aiPlan.duration}s · {aiFormat} · {aiStyle} · {aiPlan.scenes.length} scenes</small></div>
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
                 <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p><button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
