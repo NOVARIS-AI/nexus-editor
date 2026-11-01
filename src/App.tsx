@@ -1,115 +1,79 @@
 import { useMemo, useRef, useState } from "react";
-import { Download, Film, FolderOpen, Music2, Play, Plus, Scissors, Upload, Image as ImageIcon, Trash2 } from "lucide-react";
+import { Activity, AudioLines, Bell, Check, ChevronDown, Clapperboard, Cloud, Command, Download, Film, Folder, FolderOpen, Grid2X2, HelpCircle, Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Scissors, Settings, Sparkles, Trash2, Upload, WandSparkles, X, Zap } from "lucide-react";
 import type { MediaAsset, TimelineClip } from "./types";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 
-const id = () => crypto.randomUUID();
-const time = (n: number) => {
-  const m = Math.floor(n / 60), s = Math.floor(n % 60);
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-};
+type Page = "home" | "editor" | "projects" | "templates" | "ai" | "cloud" | "settings";
+const uid = () => crypto.randomUUID();
+const stamp = (n:number) => { const m=Math.floor(n/60),s=Math.floor(n%60); return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; };
+const nav: {id:Page;label:string;icon:typeof Home}[] = [
+  {id:"home",label:"Home",icon:Home},{id:"editor",label:"Editor",icon:Clapperboard},{id:"projects",label:"My Projects",icon:Folder},
+  {id:"templates",label:"Templates",icon:Grid2X2},{id:"ai",label:"AI Studio",icon:WandSparkles},{id:"cloud",label:"Cloud Space",icon:Cloud}
+];
+const demoProjects = [
+  {name:"Dream Bigger",type:"Video project",time:"Edited recently",art:"art-one",duration:"00:32"},
+  {name:"City Lights",type:"Travel film",time:"Yesterday",art:"art-two",duration:"02:18"},
+  {name:"Birthday Moments",type:"Social video",time:"2 days ago",art:"art-three",duration:"00:48"}
+];
+const templates = [{name:"Cinematic Story",tag:"FILM",art:"art-one"},{name:"Urban Nights",tag:"TRAVEL",art:"art-two"},{name:"Celebration",tag:"EVENT",art:"art-three"},{name:"Creator Intro",tag:"SOCIAL",art:"art-four"}];
 
 export default function App() {
-  const [projectName, setProjectName] = useState("Untitled Project");
-  const [assets, setAssets] = useState<MediaAsset[]>([]);
-  const [clips, setClips] = useState<TimelineClip[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [playhead, setPlayhead] = useState(0);
-  const [status, setStatus] = useState("Ready — import media to begin");
-  const input = useRef<HTMLInputElement>(null);
-  const projectInput = useRef<HTMLInputElement>(null);
-  const video = useRef<HTMLVideoElement>(null);
-  const selectedClip = clips.find(c => c.id === selected);
-  const asset = assets.find(a => a.id === selectedClip?.assetId);
-  const duration = useMemo(() => timelineDuration(clips), [clips]);
-  const project = { ...makeProject(projectName), clips, assets: assets.map(({file,objectUrl,...a}) => a) };
-
-  function importMedia(files: FileList | null) {
-    if (!files) return;
-    const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => ({
-      id:id(), name:file.name, kind:file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":"image",
-      duration:file.type.startsWith("image/")?5:0, mimeType:file.type, file, objectUrl:URL.createObjectURL(file)
-    }));
-    setAssets(old => [...old,...added]);
-    added.forEach(a => {
-      if (a.kind !== "image") {
-        const probe = document.createElement(a.kind);
-        probe.preload = "metadata"; probe.src = a.objectUrl!;
-        probe.onloadedmetadata = () => setAssets(old => old.map(x => x.id===a.id ? {...x,duration:Number.isFinite(probe.duration)?probe.duration:5} : x));
-      }
-    });
-    setStatus(`${added.length} media file(s) imported`);
+  const [page,setPage]=useState<Page>("home");
+  const [projectName,setProjectName]=useState("Untitled Project");
+  const [assets,setAssets]=useState<MediaAsset[]>([]);
+  const [clips,setClips]=useState<TimelineClip[]>([]);
+  const [selected,setSelected]=useState<string|null>(null);
+  const [playhead,setPlayhead]=useState(0);
+  const [status,setStatus]=useState("Ready to create something great");
+  const [search,setSearch]=useState("");
+  const [guest,setGuest]=useState(true);
+  const [showWelcome,setShowWelcome]=useState(true);
+  const input=useRef<HTMLInputElement>(null), projectInput=useRef<HTMLInputElement>(null), video=useRef<HTMLVideoElement>(null);
+  const selectedClip=clips.find(c=>c.id===selected), asset=assets.find(a=>a.id===selectedClip?.assetId);
+  const duration=useMemo(()=>timelineDuration(clips),[clips]);
+  const project={...makeProject(projectName),clips,assets:assets.map(({file,objectUrl,...a})=>a)};
+  function importMedia(files:FileList|null){
+    if(!files)return;
+    const added:MediaAsset[]=Array.from(files).filter(f=>/^(video|audio|image)\//.test(f.type)).map(file=>({id:uid(),name:file.name,kind:file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":"image",duration:file.type.startsWith("image/")?5:0,mimeType:file.type,file,objectUrl:URL.createObjectURL(file)}));
+    setAssets(old=>[...old,...added]);
+    added.forEach(a=>{if(a.kind!=="image"){const probe=document.createElement(a.kind);probe.preload="metadata";probe.src=a.objectUrl!;probe.onloadedmetadata=()=>setAssets(old=>old.map(x=>x.id===a.id?{...x,duration:Number.isFinite(probe.duration)?probe.duration:5}:x));}});
+    setStatus(`${added.length} media file(s) imported`);setPage("editor");
   }
-  function add(a: MediaAsset) {
-    const c: TimelineClip = {id:id(),assetId:a.id,trackId:a.kind==="audio"?"audio-1":"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:a.duration||5,label:a.name};
-    setClips(old=>[...old,c]); setSelected(c.id); setPlayhead(c.start); setStatus("Added to timeline");
-    if (a.kind==="video" && video.current) video.current.src=a.objectUrl!;
-  }
-  function split() {
-    if (!selectedClip) return;
-    const at = selectedClip.sourceIn + playhead - selectedClip.start;
-    if (at <= selectedClip.sourceIn+.04 || at >= selectedClip.sourceOut-.04) {setStatus("Place playhead inside the clip to split");return;}
-    const right = {...selectedClip,id:id(),start:playhead,sourceIn:at,label:selectedClip.label+" (split)"};
-    setClips(old=>[...old.map(c=>c.id===selected?{...c,sourceOut:at}:c),right]);setSelected(right.id);setStatus("Clip split");
-  }
-  async function openProject(file?: File) {
-    if (!file) return;
-    try { const p=parseProject(await file.text());setProjectName(p.name);setClips(p.clips);setStatus("Project opened — re-import source media to relink assets"); }
-    catch {setStatus("Could not open this project file");}
-  }
-  return <div className="app">
-    <header className="topbar">
-      <div className="brand"><div className="brand-icon">N</div><div><b>NEXUS <span>EDITOR</span></b><small>VELTRONIX NEXUS · FOUNDATION PREVIEW</small></div></div>
-      <input className="project-name" value={projectName} onChange={e=>setProjectName(e.target.value)} aria-label="Project name"/>
-      <div className="actions">
-        <button onClick={()=>projectInput.current?.click()}><FolderOpen size={16}/> Open</button>
-        <button onClick={()=>downloadProject(project,assets)}><Download size={16}/> Save project</button>
-        <button className="primary" onClick={()=>setStatus("Full multi-track export is coming in a later build")}><Download size={16}/> Export</button>
+  function add(a:MediaAsset){const c:TimelineClip={id:uid(),assetId:a.id,trackId:a.kind==="audio"?"audio-1":"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:a.duration||5,label:a.name};setClips(old=>[...old,c]);setSelected(c.id);setPlayhead(c.start);setStatus("Added to timeline");}
+  function split(){if(!selectedClip)return;const at=selectedClip.sourceIn+playhead-selectedClip.start;if(at<=selectedClip.sourceIn+.04||at>=selectedClip.sourceOut-.04){setStatus("Move the playhead inside the clip before splitting");return;}const right={...selectedClip,id:uid(),start:playhead,sourceIn:at,label:selectedClip.label+" (split)"};setClips(old=>[...old.map(c=>c.id===selected?{...c,sourceOut:at}:c),right]);setSelected(right.id);setStatus("Clip split successfully");}
+  async function openProject(file?:File){if(!file)return;try{const p=parseProject(await file.text());setProjectName(p.name);setClips(p.clips);setStatus("Project opened. Re-import source media to relink files.");setPage("editor");}catch{setStatus("Could not open this project file");}}
+  function previewClip(c:TimelineClip){setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}
+  const heading=nav.find(n=>n.id===page)?.label||"Settings";
+  return <div className="nexus-shell">
+    {showWelcome&&<div className="welcome-screen"><div className="welcome-art"><div className="welcome-mark">N<span>▶</span></div><div className="welcome-word">NEXUS<br/><em>EDITOR</em></div><p>CREATE · EDIT · INSPIRE</p><div className="welcome-wave"/></div><div className="welcome-content"><div className="eyebrow">YOUR CREATIVE SPACE</div><h1>Make every frame<br/><span>mean something.</span></h1><p>A powerful workspace for your videos, stories and ideas. Start creating at your own pace.</p><button className="gradient-button" onClick={()=>setShowWelcome(false)}>Get started <Zap size={17}/></button><button className="guest-button" onClick={()=>{setGuest(true);setShowWelcome(false)}}>Continue as Guest</button><small>No account needed to start editing.</small></div></div>}
+    <aside className="sidebar">
+      <button className="brand-lockup" onClick={()=>setPage("home")}><span className="brand-symbol">N<span>▶</span></span><span><b>NEXUS</b><strong>EDITOR</strong></span></button>
+      <div className="side-label">WORKSPACE</div>
+      <nav>{nav.map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"nav-item active":"nav-item"} onClick={()=>setPage(item.id)}><Icon size={18}/><span>{item.label}</span>{item.id==="ai"&&<i>NEW</i>}</button>})}</nav>
+      <div className="sidebar-bottom"><div className="upgrade-card"><div className="upgrade-icon"><Sparkles size={18}/></div><b>Go further with Nexus</b><span>Explore powerful creative tools.</span><button onClick={()=>setPage("ai")}>Explore tools <span>↗</span></button></div><button className="nav-item" onClick={()=>setPage("settings")}><Settings size={18}/>Settings</button><button className="nav-item" onClick={()=>setStatus("Help centre is being prepared")}><HelpCircle size={18}/>Help centre</button><div className="profile-row"><div className="avatar">N</div><div><b>{guest?"Guest Creator":"Nexus Creator"}</b><small>{guest?"Guest workspace":"Creator account"}</small></div><ChevronDown size={15}/></div></div>
+    </aside>
+    <main className="main-area">
+      <header className="app-topbar"><div className="mobile-brand">NEXUS <span>EDITOR</span></div><div className="breadcrumb">Workspace <span>/</span> {heading}</div><label className="global-search"><Search size={16}/><input placeholder="Search projects, tools..." value={search} onChange={e=>setSearch(e.target.value)}/><kbd>⌘ K</kbd></label><button className="icon-button" aria-label="Notifications" onClick={()=>setStatus("You're all caught up")}><Bell size={18}/></button><div className="top-avatar">N</div></header>
+      <div className="page-content">
+        {page==="home"&&<><div className="welcome-heading"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something amazing?</p></div><button className="gradient-button" onClick={()=>setPage("editor")}><Plus size={17}/> New project</button></div>
+          <section className="hero-banner"><div><div className="eyebrow">THE NEXUS CREATIVE SUITE</div><h2>Edit smarter.<br/><span>Create bigger.</span></h2><p>Everything you need to bring your vision to life.</p><button onClick={()=>setPage("editor")}>Open editor <span>→</span></button></div><div className="hero-graphic"><div className="hero-orbit orbit-a"/><div className="hero-orbit orbit-b"/><div className="hero-play"><Clapperboard size={62}/><Play size={27} fill="currentColor"/></div><div className="hero-glow"/></div></section>
+          <div className="quick-grid"><button onClick={()=>setPage("editor")}><span className="quick-icon violet"><Plus/></span><b>New project</b><small>Start from scratch</small></button><button onClick={()=>setPage("templates")}><span className="quick-icon blue"><Grid2X2/></span><b>Explore templates</b><small>Find your starting point</small></button><button onClick={()=>setPage("ai")}><span className="quick-icon pink"><Sparkles/></span><b>AI Studio</b><small>Creative assistance</small></button><button onClick={()=>projectInput.current?.click()}><span className="quick-icon amber"><FolderOpen/></span><b>Open project</b><small>Continue your work</small></button></div>
+          <section className="section-block"><div className="section-heading"><div><h2>Recent projects</h2><p>Pick up where you left off.</p></div><button className="text-link" onClick={()=>setPage("projects")}>View all projects →</button></div><div className="project-grid">{demoProjects.map(p=><button className="project-card" key={p.name} onClick={()=>{setProjectName(p.name);setPage("editor")}}><div className={`project-art ${p.art}`}><span className="duration">{p.duration}</span><span className="art-play"><Play size={17} fill="currentColor"/></span></div><div className="project-meta"><b>{p.name}</b><small>{p.type} · {p.time}</small></div></button>)}</div></section>
+        </>}
+        {page==="editor"&&<><div className="editor-heading"><div><div className="eyebrow">CREATIVE WORKSPACE / EDITOR</div><input className="editor-project-name" value={projectName} onChange={e=>setProjectName(e.target.value)}/></div><div className="editor-actions"><button className="soft-button" onClick={()=>projectInput.current?.click()}><FolderOpen size={16}/> Open</button><button className="soft-button" onClick={()=>downloadProject(project,assets)}><Download size={16}/> Save</button><button className="gradient-button" onClick={()=>setStatus("Multi-track rendering is being developed — export is not available in this build.")}><Download size={16}/> Export</button></div></div>
+          <div className="editor-layout"><aside className="editor-media panel-card"><div className="panel-title"><div><span>01 / ASSETS</span><h3>Media library</h3></div><button className="icon-button" onClick={()=>input.current?.click()}><Plus size={18}/></button></div><button className="import-zone" onClick={()=>input.current?.click()}><Upload size={22}/><b>Import media</b><small>Video, audio & images</small></button><input ref={input} hidden type="file" multiple accept="video/*,audio/*,image/*" onChange={e=>importMedia(e.target.files)}/><div className="asset-list">{assets.map(a=><div className="asset-row" key={a.id}><span className="asset-type">{a.kind==="audio"?<Music2/>:a.kind==="image"?<ImageIcon/>:<Film/>}</span><div><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?stamp(a.duration):"Reading…"}</small></div><button onClick={()=>add(a)}><Plus size={15}/></button></div>)}{!assets.length&&<div className="empty-state">Your imported media will appear here.</div>}</div></aside>
+          <section className="editor-center panel-card"><div className="panel-title"><div><span>02 / CANVAS</span><h3>Preview monitor</h3></div><span className="canvas-resolution">16:9 · 1080p</span></div><div className="preview-stage">{asset?.kind==="video"&&asset.objectUrl?<video ref={video} src={asset.objectUrl} controls playsInline/>:asset?.kind==="image"&&asset.objectUrl?<img src={asset.objectUrl} alt="Selected media preview"/>:<div className="preview-empty"><div className="preview-n">N</div><b>Your vision starts here</b><small>Import a video or image to preview your work</small></div>}</div><div className="transport-bar"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="transport-play" onClick={()=>video.current?.play()}><Play size={16} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(playhead+1);}}}>+1s</button><span>{stamp(playhead)} <i>/</i> {stamp(duration)}</span><div className="transport-spacer"/><button onClick={split}><Scissors size={15}/> Split</button><button onClick={()=>{setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip deleted")}}><Trash2 size={15}/></button></div></section>
+          <aside className="editor-inspector panel-card"><div className="panel-title"><div><span>03 / PROPERTIES</span><h3>Inspector</h3></div><Layers size={17}/></div>{selectedClip?<><div className="selected-asset"><small>SELECTED CLIP</small><b>{selectedClip.label}</b><span>{asset?.kind.toUpperCase()} · {stamp(clipDuration(selectedClip))}</span></div><label>Clip position <b>{stamp(selectedClip.start)}</b></label><input type="range" min="0" max={Math.max(duration,1)} step=".1" value={selectedClip.start} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,start:Number(e.target.value)}:c))}/><label>Source in <b>{stamp(selectedClip.sourceIn)}</b></label><input type="range" min="0" max={Math.max(asset?.duration||1,1)} step=".1" value={selectedClip.sourceIn} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceIn:Number(e.target.value)}:c))}/><label>Source out <b>{stamp(selectedClip.sourceOut)}</b></label><input type="range" min={selectedClip.sourceIn} max={Math.max(asset?.duration||1,1)} step=".1" value={Math.min(selectedClip.sourceOut,asset?.duration||selectedClip.sourceOut)} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceOut:Number(e.target.value)}:c))}/><p className="inspector-note">Your original media stays untouched. Changes are non-destructive.</p></>:<div className="empty-state">Select a clip on the timeline to adjust its properties.</div>}</aside></div>
+          <section className="timeline-panel panel-card"><div className="panel-title"><div><span>04 / ARRANGEMENT</span><h3>Timeline</h3></div><button className="soft-button" onClick={()=>{setClips([]);setSelected(null);setPlayhead(0)}}>Clear timeline</button></div><div className="timeline-scroll"><div className="timeline-grid"><div className="track-names">{defaultTracks.map(t=><div key={t.id}>{t.name}</div>)}</div><div className="track-lanes">{defaultTracks.map(t=><div className="track-lane" key={t.id}>{clips.filter(c=>c.trackId===t.id).map(c=><button key={c.id} className={selected===c.id?"timeline-clip chosen":"timeline-clip"} style={{left:c.start*58,width:Math.max(68,clipDuration(c)*58)}} onClick={()=>previewClip(c)}>{c.label}</button>)}</div>)}<div className="timeline-cursor" style={{left:playhead*58}}/><input aria-label="Timeline playhead" className="timeline-scrub" type="range" min="0" max={Math.max(duration,1)} step=".1" value={Math.min(playhead,Math.max(duration,1))} onChange={e=>setPlayhead(Number(e.target.value))}/></div></div></div><div className="editor-status"><Activity size={13}/>{status}</div></section>
+          <input ref={projectInput} hidden type="file" accept=".nexusproj,.json" onChange={e=>openProject(e.target.files?.[0])}/>
+        </>}
+        {page==="projects"&&<><div className="page-title-row"><div><div className="eyebrow">YOUR LIBRARY</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={()=>setPage("editor")}><Plus size={17}/> New project</button></div><div className="project-grid large">{demoProjects.map(p=><button className="project-card" key={p.name} onClick={()=>{setProjectName(p.name);setPage("editor")}}><div className={`project-art ${p.art}`}><span className="duration">{p.duration}</span></div><div className="project-meta"><b>{p.name}</b><small>{p.type} · {p.time}</small></div></button>)}</div><div className="library-empty"><FolderOpen size={26}/><b>Your own saved projects will show here</b><span>Create a project and save its .nexusproj file to get started.</span></div></>}
+        {page==="templates"&&<><div className="page-title-row"><div><div className="eyebrow">START WITH A SPARK</div><h1>Templates</h1><p>Choose a creative direction for your next project.</p></div></div><div className="filter-row"><button className="filter-active">All templates</button><button>Trending</button><button>Social media</button><button>Travel</button><button>Business</button></div><div className="template-grid">{templates.map(t=><button key={t.name} className="template-card" onClick={()=>{setProjectName(t.name);setPage("editor");setStatus("Template selected. Add your own media to begin.")}}><div className={`template-art ${t.art}`}><span>{t.tag}</span><div><Play size={22} fill="currentColor"/></div></div><b>{t.name}</b><small>Open template <span>↗</span></small></button>)}</div></>}
+        {page==="ai"&&<><div className="page-title-row"><div><div className="eyebrow">CREATIVE INTELLIGENCE</div><h1>AI Studio</h1><p>Tools to help you plan, polish and improve your content.</p></div></div><div className="ai-banner"><Sparkles size={30}/><div><h2>Your creative co-pilot</h2><p>Explore assisted workflows as they become available in Nexus Editor.</p></div></div><div className="feature-grid">{[{icon:WandSparkles,name:"Smart enhancements",desc:"Explore ideas for improving your footage."},{icon:AudioLines,name:"Audio assistant",desc:"Plan cleaner, clearer sound for your edits."},{icon:Clapperboard,name:"Story planner",desc:"Shape a beginning, middle and end."},{icon:Zap,name:"Caption studio",desc:"Prepare captions and on-screen text."}].map(f=>{const Icon=f.icon;return <div className="feature-card" key={f.name}><Icon/><b>{f.name}</b><span>{f.desc}</span><small>Coming in a future release</small></div>})}</div></>}
+        {page==="cloud"&&<><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIVE SPACE</div><h1>Cloud space</h1><p>Cloud project sync and online storage.</p></div></div><div className="empty-feature"><Cloud size={38}/><h2>Your cloud space is getting ready</h2><p>Cloud sync is not connected in this preview. Your local editing workspace remains available.</p><button className="soft-button" onClick={()=>setPage("editor")}>Continue editing</button></div></>}
+        {page==="settings"&&<><div className="page-title-row"><div><div className="eyebrow">PREFERENCES</div><h1>Settings</h1><p>Make your workspace feel right.</p></div></div><div className="settings-layout"><div className="settings-card"><h3>Appearance</h3><p>Choose how Nexus Editor looks.</p><div className="setting-line"><span>Interface theme</span><b>Midnight Neon <Check size={15}/></b></div><div className="setting-line"><span>Accent colour</span><b><i className="accent-dot"/> Electric violet</b></div></div><div className="settings-card"><h3>Workspace</h3><p>Your editing preferences.</p><div className="setting-line"><span>Default canvas</span><b>1920 × 1080</b></div><div className="setting-line"><span>Frame rate</span><b>30 FPS</b></div><div className="setting-line"><span>Project format</span><b>.nexusproj</b></div></div><div className="settings-card"><h3>Account</h3><p>Current session.</p><div className="setting-line"><span>Workspace mode</span><b>{guest?"Guest":"Creator"}</b></div><button className="soft-button" onClick={()=>setGuest(!guest)}>{guest?"Switch to creator preview":"Continue as guest"}</button></div></div></>}
       </div>
-      <input ref={projectInput} hidden type="file" accept=".nexusproj,.json" onChange={e=>openProject(e.target.files?.[0])}/>
-    </header>
-    <main className="workspace">
-      <aside className="panel library">
-        <div className="section-title"><small>01 / PROJECT</small><h2>Media library</h2></div>
-        <button className="import" onClick={()=>input.current?.click()}><Upload/><b>Import media</b><span>Video, audio and images</span></button>
-        <input ref={input} hidden type="file" multiple accept="video/*,audio/*,image/*" onChange={e=>importMedia(e.target.files)}/>
-        <div className="asset-list">{assets.map(a=><div className="asset" key={a.id}>
-          <span className="asset-icon">{a.kind==="audio"?<Music2/>:a.kind==="image"?<ImageIcon/>:<Film/>}</span>
-          <div className="asset-name"><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?time(a.duration):"Reading…"}</small></div>
-          <button className="small" onClick={()=>add(a)} aria-label="Add to timeline"><Plus size={17}/></button>
-        </div>)}{!assets.length&&<p className="empty">Your imported files will appear here.</p>}</div>
-      </aside>
-      <section className="panel monitor">
-        <div className="section-title"><small>02 / CANVAS</small><h2>Preview monitor</h2></div>
-        <div className="preview">
-          {asset?.kind==="video"&&asset.objectUrl?<video ref={video} src={asset.objectUrl} controls playsInline/>:
-           asset?.kind==="image"&&asset.objectUrl?<img src={asset.objectUrl} alt="Media preview"/>:
-           <div className="placeholder"><div className="orb">N</div><b>Your creative space</b><span>Import media and add it to the timeline to begin</span></div>}
-        </div>
-        <div className="transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="play" onClick={()=>video.current?.play()}><Play size={17}/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(playhead+1);}}}>+1s</button><b>{time(playhead)} / {time(duration)}</b></div>
-        <div className="tools"><button onClick={split}><Scissors/> Split clip</button><button onClick={()=>{setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip removed");}}><Trash2/> Delete clip</button></div>
-      </section>
-      <aside className="panel inspector">
-        <div className="section-title"><small>03 / CONTROLS</small><h2>Inspector</h2></div>
-        {selectedClip?<><div className="selected-card"><small>SELECTED CLIP</small><b>{selectedClip.label}</b><span>{asset?.kind.toUpperCase()} · {time(clipDuration(selectedClip))}</span></div>
-          <label>Clip start · {time(selectedClip.start)}</label><input type="range" min="0" max={Math.max(duration,1)} step=".1" value={selectedClip.start} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,start:Number(e.target.value)}:c))}/>
-          <label>Source in · {time(selectedClip.sourceIn)}</label><input type="range" min="0" max={Math.max(asset?.duration||1,1)} step=".1" value={selectedClip.sourceIn} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceIn:Number(e.target.value)}:c))}/>
-          <label>Source out · {time(selectedClip.sourceOut)}</label><input type="range" min={selectedClip.sourceIn} max={Math.max(asset?.duration||1,1)} step=".1" value={Math.min(selectedClip.sourceOut,asset?.duration||selectedClip.sourceOut)} onChange={e=>setClips(old=>old.map(c=>c.id===selected?{...c,sourceOut:Number(e.target.value)}:c))}/>
-          <p className="note">Non-destructive editing keeps your original media unchanged.</p></>:<p className="empty">Select a timeline clip to inspect its properties.</p>}
-        <div className="settings"><small>PROJECT SETTINGS</small><p>1920 × 1080 · 30 FPS</p><p>Project format · .nexusproj</p></div>
-      </aside>
+      <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>NEXUS EDITOR <i>·</i> CREATE WITHOUT LIMITS</span></footer>
     </main>
-    <section className="panel timeline">
-      <div className="timeline-head"><div><small>04 / EDITING</small><h2>Timeline</h2></div><button onClick={()=>{setClips([]);setSelected(null);}}>Clear timeline</button></div>
-      <div className="tracks">
-        <div className="track-labels">{defaultTracks.map(t=><div key={t.id}>{t.name}</div>)}</div>
-        <div className="track-content">{defaultTracks.map(t=><div className="track-row" key={t.id}>{clips.filter(c=>c.trackId===t.id).map(c=><button key={c.id} className={selected===c.id?"clip selected":"clip"} style={{left:c.start*65,width:Math.max(70,clipDuration(c)*65)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}}>{c.label}</button>)}</div>)}
-          <div className="playhead" style={{left:playhead*65}}/>
-          <input aria-label="Timeline playhead" className="seek" type="range" min="0" max={Math.max(duration,1)} step=".1" value={Math.min(playhead,Math.max(duration,1))} onChange={e=>setPlayhead(Number(e.target.value))}/>
-        </div>
-      </div>
-      <div className="status">{status}</div>
-    </section>
-    <footer>© VELTRONIX NEXUS <span>NEXUS EDITOR · FOUNDATION BUILD</span></footer>
   </div>;
 }
