@@ -27,3 +27,6 @@ Production build: `npm run build`.
 Use a shared versioned edit model with platform-specific render adapters: WebCodecs and a mux/demux layer on web, Media3 Transformer/MediaCodec on Android, and a carefully audited FFmpeg pipeline in a Windows desktop shell.
 
 The .nexusproj format is JSON-based (schemaVersion 1) and stores project settings, asset metadata, tracks and clip instructions. Original media remains untouched.
+
+## Deployment
+The `main` branch is linked to the Vercel project `nexus_editor`. A documentation-only commit can be used to verify the Git-connected deployment trigger without changing application code.
