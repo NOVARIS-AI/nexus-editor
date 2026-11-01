@@ -150,7 +150,18 @@ export default function App() {
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
     setPage("editor");
   }
-  function trimSelectedAtPlayhead() {\n    if (!selectedClip) return;\n    const trimmed = trimClipAtPlayhead(selectedClip, playhead);\n    if (!trimmed) { setStatus("Move the playhead inside the selected clip before trimming its end."); return; }\n    applyClipChange(clips.map(c => c.id === selectedClip.id ? trimmed : c), "Trim applied to selected clip. Undo is available.");\n  }\n  function nudgeSelectedClip(delta: number) {\n    if (!selectedClip) return;\n    const moved = moveClip(clips, selectedClip.id, delta);\n    applyClipChange(moved, "Selected clip moved " + (delta < 0 ? "earlier" : "later") + " on the timeline.");\n  }\n  function split() {
+  function trimSelectedAtPlayhead() {
+    if (!selectedClip) return;
+    const trimmed = trimClipAtPlayhead(selectedClip, playhead);
+    if (!trimmed) { setStatus("Move the playhead inside the selected clip before trimming its end."); return; }
+    applyClipChange(clips.map(c => c.id === selectedClip.id ? trimmed : c), "Trim applied to selected clip. Undo is available.");
+  }
+  function nudgeSelectedClip(delta: number) {
+    if (!selectedClip) return;
+    const moved = moveClip(clips, selectedClip.id, delta);
+    applyClipChange(moved, "Selected clip moved " + (delta < 0 ? "earlier" : "later") + " on the timeline.");
+  }
+  function split() {
     if (!selectedClip) return;
     const at = selectedClip.sourceIn + playhead - selectedClip.start;
     if (at <= selectedClip.sourceIn + .04 || at >= selectedClip.sourceOut - .04) { setStatus("Place the playhead inside the clip to split"); return; }
