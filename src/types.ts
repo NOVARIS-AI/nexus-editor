@@ -2,6 +2,7 @@ export type MediaKind = "video" | "audio" | "image";
 export interface MediaAsset {
   id: string; name: string; kind: MediaKind; duration: number;
   width?: number; height?: number; mimeType: string; file?: File; objectUrl?: string;
+  source?: { type: "personal" | "commons" | "stock" | "generated"; pageUrl?: string; creator?: string; license?: string; licenseUrl?: string; attribution?: string };
 }
 export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
