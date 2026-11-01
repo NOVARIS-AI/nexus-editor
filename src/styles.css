@@ -505,3 +505,8 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-ai-inline>p{margin:7px 0 0;color:var(--muted);font-size:8px}
 .ai-editor-trigger.active{border-color:#8d6bd0;color:#d5c1ff;background:rgba(153,111,255,.16)}
 @media(max-width:600px){.nexus-ai-inline{margin:0 6px 7px;padding:9px}.nexus-ai-quick-prompts button{font-size:7px;padding:5px 6px}.nexus-ai-inline-head{gap:6px}.nexus-ai-inline-head small{max-width:170px}}
+
+/* NEXUS AI command response inside the editor workspace */
+.nexus-ai-inline .nexus-ai-reply{margin:7px 2px 0;color:#c7c1df;font-size:10px;line-height:1.5;white-space:normal}
+.nexus-ai-inline .nexus-ai-inline-compose input{min-width:0}
+.nexus-ai-inline .nexus-ai-inline-compose button{flex-shrink:0}
