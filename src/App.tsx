@@ -70,7 +70,31 @@ export default function App() {
   const duration = useMemo(() => timelineDuration(clips), [clips]);
   const project = { ...makeProject(projectName), clips, assets: assets.map(({ file, objectUrl, ...a }) => a) };
 
-  function applyClipChange(next: TimelineClip[], message: string) {\n    setUndoStack(old => [...old.slice(-49), clips]);\n    setRedoStack([]);\n    setClips(next);\n    setStatus(message);\n  }\n  function undoEdit() {\n    if (!undoStack.length) { setStatus("Nothing to undo yet."); return; }\n    const previous = undoStack[undoStack.length - 1];\n    setRedoStack(old => [...old, clips]); setUndoStack(old => old.slice(0, -1));\n    setClips(previous); setSelected(previous.some(c => c.id === selected) ? selected : previous[previous.length - 1]?.id || null);\n    setStatus("Undo complete");\n  }\n  function redoEdit() {\n    if (!redoStack.length) { setStatus("Nothing to redo yet."); return; }\n    const next = redoStack[redoStack.length - 1];\n    setUndoStack(old => [...old, clips]); setRedoStack(old => old.slice(0, -1));\n    setClips(next); setSelected(next.some(c => c.id === selected) ? selected : next[next.length - 1]?.id || null);\n    setStatus("Redo complete");\n  }\n  function importMedia(files: FileList | null) {
+  function applyClipChange(next: TimelineClip[], message: string) {
+    setUndoStack(old => [...old.slice(-49), clips]);
+    setRedoStack([]);
+    setClips(next);
+    setStatus(message);
+  }
+  function undoEdit() {
+    if (!undoStack.length) { setStatus("Nothing to undo yet."); return; }
+    const previous = undoStack[undoStack.length - 1];
+    setRedoStack(old => [...old, clips]);
+    setUndoStack(old => old.slice(0, -1));
+    setClips(previous);
+    setSelected(previous.some(c => c.id === selected) ? selected : previous[previous.length - 1]?.id || null);
+    setStatus("Undo complete");
+  }
+  function redoEdit() {
+    if (!redoStack.length) { setStatus("Nothing to redo yet."); return; }
+    const next = redoStack[redoStack.length - 1];
+    setUndoStack(old => [...old, clips]);
+    setRedoStack(old => old.slice(0, -1));
+    setClips(next);
+    setSelected(next.some(c => c.id === selected) ? selected : next[next.length - 1]?.id || null);
+    setStatus("Redo complete");
+  }
+  function importMedia(files: FileList | null) {
     if (!files) return;
     const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => ({
       id: uid(), name: file.name,
@@ -244,7 +268,7 @@ export default function App() {
             <div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
           <div className="editor-timeline-zone">
-            <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{setClips(old=>old.filter(c=>c.id!==selected));setSelected(null);setStatus("Clip deleted");}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
+            <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
             <div className="editor-timeline-scroll"><div className="editor-timeline-ruler"><span>00:00</span><span>00:05</span><span>00:10</span><span>00:15</span><span>00:20</span></div>
               <div className="editor-timeline-rows"><div className="editor-lane-labels"><span>V1 <small>Video</small></span><span>V2 <small>Overlay</small></span><span>T1 <small>Text</small></span><span className="audio-lane-label">A1 <small>Audio</small><button onClick={()=>audioInput.current?.click()} aria-label="Add audio"><Plus size={13}/></button></span></div><div className="editor-lanes"><div className="editor-lanes-inner">
                 {["video-1","overlay-1","text-1","audio-1"].map((id,i)=><div className="editor-lane" key={id}>{clips.filter(c=>c.trackId===id).map(c=><button key={c.id} className={selected===c.id?"editor-clip active":"editor-clip"} style={{left:c.start*50,width:Math.max(70,clipDuration(c)*50)}} onClick={()=>{setSelected(c.id);setPlayhead(c.start);const a=assets.find(x=>x.id===c.assetId);if(a?.kind==="video"&&video.current)video.current.src=a.objectUrl||"";}}>{c.label}</button>)}{i===2&&<small className="empty-lane-note">Text layers</small>}</div>)}
