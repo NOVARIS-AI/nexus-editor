@@ -41,6 +41,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
   const audioContext = new AudioContext();
+  const audioReady = audioContext.resume();
   const audioDestination = audioContext.createMediaStreamDestination();
   const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
   const activeVideos: HTMLVideoElement[] = [];
@@ -136,7 +137,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (time >= input.duration) { activeVideos.forEach(v => v.pause()); audioNodes.forEach(({element}) => element.pause()); recorder.stop(); canvasStream.getTracks().forEach(track => track.stop()); return; }
       raf = requestAnimationFrame(draw);
     };
-    await audioContext.resume();
+    await audioReady;
     recorder.start(250);
     draw();
     const result = await stopped;
