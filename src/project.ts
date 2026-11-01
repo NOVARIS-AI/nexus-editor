@@ -1,7 +1,8 @@
 import type { MediaAsset, NexusProject, TimelineClip, TimelineTrack } from "./types";
 export const defaultTracks: TimelineTrack[] = [
   { id: "video-1", name: "Video 1", kind: "video", muted: false, hidden: false },
-  { id: "overlay-1", name: "Overlay 1", kind: "overlay", muted: false, hidden: false },
+  { id: "overlay-1", name: "Video 2", kind: "overlay", muted: false, hidden: false },
+  { id: "text-1", name: "Text 1", kind: "overlay", muted: false, hidden: false },
   { id: "audio-1", name: "Audio 1", kind: "audio", muted: false, hidden: false }
 ];
 export function makeProject(name = "Untitled Project"): NexusProject {
