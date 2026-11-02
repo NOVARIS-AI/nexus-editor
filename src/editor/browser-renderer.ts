@@ -355,10 +355,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       audioNodes.forEach(({element}) => element.pause());
       if (recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
     };
-    input.signal?.addEventListener("abort", abortExport, { once: true });
     if (audioContext) await audioContext.resume();
     throwIfAborted();
     recorder.start(250);
+    input.signal?.addEventListener("abort", abortExport, { once: true });
     draw();
     let result: Blob;
     try { result = await stopped; } finally { input.signal?.removeEventListener("abort", abortExport); }
