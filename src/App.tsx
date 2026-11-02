@@ -316,7 +316,26 @@ export default function App() {
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
     setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes use native NEXUS title-card assets. You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
-  function createAIProjectPlan(briefOverride?: string) {
+  async function createAIProjectPlan(briefOverride?: string) {
+    const brief = (briefOverride ?? aiBrief).trim();
+    if (!brief) { setAiReply("Describe the video you want to make first."); return; }
+    setAiWorkflowStage("planning");
+    setAiReply("NEXUS AI Director is planning your scenes…");
+    try {
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal") });
+      const plannedScenes = result.plan.scenes.map((scene,index) => ({ title: scene.title || "Scene " + (index+1), visual: scene.visual || "Supporting visual", narration: scene.narration || "", searchTerms: scene.searchTerms?.length ? scene.searchTerms : [scene.visual || brief], fallback: "Editable NEXUS scene card until a generation worker is configured" }));
+      const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
+      const target = match ? Math.min(180,Math.max(10,Number(match[1]))) : 30;
+      setAiPlan({title:brief.slice(0,72),duration:target,scenes:plannedScenes,sourcingNote:result.plan.userReferenceNeeded ? "A personal reference photo or video is needed to depict you accurately." : "NEXUS will search licensed media first; missing visuals use editable native scenes until generation workers are connected."});
+      setAiWorkflowStage("review");
+      setAiReply(result.plan.summary + " Review the scenes and approve before timeline changes are made.");
+      setEngineReport(["AI Director connected · " + result.model,...result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details)]);
+      setProjectName(brief.slice(0,48)); setAspectRatio(aiFormat); setActiveTool("media");
+      return;
+    } catch (error) {
+      setEngineReport(["AI Director unavailable · local fallback used",error instanceof Error ? error.message : "No AI provider response."]);
+    }
+    const words = brief.toLowerCase();
     const brief = (briefOverride ?? aiBrief).trim();
     if (!brief) { setAiReply("Describe the video you want to make first."); return; }
     const words = brief.toLowerCase();
@@ -332,7 +351,7 @@ export default function App() {
     const scenes = sceneIdeas.map((scene, index) => ({ ...scene, title: scene.title, narration: scene.narration, visual: scene.visual, searchTerms: scene.searchTerms }));
     setAiPlan({ title: topic.charAt(0).toUpperCase() + topic.slice(1), duration: totalSeconds, scenes, sourcingNote: assets.length ? "Your imported media can be analysed and matched to these scenes in the next creation step." : "No personal media detected. Search approved stock/public-domain sources first; if suitable reusable media is unavailable, use the listed editor-native fallback scenes. Wikimedia Commons search is available in the editor media panel." });
     setAiWorkflowStage("review");
-    setAiReply("I've prepared an editable storyboard draft for your brief. Review the scenes and asset needs below. I haven't downloaded or imported any online media.");
+    setAiReply("The AI Brain is not configured yet, so NEXUS prepared a local storyboard fallback. Approved scenes will search reusable online media before using native title-card fallbacks.");
     setProjectName(topic.charAt(0).toUpperCase() + topic.slice(1));
     setAspectRatio(aiFormat);
     setActiveTool("media");
@@ -483,7 +502,7 @@ export default function App() {
             <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message, style or the change you want..." rows={3}/><button onClick={()=>{
               const message=aiBrief.trim(); if(!message)return;
               setAiChatMessages(old=>[...old,{role:"user",text:message}]);
-              if(!aiPlan){void (async()=>{setAiWorkflowStage("planning");await new Promise(resolve=>window.setTimeout(resolve,350));createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"The first-pass blueprint is ready. Review the scenes, visuals and narration on the right. You can request changes before approval. This deployment currently uses a local planning engine; a connected generative AI model is still a separate integration milestone."}]);})();}
+              if(!aiPlan){void (async()=>{await createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"Storyboard planning finished. Review the scenes before approval. The connected AI Director is used when configured; otherwise NEXUS clearly labels its local fallback."}]);})();}
               else {const lower=message.toLowerCase();let response="I’ve recorded your change request. The current planning engine supports simple structural revisions; deeper creative rewrites need the connected AI model.";let next=aiPlan;
                 if(/add (a )?scene|another scene/.test(lower)){const label=message.replace(/add (a )?scene( about| for| showing)?/i,"").trim()||"Additional scene";next={...next,scenes:[...next.scenes,{title:label.slice(0,48),visual:"A focused visual sequence showing "+label,narration:"Connect this moment to the main story and reinforce its message.",searchTerms:[label,next.title],fallback:"An editable NEXUS title card with supporting shapes and text"}]};response="Added a scene to the blueprint. Check its visuals and narration, then tell me if you want anything else changed.";}
                 else if(/remove (the )?(last )?scene|delete (the )?(last )?scene/.test(lower)&&next.scenes.length>1){next={...next,scenes:next.scenes.slice(0,-1)};response="Removed the last scene from the blueprint.";}
