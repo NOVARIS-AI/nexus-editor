@@ -77,7 +77,6 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
   const audioDestination = audioContext?.createMediaStreamDestination();
-  if (needsAudio && (!audioContext || !audioDestination)) throw new Error("Audio export is unavailable in this browser. Use an updated Chrome browser with Web Audio support.");
   const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   let canvasStream: MediaStream | null = null;
@@ -90,6 +89,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     if (audioContext) void audioContext.close();
   };
   try {
+    if (needsAudio && (!audioContext || !audioDestination)) throw new Error("Audio export is unavailable in this browser. Use an updated Chrome browser with Web Audio support.");
     for (const clip of input.clips) {
       const asset = assets.get(clip.assetId);
       if (!asset?.objectUrl) continue;
