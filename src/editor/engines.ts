@@ -1,4 +1,19 @@
-import type { MediaAsset, TimelineClip } from "../types";
+import type { MediaAsset, TimelineClip, TimelineTextLayer } from "../types";
+
+export type TextCompositionInput = { heading?: string; body: string; footer?: string; start: number; duration: number; makeId: () => string };
+export function buildTextCompositionLayers(input:TextCompositionInput):TimelineTextLayer[]{
+ const body=input.body.trim().slice(0,700);
+ if(!body)return[];
+ const common={id:input.makeId(),trackId:"text-1",start:Math.max(0,input.start),duration:Math.max(.5,input.duration),shadow:true,animation:"fade" as const};
+ const layers:TimelineTextLayer[]=[];
+ const heading=input.heading?.trim().slice(0,100);
+ if(heading)layers.push({...common,text:heading,color:"#8ce6ef",fontSize:24,fontFamily:"Arial",x:50,y:17,align:"center",backgroundColor:"transparent",padding:0});
+ const main:TimelineTextLayer={...common,id:input.makeId(),text:body,color:"#ffffff",fontSize:52,fontFamily:"Georgia",x:50,y:49,align:"center",backgroundColor:"#111827",padding:22};
+ layers.push(main);
+ const footer=input.footer?.trim().slice(0,120);
+ if(footer)layers.push({...common,id:input.makeId(),text:footer,color:"#8ce6ef",fontSize:27,fontFamily:"Georgia",x:50,y:82,align:"center",backgroundColor:"transparent",padding:0});
+ return layers;
+}
 export type MediaAnalysis = { assetId:string; name:string; kind:MediaAsset["kind"]; duration:number; width?:number; height?:number; aspect?:string; fileSize:number; audio?:{peak:number;rms:number;silenceRatio:number;beatCandidates:number[]}; visual?:{sampledFrames:number;sceneChanges:number[];averageLuminance:number}; notes:string[] };
 export async function analyzeMediaAsset(asset:MediaAsset):Promise<MediaAnalysis>{
  const file=asset.file; const out:MediaAnalysis={assetId:asset.id,name:asset.name,kind:asset.kind,duration:asset.duration||0,fileSize:file?.size||0,notes:[]};
