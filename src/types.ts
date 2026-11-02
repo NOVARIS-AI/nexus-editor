@@ -7,7 +7,7 @@ export interface MediaAsset {
 export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
   sourceIn: number; sourceOut: number; label: string;
-  gain?: number; muted?: boolean; fadeIn?: number; fadeOut?: number; speed?: number;
+  gain?: number; muted?: boolean; fadeIn?: number; fadeOut?: number; speed?: number; rotation?: number; brightness?: number; contrast?: number; saturation?: number; zoom?: number; offsetX?: number; offsetY?: number; filter?: string;
   aiScene?: { title: string; visual: string; narration: string; sourceType: "personal" | "commons" | "native-fallback" };
 }
 export interface TimelineTrack {
