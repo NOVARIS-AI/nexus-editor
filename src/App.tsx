@@ -822,12 +822,12 @@ export default function App() {
       return;
     }
     if (/\b(improve|better|suggest)\b/.test(request)) {
-      setAiReply(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can currently execute split, preview mute, text-overlay setup and ratio changes; I won’t pretend the other operations are applied." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
+      setAiReply(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can execute split, mute/unmute, speed, clip volume, fades, timed text creation and ratio changes; advanced operations still need their own connected engine." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
       return;
     }
     if (/\bundo\b/.test(request)) { undoEdit(); setAiReply("Undo command sent. Check the timeline to confirm the restored edit."); return; }
     if (/\bredo\b/.test(request)) { redoEdit(); setAiReply("Redo command sent. Check the timeline to confirm the edit."); return; }
-    setAiReply("I don’t have a connected language model in this build yet. I can understand a limited set of editor commands: split clip, mute/unmute preview, delete selected clip, add text overlay, change ratio, open a tool, or guide me.");
+    setAiReply("I can run supported local editor actions without a generation worker: split or delete the selected clip, mute/unmute its exported audio, set speed (for example “speed 2x”), set volume (for example “volume 80%”), apply fades (for example “fade in 2 seconds”), add timed text, change the canvas ratio, analyse media, or guide the next edit.");
   }
   async function openProject(file?: File) {
     if (!file) return;
