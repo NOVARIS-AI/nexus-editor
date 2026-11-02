@@ -226,7 +226,12 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
               const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
               const track = trackFor(clip);
-              audio.highPass.frequency.value = Math.max(20, Math.min(1200, clip.highPassHz ?? 20));\n              audio.lowPass.frequency.value = Math.max(1500, Math.min(20000, clip.lowPassHz ?? 20000));\n              const compression = Math.max(0, Math.min(100, clip.compression ?? 0));\n              audio.compressor.threshold.value = compression ? -6 - compression * 0.24 : 0;\n              audio.compressor.ratio.value = compression ? 1 + compression * 0.09 : 1;\n              audio.gain.gain.value = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut);
+              audio.highPass.frequency.value = Math.max(20, Math.min(1200, clip.highPassHz ?? 20));
+              audio.lowPass.frequency.value = Math.max(1500, Math.min(20000, clip.lowPassHz ?? 20000));
+              const compression = Math.max(0, Math.min(100, clip.compression ?? 0));
+              audio.compressor.threshold.value = compression ? -6 - compression * 0.24 : 0;
+              audio.compressor.ratio.value = compression ? 1 + compression * 0.09 : 1;
+              audio.gain.gain.value = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut);
               if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, track?.pan ?? 0));
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
