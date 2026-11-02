@@ -18,9 +18,17 @@ export type RenderInput = {
 
 const waitForMedia = (media: HTMLMediaElement) => new Promise<void>((resolve, reject) => {
   if (media.readyState >= 2) return resolve();
+  const timer = window.setTimeout(() => {
+    cleanup();
+    reject(new Error("A media file took too long to prepare for export. Re-import it or try a smaller file."));
+  }, 30000);
   const done = () => { cleanup(); resolve(); };
-  const fail = () => { cleanup(); reject(new Error("A media file could not be decoded for export.")); };
-  const cleanup = () => { media.removeEventListener("loadeddata", done); media.removeEventListener("error", fail); };
+  const fail = () => { cleanup(); reject(new Error("A media file could not be decoded for export. Check that the file is supported and not damaged.")); };
+  const cleanup = () => {
+    window.clearTimeout(timer);
+    media.removeEventListener("loadeddata", done);
+    media.removeEventListener("error", fail);
+  };
   media.addEventListener("loadeddata", done, { once: true });
   media.addEventListener("error", fail, { once: true });
   media.load();
