@@ -595,12 +595,7 @@ export default function App() {
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
-        setAiReply(plan.summary + "
-
-" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("
-") + (plan.userReferenceNeeded ? "
-
-A reference photo/video is needed to represent you accurately." : ""));
+        setAiReply(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
         setEngineReport(["AI Director connected · " + result.model, ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
