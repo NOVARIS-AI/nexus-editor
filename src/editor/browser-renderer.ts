@@ -69,13 +69,19 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const needsAudio = input.clips.some(clip => assetMap.get(clip.assetId)?.kind === "audio" || assetMap.get(clip.assetId)?.kind === "video");
   const canvas = document.createElement("canvas");
   canvas.width = input.width; canvas.height = input.height;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("Canvas rendering is unavailable on this device.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const assets = new Map(input.assets.map(asset => [asset.id, asset]));
   const tracks = new Map((input.tracks || []).map((track, index) => [track.id, { ...track, order: index }]));
   const trackFor = (clip: TimelineClip) => tracks.get(clip.trackId);
   const trackHidden = (clip: TimelineClip) => trackFor(clip)?.hidden === true;
-  const trackMuted = (clip: TimelineClip) => trackFor(clip)?.muted === true || (input.tracks || []).some(track => track.kind === "audio" && track.solo && track.id !== clip.trackId);
+  const trackMuted = (clip: TimelineClip) => {
+    const track = trackFor(clip);
+    const audioSolo = (input.tracks || []).some(item => item.kind === "audio" && item.solo);
+    return track?.muted === true || track?.hidden === true || (!!audioSolo && track?.kind === "audio" && !track.solo);
+  };
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -221,6 +227,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           if (video) {
             if (active) {
               if (Math.abs(video.currentTime - wanted) > .25) { try { video.currentTime = wanted; } catch {} }
+              video.playbackRate = speed;
               if (video.paused) void video.play().catch(() => {});
             } else if (!video.paused) video.pause();
           }
@@ -230,6 +237,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             // clips and the audio channel embedded in video clips.
             if (active && !clip.muted && !trackMuted(clip)) {
               if (Math.abs(audio.element.currentTime - wanted) > .3) { try { audio.element.currentTime = wanted; } catch {} }
+              audio.element.playbackRate = speed;
               if (audio.element.paused) void audio.element.play().catch(() => {});
               const elapsed = Math.max(0, local), remaining = Math.max(0, (clip.sourceOut - clip.sourceIn) / speed - elapsed);
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
@@ -252,9 +260,47 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const track = tracks.get(layer.trackId);
           return !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
         }).forEach(layer => {
-          ctx.save(); const local = time-layer.start; const fade = layer.animation === "fade" ? Math.min(1,local/.35,(layer.duration-local)/.35) : layer.animation === "pop" ? Math.min(1,local/.2) : 1; ctx.globalAlpha = Math.max(0,Math.min(1,(layer.opacity??1)*fade)); ctx.fillStyle = layer.color; ctx.font = `bold ${Math.max(12, layer.fontSize * canvas.height / 1080)}px ${layer.fontFamily || "Arial"}`;
-          ctx.textAlign = layer.align || "center"; ctx.textBaseline = "middle"; if(layer.backgroundColor && layer.backgroundColor !== "transparent"){ const width=ctx.measureText(layer.text).width+(layer.padding||12)*2; const height=Math.max(24,layer.fontSize)+(layer.padding||12)*2; ctx.fillStyle=layer.backgroundColor; ctx.fillRect(canvas.width*((layer.x??50)/100)-width/2,canvas.height*((layer.y??50)/100)-height/2,width,height); ctx.fillStyle=layer.color; } if(layer.rotation) { ctx.translate(canvas.width*((layer.x??50)/100),canvas.height*((layer.y??50)/100)); ctx.rotate(layer.rotation*Math.PI/180); } ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 12;
-          ctx.fillText(layer.text, layer.rotation ? 0 : canvas.width * ((layer.x ?? 50) / 100), layer.rotation ? 0 : canvas.height * ((layer.y ?? 50) / 100), canvas.width * .88); ctx.restore();
+          ctx.save();
+          const local = time - layer.start;
+          const fade = layer.animation === "fade" ? Math.min(1, local / .35, (layer.duration - local) / .35) : layer.animation === "pop" ? Math.min(1, local / .2) : 1;
+          ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 1) * fade));
+          const fontSize = Math.max(12, layer.fontSize * canvas.height / 1080);
+          const maxWidth = canvas.width * .88;
+          const lineHeight = fontSize * 1.2;
+          ctx.font = \`bold \${fontSize}px \${layer.fontFamily || "Arial"}\`;
+          const lines: string[] = [];
+          (layer.text || "").split(/\r?\n/).forEach(paragraph => {
+            const words = paragraph.split(/\s+/).filter(Boolean);
+            if (!words.length) { lines.push(""); return; }
+            let line = "";
+            words.forEach(word => {
+              const candidate = line ? line + " " + word : word;
+              if (line && ctx.measureText(candidate).width > maxWidth) { lines.push(line); line = word; }
+              else line = candidate;
+            });
+            lines.push(line);
+          });
+          const textWidth = Math.min(maxWidth, Math.max(1, ...lines.map(line => ctx.measureText(line).width)));
+          const textHeight = Math.max(lineHeight, lines.length * lineHeight);
+          const padding = layer.padding ?? 12;
+          const x = canvas.width * ((layer.x ?? 50) / 100);
+          const y = canvas.height * ((layer.y ?? 50) / 100);
+          ctx.translate(x, y);
+          if (layer.rotation) ctx.rotate(layer.rotation * Math.PI / 180);
+          ctx.textAlign = layer.align || "center";
+          ctx.textBaseline = "middle";
+          if (layer.backgroundColor && layer.backgroundColor !== "transparent") {
+            const boxWidth = Math.min(maxWidth, textWidth) + padding * 2;
+            const boxHeight = textHeight + padding * 2;
+            const boxX = ctx.textAlign === "left" ? 0 : ctx.textAlign === "right" ? -boxWidth : -boxWidth / 2;
+            ctx.fillStyle = layer.backgroundColor;
+            ctx.fillRect(boxX, -boxHeight / 2, boxWidth, boxHeight);
+          }
+          ctx.fillStyle = layer.color;
+          ctx.shadowColor = "rgba(0,0,0,.7)";
+          ctx.shadowBlur = 12;
+          lines.forEach((line, index) => ctx.fillText(line, 0, (index - (lines.length - 1) / 2) * lineHeight, maxWidth));
+          ctx.restore();
         });
         const progress = Math.min(99, Math.round(time / input.duration * 100));
         if (progress !== lastProgress) { lastProgress = progress; input.onProgress?.(progress); }
