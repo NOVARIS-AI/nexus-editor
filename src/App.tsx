@@ -84,6 +84,7 @@ export default function App() {
   const [transcriptionEngine, setTranscriptionEngine] = useState<"whisper" | "vosk" | "groq">("whisper");
   const [transcriptionStatus, setTranscriptionStatus] = useState("Choose an audio or video file from your media library.");
   const [transcriptionText, setTranscriptionText] = useState("");
+  const [transcriptionSegments, setTranscriptionSegments] = useState<{start:number;end:number;text:string}[]>([]);
   const [transcriptionBusy, setTranscriptionBusy] = useState(false);
   const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>([]);
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
@@ -256,10 +257,42 @@ export default function App() {
           ? await transcribeVosk(source.file, setTranscriptionStatus)
           : await transcribeOnline(source.file);
       setTranscriptionText(result.text);
+      setTranscriptionSegments(result.segments || []);
       setTranscriptionStatus(result.text ? "Transcription complete · " + result.engine.toUpperCase() : "No speech was detected. Try another engine or review the audio.");
     } catch (error) {
       setTranscriptionStatus(error instanceof Error ? error.message : "Transcription failed.");
     } finally { setTranscriptionBusy(false); }
+  }
+  function addTranscriptionCaptions() {
+    const source = asset;
+    if (!source || !transcriptionText.trim()) { setStatus("Transcribe an audio or video clip first."); return; }
+    const parts = transcriptionSegments.length ? transcriptionSegments : [{ start: 0, end: Math.max(2, source.duration || 5), text: transcriptionText }];
+    const usable = parts.filter(part => part.text.trim());
+    const layers: TimelineTextLayer[] = usable.map((part, index) => ({
+      id: uid(), trackId: "text-1", start: (selectedClip?.start || 0) + Math.max(0, part.start),
+      duration: Math.max(0.6, Math.min(8, (part.end || part.start + 3) - part.start)),
+      text: part.text.trim(), color: "#ffffff", fontSize: 38, fontFamily: "Arial",
+      x: 50, y: 82, align: "center", shadow: true, animation: "fade"
+    }));
+    setTextLayers(old => [...old, ...layers]);
+    setStatus("Added " + layers.length + " timed caption layers from the transcript.");
+    setPage("editor"); setActiveTool("captions"); setActiveSubtool("Auto captions");
+  }
+  function createWisdomPoster() {
+    const quote = aiBrief.trim();
+    if (!quote) { setAiReply("Enter the exact wisdom quote you want on the poster. NEXUS will not invent or misattribute a quotation."); setPage("ai"); return; }
+    const safe = quote.replace(/[<>&"]/g, "").slice(0, 420);
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080d1c"/><stop offset=".55" stop-color="#172044"/><stop offset="1" stop-color="#07566b"/></linearGradient><radialGradient id="glow"><stop stop-color="#b79cff" stop-opacity=".42"/><stop offset="1" stop-color="#b79cff" stop-opacity="0"/></radialGradient></defs><rect width="1080" height="1350" fill="url(#bg)"/><circle cx="850" cy="220" r="440" fill="url(#glow)"/><path d="M90 170h900M90 1180h900" stroke="#7ddde8" stroke-opacity=".55" stroke-width="2"/><text x="90" y="125" fill="#8ce6ef" font-family="Arial" font-size="26" letter-spacing="9">VELTRONIX NEXUS · WISDOM SERIES</text><text x="90" y="1080" fill="#d8d6f7" font-family="Arial" font-size="28" letter-spacing="4">A QUOTE TO REFLECT ON</text></svg>';
+    const file = new File([svg], "nexus-wisdom-poster.svg", {type:"image/svg+xml"});
+    const poster: MediaAsset = {id:uid(),name:"Wisdom quote poster background",kind:"image",duration:8,mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:"NEXUS native poster template"}};
+    const start = timelineDuration(clips);
+    const quoteLayer: TimelineTextLayer = {id:uid(),trackId:"text-1",start,duration:8,text:"“"+safe+"”",color:"#ffffff",fontSize:48,fontFamily:"Georgia",x:50,y:49,align:"center",shadow:true,animation:"fade"};
+    const byline: TimelineTextLayer = {id:uid(),trackId:"text-1",start,duration:8,text:"— Apostle Richman Daniel",color:"#9de8ef",fontSize:28,fontFamily:"Arial",x:50,y:72,align:"center",shadow:true};
+    setAssets(old=>[...old,poster]); setTextLayers(old=>[...old,quoteLayer,byline]);
+    const clip:TimelineClip={id:uid(),assetId:poster.id,trackId:"video-1",start,sourceIn:0,sourceOut:8,label:"Wisdom Quote Poster"};
+    applyClipChange([...clips,clip],"Editable wisdom quote poster added. Review wording and attribution before sharing.");
+    setSelected(clip.id);setSelectedTextLayer(quoteLayer.id);setPlayhead(start);setActiveTool("text");setPage("editor");
+    setAiReply("Your editable quote poster is on the timeline. The quote text came from your brief; verify its wording and attribution before publishing.");
   }
   async function analyzeAllMedia() {
     if (!assets.length) { setAiReply("Import media or search for reusable media first. There is nothing to analyse yet."); return; }
@@ -561,7 +594,7 @@ export default function App() {
           <div className="ai-studio-chat">
             <div className="ai-studio-chat-head"><span className="ai-studio-orb"><Sparkles size={19}/></span><div><b>NEXUS CREATIVE PARTNER</b><small>IDEA DEVELOPMENT · LIVE WORKFLOW GUIDANCE</small></div><span className="ai-studio-stage">STAGE 1 / 3</span></div>
             <div className="ai-studio-messages">{aiChatMessages.map((m,i)=><article key={i} className={"ai-studio-message "+m.role}><b>{m.role==="assistant"?"NEXUS AI":"YOU"}</b><p>{m.text}</p></article>)}</div>
-            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message, style or the change you want..." rows={3}/><button onClick={()=>{
+            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message, style or paste the exact wisdom quote for a poster..." rows={3}/><button className="outline-button" onClick={createWisdomPoster}>Create Wisdom quote poster</button><button onClick={()=>{
               const message=aiBrief.trim(); if(!message)return;
               setAiChatMessages(old=>[...old,{role:"user",text:message}]);
               if(!aiPlan){void (async()=>{await createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"Storyboard planning finished. Review the scenes before approval. The connected AI Director is used when configured; otherwise NEXUS clearly labels its local fallback."}]);})();}
@@ -660,10 +693,10 @@ export default function App() {
             <div className="nexus-subtool-ribbon">
               {activeTool==="edit" && <>{[["select","Select"],["split","Split"],["volume","Mute clip"],["speed","Speed"],["animation","Animation"],["cover","Fit"],["delete","Delete"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} disabled={id!=="split"&&id!=="volume"&&id!=="delete"&&!selectedClip} onClick={()=>{setActiveSubtool(id);if(id==="split")split();if(id==="volume"&&selectedClip)updateSelectedClip({muted:!selectedClip.muted});if(id==="delete"&&selectedClip){applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}if(id==="speed"&&selectedClip)updateSelectedClip({speed:Math.min(4,Math.max(.25,(selectedClip.speed||1)+.25))});if(id==="animation"&&selectedClip)updateSelectedClip({opacity:selectedClip.opacity===.6?1:.6});if(id==="cover"&&selectedClip)updateSelectedClip({fit:selectedClip.fit==="contain"?"cover":"contain"});}}>{label}</button>)}</>}
               {activeTool==="audio" && <>{[["sounds","Sounds"],["extract","Extract"],["voiceover","Voiceover"],["effects","Effects"],["fade","Fade"],["volume","Volume"]].map(([id,label])=><button key={id} onClick={()=>{setActiveSubtool(id);if(id==="sounds"||id==="extract")audioInput.current?.click();else setStatus(label+" controls selected.");}}>{label}</button>)}</>}
-              {activeTool==="text" && <>{[["add","Add text"],["font","Fonts"],["style","Style"],["animation","Animation"],["align","Align"],["captions","Auto captions"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} onClick={()=>{setActiveSubtool(id);if(id==="add"){setOverlayText("Your text");setStatus("Text added to preview.");}else if(id==="captions")setStatus("Auto captions need speech recognition and caption-layer support.");}}>{label}</button>)}</>}
+              {activeTool==="text" && <>{[["add","Add text"],["font","Fonts"],["style","Style"],["animation","Animation"],["align","Align"],["captions","Auto captions"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} onClick={()=>{setActiveSubtool(id);if(id==="add"){setOverlayText("Your text");setStatus("Text added to preview.");}else if(id==="captions"){if(transcriptionText.trim())addTranscriptionCaptions();else setStatus("Choose a transcription engine in Settings, transcribe the selected media, then add timed captions.");}}}>{label}</button>)}</>}
               {activeTool==="overlay" && <>{["Add overlay","Mask","Blend","Position","Opacity"].map(x=><button key={x} onClick={()=>{setActiveSubtool(x);if(x==="Add overlay")setShowAttachmentPicker(true);else setStatus(x+" controls selected.");}}>{x}</button>)}</>}
               {activeTool==="effects" && <>{["Fade in","Fade out","No transition","Crossfade"].map(x=><button key={x} disabled={!selectedClip} onClick={()=>{setActiveSubtool(x);if(selectedClip){updateSelectedClip(x==="Fade in"?{transitionIn:1}:x==="Fade out"?{transitionOut:1}:x==="No transition"?{transitionIn:0,transitionOut:0}:{transitionIn:.5,transitionOut:.5});}}}>{x}</button>)}</>}
-              {activeTool==="captions" && <><button onClick={()=>{setActiveSubtool("Manual captions");setOverlayText("Type your caption");addTextLayer();}}>Add manual caption</button><button onClick={()=>setStatus("Automatic speech-to-text captions require a transcription engine; this build does not yet include one.")}>Auto captions status</button></>}
+              {activeTool==="captions" && <><button onClick={()=>{setActiveSubtool("Manual captions");setOverlayText("Type your caption");addTextLayer();}}>Add manual caption</button><button onClick={addTranscriptionCaptions} disabled={!transcriptionText.trim()}>Create timed captions from transcript</button></>}
               {activeTool==="filters" && <>{["Original","Cinematic","Vintage","Warm","Cool","B&W"].map(x=><button key={x} className={selectedClip?.filter===x?"active":""} disabled={!selectedClip} onClick={()=>{setActiveSubtool(x);if(selectedClip)updateSelectedClip({filter:x});}}>{x}</button>)}</>}
               {activeTool==="adjust" && <>{["Brightness","Contrast","Saturation","Exposure","Temperature","HSL"].map(x=><button key={x} onClick={()=>{setActiveSubtool(x);setStatus(x+" adjustment selected.");}}>{x}</button>)}</>}
               {activeTool==="media" && <><button onClick={()=>setShowAttachmentPicker(true)}>＋ Add media</button><button onClick={()=>setEditorView("import")}>Media library</button></>}
@@ -694,7 +727,7 @@ export default function App() {
           <div className="setting-row"><span><b>Selected media</b><small>{asset?.name || "No selected audio/video clip"}</small></span><button onClick={()=>setPage("editor")}>Open editor</button></div>
           <button className="gradient-button" disabled={transcriptionBusy} onClick={runTranscription}>{transcriptionBusy ? "Transcribing…" : "Transcribe selected media"}</button>
           <p className="engine-adapter-status">{transcriptionStatus}</p>
-          {transcriptionText && <textarea readOnly value={transcriptionText} rows={8} aria-label="Transcription result" />}
+          {transcriptionText && <><textarea readOnly value={transcriptionText} rows={8} aria-label="Transcription result" /><button className="outline-button" onClick={addTranscriptionCaptions}>Add timed captions to timeline</button></>}
           <small>Online mode requires GROQ_API_KEY in Vercel. Vosk requires a compatible Vosk browser model archive URL in VITE_VOSK_MODEL_URL. Whisper downloads and caches its model on first use.</small>
           <h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="theme-picker-block">
             <div className="theme-picker-heading"><b>Colour theme</b><small>Pick the colour style for your entire workspace.</small></div>
