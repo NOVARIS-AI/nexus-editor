@@ -174,6 +174,28 @@ export default function App() {
     setSelected(next.some(c => c.id === selected) ? selected : next[next.length - 1]?.id || null);
     setStatus("Redo complete");
   }
+  useEffect(() => {
+    const onEditorShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      const command = event.ctrlKey || event.metaKey;
+      if (command && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redoEdit(); else undoEdit();
+        return;
+      }
+      if (command && event.key.toLowerCase() === "y") {
+        event.preventDefault(); redoEdit(); return;
+      }
+      if ((event.key === "Delete" || event.key === "Backspace") && page === "editor" && selected) {
+        event.preventDefault();
+        applyClipChange(clips.filter(clip => clip.id !== selected), "Selected clip deleted. Use Undo to restore it.");
+        setSelected(null);
+      }
+    };
+    window.addEventListener("keydown", onEditorShortcut);
+    return () => window.removeEventListener("keydown", onEditorShortcut);
+  }, [page, selected, clips, undoStack, redoStack]);
   function importMedia(files: FileList | null) {
     if (!files) return;
     const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => ({
