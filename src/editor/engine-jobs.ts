@@ -17,3 +17,45 @@ export async function getEngineJob(engine:NexusEngineJob["engine"],id:string,sig
  if(!response.ok) throw new Error(data.error||"Could not check the generation job.");
  return data as NexusEngineJob;
 }
+
+
+const JOB_HISTORY_KEY = "nexus-editor-generation-jobs-v1";
+const MAX_SAVED_JOBS = 30;
+
+export type SavedNexusEngineJob = NexusEngineJob & { sceneTitle: string };
+
+export function loadSavedGenerationJobs(): SavedNexusEngineJob[] {
+  try {
+    const raw = localStorage.getItem(JOB_HISTORY_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((item): item is SavedNexusEngineJob =>
+      Boolean(item && typeof item === "object" &&
+        typeof item.id === "string" && item.id.length <= 180 &&
+        ["image", "video", "audio"].includes(item.engine) &&
+        ["queued", "running", "succeeded", "failed", "cancelled"].includes(item.state) &&
+        typeof item.sceneTitle === "string")
+    ).slice(0, MAX_SAVED_JOBS);
+  } catch {
+    return [];
+  }
+}
+
+export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
+  try {
+    const safe = jobs
+      .filter(job => !job.id.startsWith("unavailable-"))
+      .slice(0, MAX_SAVED_JOBS)
+      .map(({ id, engine, state, progress, message, output, error, sceneTitle }) => ({
+        id, engine, state, progress: Math.max(0, Math.min(100, Number(progress) || 0)),
+        message: String(message || "").slice(0, 500),
+        ...(output?.url ? { output: { url: output.url, mimeType: output.mimeType, assetId: output.assetId } } : {}),
+        ...(error ? { error: String(error).slice(0, 1000) } : {}),
+        sceneTitle: String(sceneTitle || "Generated media").slice(0, 160)
+      }));
+    localStorage.setItem(JOB_HISTORY_KEY, JSON.stringify(safe));
+  } catch {
+    // Storage can be disabled or full; generation itself must remain usable.
+  }
+}
