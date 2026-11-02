@@ -7,7 +7,16 @@ const engines = {
 const json = (res,status,body)=>res.status(status).json(body);
 export default async function handler(req,res) {
  res.setHeader("Cache-Control","no-store");
- if(req.method!=="POST") return json(res,405,{error:"Job lookup requires a configured job store; submit jobs with POST."});
+ const id = typeof req.query?.id === "string" ? req.query.id : "";
+ if(req.method==="GET") {
+  const engine = typeof req.query?.engine === "string" ? req.query.engine : "";
+  if(!id || !Object.prototype.hasOwnProperty.call(engines,engine)) return json(res,400,{error:"A valid engine and job id are required."});
+  const config=engines[engine],url=process.env[config.url],token=process.env[config.token];
+  if(!url||!token) return json(res,503,{error:"This NEXUS worker is not configured."});
+  try { const upstream=await fetch(url.replace(/\/$/,"")+"/jobs/"+encodeURIComponent(id),{headers:{Authorization:"Bearer "+token}}); const body=await upstream.json().catch(()=>({})); return json(res,upstream.status,body); }
+  catch { return json(res,502,{error:"The NEXUS worker could not be reached."}); }
+ }
+ if(req.method!=="POST") return json(res,405,{error:"Use POST to submit a job or GET with engine and id to check it."});
  const {engine,prompt,options={}}=req.body||{};
  if(!Object.prototype.hasOwnProperty.call(engines,engine)) return json(res,400,{error:"Unsupported NEXUS engine."});
  if(typeof prompt!=="string"||!prompt.trim()||prompt.length>12000) return json(res,400,{error:"Provide a prompt of up to 12,000 characters."});
