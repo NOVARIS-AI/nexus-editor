@@ -1,9 +1,10 @@
-import type { MediaAsset, TimelineClip, TimelineTextLayer } from "../types";
+import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from "../types";
 
 export type RenderInput = {
   assets: MediaAsset[];
   clips: TimelineClip[];
   textLayers: TimelineTextLayer[];
+  tracks?: TimelineTrack[];
   width: number;
   height: number;
   fps: number;
@@ -38,17 +39,25 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is unavailable on this device.");
   const assets = new Map(input.assets.map(asset => [asset.id, asset]));
+  const tracks = new Map((input.tracks || []).map((track, index) => [track.id, { ...track, order: index }]));
+  const trackFor = (clip: TimelineClip) => tracks.get(clip.trackId);
+  const trackHidden = (clip: TimelineClip) => trackFor(clip)?.hidden === true;
+  const trackMuted = (clip: TimelineClip) => trackFor(clip)?.muted === true;
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
-  const audioContext = new AudioContext();
-  const audioReady = audioContext.resume();
-  const audioDestination = audioContext.createMediaStreamDestination();
+  const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
+  const audioDestination = audioContext?.createMediaStreamDestination();
   const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
   const activeVideos: HTMLVideoElement[] = [];
+  let canvasStream: MediaStream | null = null;
+  let raf = 0;
   const cleanup = () => {
+    cancelAnimationFrame(raf);
     activeVideos.forEach(v => { v.pause(); v.removeAttribute("src"); v.load(); });
     audioNodes.forEach(({ element }) => { element.pause(); element.removeAttribute("src"); element.load(); });
-    void audioContext.close();
+    canvasStream?.getTracks().forEach(track => track.stop());
+    if (audioContext) void audioContext.close();
   };
   try {
     for (const clip of input.clips) {
@@ -59,18 +68,26 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("Image could not be loaded: " + asset.name)); });
         imageByClip.set(clip.id, image);
       } else if (asset.kind === "video") {
-        const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = true; video.playsInline = true; video.preload = "auto";
-        await waitForMedia(video); const source = audioContext.createMediaElementSource(video); const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination); video.muted = false; mediaByClip.set(clip.id, video); activeVideos.push(video); audioNodes.set(clip.id, { element: video, gain });
+        const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = !audioContext; video.playsInline = true; video.preload = "auto";
+        await waitForMedia(video);
+        if (audioContext && audioDestination) {
+          const source = audioContext.createMediaElementSource(video);
+          const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
+          video.muted = false; audioNodes.set(clip.id, { element: video, gain });
+        }
+        mediaByClip.set(clip.id, video); activeVideos.push(video);
       } else {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
         await waitForMedia(audio);
-        const source = audioContext.createMediaElementSource(audio);
-        const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
-        audioNodes.set(clip.id, { element: audio, gain });
+        if (audioContext && audioDestination) {
+          const source = audioContext.createMediaElementSource(audio);
+          const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
+          audioNodes.set(clip.id, { element: audio, gain });
+        }
       }
     }
-    const canvasStream = canvas.captureStream(input.fps);
-    audioDestination.stream.getAudioTracks().forEach(track => canvasStream.addTrack(track));
+    canvasStream = canvas.captureStream(input.fps);
+    if (audioDestination) audioDestination.stream.getAudioTracks().forEach(track => canvasStream!.addTrack(track));
     const mimeType = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"].find(type => MediaRecorder.isTypeSupported(type));
     if (!mimeType) throw new Error("This browser does not expose a supported WebM recording format.");
     const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond: input.width >= 3000 ? 12000000 : 6500000 });
@@ -81,14 +98,13 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
     const drawCover = (source: CanvasImageSource, sw: number, sh: number) => {
+      if (!sw || !sh) return;
       const scale = Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(source, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
     };
+    const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const started = performance.now();
-    let raf = 0;
     let lastFrame = -1;
     let lastProgress = -1;
     const draw = () => {
@@ -96,37 +112,48 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const frame = Math.floor(time * input.fps);
       if (frame !== lastFrame) {
         lastFrame = frame;
-        const active = input.clips.filter(clip => time >= clip.start && time < clip.start + Math.max(0, clip.sourceOut - clip.sourceIn)).sort((a,b)=>a.start-b.start);
-        const visual = [...active].reverse().find(clip => assets.get(clip.assetId)?.kind !== "audio");
-        if (visual) {
-          const image = imageByClip.get(visual.id), video = mediaByClip.get(visual.id);
+        ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const visualClips = input.clips
+          .filter(clip => {
+            const asset = assets.get(clip.assetId);
+            const speed = Math.max(.1, clip.speed || 1);
+            const length = Math.max(0, clip.sourceOut - clip.sourceIn) / speed;
+            return asset && asset.kind !== "audio" && !trackHidden(clip) && time >= clip.start && time < clip.start + length;
+          })
+          .sort((a, b) => trackOrder(a) - trackOrder(b) || a.start - b.start);
+        for (const clip of visualClips) {
+          const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
           if (image) drawCover(image, image.naturalWidth, image.naturalHeight);
           else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight);
-        } else {
-          ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         for (const clip of input.clips) {
-          const video = mediaByClip.get(clip.id);
+          const speed = Math.max(.1, clip.speed || 1);
           const local = time - clip.start;
-          if (video && local >= 0 && local < clip.sourceOut - clip.sourceIn) {
-            const wanted = clip.sourceIn + local * (clip.speed || 1);
-            if (Math.abs(video.currentTime - wanted) > .35) { try { video.currentTime = wanted; } catch {} }
-            if (video.paused) void video.play().catch(() => {});
-          } else if (video && !video.paused) video.pause();
+          const active = local >= 0 && local < (clip.sourceOut - clip.sourceIn) / speed && !trackHidden(clip);
+          const wanted = clip.sourceIn + Math.max(0, local) * speed;
+          const video = mediaByClip.get(clip.id);
+          if (video) {
+            if (active) {
+              if (Math.abs(video.currentTime - wanted) > .25) { try { video.currentTime = wanted; } catch {} }
+              if (video.paused) void video.play().catch(() => {});
+            } else if (!video.paused) video.pause();
+          }
           const audio = audioNodes.get(clip.id);
           if (audio) {
-            if (local >= 0 && local < clip.sourceOut - clip.sourceIn && !clip.muted) {
-              const wanted = clip.sourceIn + local * (clip.speed || 1);
-              if (Math.abs(audio.element.currentTime - wanted) > .4) { try { audio.element.currentTime = wanted; } catch {} }
+            if (active && !clip.muted && !trackMuted(clip)) {
+              if (Math.abs(audio.element.currentTime - wanted) > .3) { try { audio.element.currentTime = wanted; } catch {} }
               if (audio.element.paused) void audio.element.play().catch(() => {});
-              const elapsed = Math.max(0, local), remaining = clip.sourceOut - clip.sourceIn - elapsed;
+              const elapsed = Math.max(0, local), remaining = Math.max(0, (clip.sourceOut - clip.sourceIn) / speed - elapsed);
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
               const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
               audio.gain.gain.value = Math.max(0, Math.min(1, clip.gain ?? 1)) * Math.min(fadeIn, fadeOut);
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
         }
-        input.textLayers.filter(layer => time >= layer.start && time < layer.start + layer.duration).forEach(layer => {
+        input.textLayers.filter(layer => {
+          const track = tracks.get(layer.trackId);
+          return !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
+        }).forEach(layer => {
           ctx.save(); ctx.fillStyle = layer.color; ctx.font = `bold ${Math.max(12, layer.fontSize * canvas.height / 1080)}px ${layer.fontFamily || "Arial"}`;
           ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 12;
           ctx.fillText(layer.text, canvas.width * ((layer.x ?? 50) / 100), canvas.height * ((layer.y ?? 50) / 100), canvas.width * .88); ctx.restore();
@@ -134,10 +161,13 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         const progress = Math.min(99, Math.round(time / input.duration * 100));
         if (progress !== lastProgress) { lastProgress = progress; input.onProgress?.(progress); }
       }
-      if (time >= input.duration) { activeVideos.forEach(v => v.pause()); audioNodes.forEach(({element}) => element.pause()); recorder.stop(); canvasStream.getTracks().forEach(track => track.stop()); return; }
+      if (time >= input.duration) {
+        activeVideos.forEach(v => v.pause()); audioNodes.forEach(({element}) => element.pause());
+        recorder.stop(); canvasStream?.getTracks().forEach(track => track.stop()); return;
+      }
       raf = requestAnimationFrame(draw);
     };
-    await audioReady;
+    if (audioContext) await audioContext.resume();
     recorder.start(250);
     draw();
     const result = await stopped;
