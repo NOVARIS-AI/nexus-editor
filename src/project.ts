@@ -3,7 +3,10 @@ export const defaultTracks: TimelineTrack[] = [
   { id: "video-1", name: "Video 1", kind: "video", muted: false, hidden: false },
   { id: "overlay-1", name: "Video 2", kind: "overlay", muted: false, hidden: false },
   { id: "text-1", name: "Text 1", kind: "overlay", muted: false, hidden: false },
-  { id: "audio-1", name: "Audio 1 · Main", kind: "audio", muted: false, hidden: false },\n  { id: "audio-2", name: "Audio 2 · Music", kind: "audio", muted: false, hidden: false },\n  { id: "audio-3", name: "Audio 3 · Effects", kind: "audio", muted: false, hidden: false },\n  { id: "audio-4", name: "Audio 4 · Voice", kind: "audio", muted: false, hidden: false }
+  { id: "audio-1", name: "Audio 1 · Main", kind: "audio", muted: false, hidden: false },
+  { id: "audio-2", name: "Audio 2 · Music", kind: "audio", muted: false, hidden: false },
+  { id: "audio-3", name: "Audio 3 · Effects", kind: "audio", muted: false, hidden: false },
+  { id: "audio-4", name: "Audio 4 · Voice", kind: "audio", muted: false, hidden: false }
 ];
 export function makeProject(name = "Untitled Project"): NexusProject {
   const now = new Date().toISOString();
