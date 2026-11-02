@@ -254,7 +254,7 @@ export default function App() {
     setStatus("Preparing media, audio mix and graphics layers for export…");
     try {
       const blob = await renderTimeline({
-        assets, clips, textLayers, width: size.width, height: size.height, fps,
+        assets, clips, textLayers, tracks: defaultTracks, width: size.width, height: size.height, fps,
         duration: Math.max(0.1, duration),
         onProgress: value => { setExportProgress(value); setStatus("Rendering video · " + value + "%"); }
       });
