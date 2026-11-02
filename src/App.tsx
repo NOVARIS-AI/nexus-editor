@@ -277,10 +277,11 @@ export default function App() {
     const sceneLength = aiPlan.duration / aiPlan.scenes.length;
     const additions: MediaAsset[] = [];
     const newClips: TimelineClip[] = [];
+    const newTextLayers: TimelineTextLayer[] = [];
     let cursor = timelineDuration(clips);
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
-      let chosen = visualAssets.find(item => terms.some(word => item.name.toLowerCase().includes(word))) || (visualAssets.length ? visualAssets[index % visualAssets.length] : undefined);
+      let chosen = visualAssets.find(item => terms.some(word => item.name.toLowerCase().includes(word)));
       if (!chosen) {
         try {
           const online = await searchWikimediaCommons(scene.searchTerms[0] || scene.visual);
@@ -307,10 +308,12 @@ export default function App() {
       }
       const sourceDuration = chosen.kind === "image" ? sceneLength : Math.min(sceneLength, Math.max(0.5, chosen.duration || sceneLength));
       newClips.push({ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } });
+      newTextLayers.push({ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 });
       cursor += sourceDuration;
     }
     setAssets(old => [...old, ...additions]);
-    applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable timeline scenes");
+    setTextLayers(old => [...old, ...newTextLayers]);
+    applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable scenes with timed title layers");
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
