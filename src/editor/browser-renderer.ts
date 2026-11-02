@@ -14,6 +14,7 @@ export type RenderInput = {
   fps: number;
   duration: number;
   onProgress?: (progress: number) => void;
+  signal?: AbortSignal;
 };
 
 const waitForMedia = (media: HTMLMediaElement) => new Promise<void>((resolve, reject) => {
@@ -56,6 +57,8 @@ function dimensions(ratio: string, quality: string) {
 }
 
 export async function renderTimeline(input: RenderInput): Promise<Blob> {
+  if (input.signal?.aborted) throw new DOMException("Export cancelled.", "AbortError");
+  const throwIfAborted = () => { if (input.signal?.aborted) throw new DOMException("Export cancelled.", "AbortError"); };
   if (!("MediaRecorder" in window) || !HTMLCanvasElement.prototype.captureStream) {
     throw new Error("This browser does not support browser video recording. Try an updated Chrome browser.");
   }
@@ -63,7 +66,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (!Number.isInteger(input.fps) || input.fps < 12 || input.fps > 60) throw new Error("Choose an export frame rate between 12 and 60 FPS.");
   if (!Number.isInteger(input.width) || !Number.isInteger(input.height) || input.width < 160 || input.height < 160) throw new Error("Choose a valid export resolution.");
   const memoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  const maxPixels = memoryGb !== undefined && memoryGb <= 4 ? 4_500_000 : 8_500_000;
+  const lowMemory = memoryGb !== undefined && memoryGb <= 4;
+  const maxPixels = lowMemory ? 3_700_000 : 8_500_000;
   if (input.width * input.height > maxPixels) throw new Error("This resolution is too demanding for the available device memory. Choose 1080p or 720p for a more reliable export.");
   const assetMap = new Map(input.assets.map(asset => [asset.id, asset]));
   for (const clip of input.clips) {
@@ -80,7 +84,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) throw new Error("Canvas rendering is unavailable on this device.");
   ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
+  ctx.imageSmoothingQuality = lowMemory ? "medium" : "high";
   const assets = new Map(input.assets.map(asset => [asset.id, asset]));
   const tracks = new Map((input.tracks || []).map((track, index) => [track.id, { ...track, order: index }]));
   const trackFor = (clip: TimelineClip) => tracks.get(clip.trackId);
@@ -109,16 +113,20 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   try {
     if (needsAudio && (!audioContext || !audioDestination)) throw new Error("Audio export is unavailable in this browser. Use an updated Chrome browser with Web Audio support.");
     for (const clip of input.clips) {
+      throwIfAborted();
       const asset = assets.get(clip.assetId);
       if (!asset?.objectUrl) continue;
       if (asset.kind === "image") {
         const image = new Image(); image.src = asset.objectUrl;
         await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("Image could not be loaded: " + asset.name)); });
+        throwIfAborted();
         imageByClip.set(clip.id, image);
       } else if (asset.kind === "video") {
         const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = !audioContext; video.playsInline = true; video.preload = "auto";
         await waitForMedia(video);
+        throwIfAborted();
         await seekMedia(video, clip.sourceIn);
+        throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
           const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(audioDestination);
@@ -128,7 +136,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       } else {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
         await waitForMedia(audio);
+        throwIfAborted();
         await seekMedia(audio, clip.sourceIn);
+        throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
           const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(audioDestination);
@@ -143,15 +153,16 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"
     ].find(type => MediaRecorder.isTypeSupported(type));
     if (!mimeType) throw new Error("This browser does not expose a supported MP4 or WebM recording format. Try an updated Chrome browser.");
-    const videoBitsPerSecond = Math.max(2_000_000, Math.min(24_000_000, Math.round(input.width * input.height * input.fps * 0.08)));
+    const videoBitsPerSecond = Math.max(lowMemory ? 1_200_000 : 2_000_000, Math.min(lowMemory ? 8_000_000 : 24_000_000, Math.round(input.width * input.height * input.fps * (lowMemory ? 0.045 : 0.08))));
     const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond });
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
     let rejectRecording: (reason?: unknown) => void = () => {};
+    let settled = false;
     const stopped = new Promise<Blob>((resolve, reject) => {
-      rejectRecording = reject;
-      recorder.onerror = () => reject(new Error("The browser stopped the export unexpectedly."));
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+      rejectRecording = reason => { if (!settled) { settled = true; reject(reason); } };
+      recorder.onerror = () => rejectRecording(new Error("The browser stopped the export unexpectedly."));
+      recorder.onstop = () => { if (!settled) { settled = true; resolve(new Blob(chunks, { type: mimeType })); } };
     });
     const keyframesByClip = new Map(input.clips.map(clip => [clip.id, [...(clip.keyframes || [])].filter(frame => Number.isFinite(frame.time)).sort((a, b) => a.time - b.time)]));
     const animatedValues = (clip: TimelineClip, time: number) => {
@@ -214,6 +225,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     let lastProgress = -1;
     const draw = () => {
       try {
+      throwIfAborted();
       const time = Math.min(input.duration, (performance.now() - started) / 1000);
       const frame = Math.floor(time * input.fps);
       if (frame !== lastFrame) {
@@ -329,10 +341,20 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         }
       }
     };
+    const abortExport = () => {
+      rejectRecording(new DOMException("Export cancelled. Your project and source media are unchanged.", "AbortError"));
+      cancelAnimationFrame(raf);
+      activeVideos.forEach(video => video.pause());
+      audioNodes.forEach(({element}) => element.pause());
+      if (recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
+    };
+    input.signal?.addEventListener("abort", abortExport, { once: true });
     if (audioContext) await audioContext.resume();
+    throwIfAborted();
     recorder.start(250);
     draw();
-    const result = await stopped;
+    let result: Blob;
+    try { result = await stopped; } finally { input.signal?.removeEventListener("abort", abortExport); }
     cancelAnimationFrame(raf);
     input.onProgress?.(100);
     if (!result.size) throw new Error("The export produced an empty video. Try a shorter timeline or lower resolution.");
