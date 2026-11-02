@@ -156,6 +156,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const scale = clip.fit === "contain" ? Math.min(canvas.width / sw, canvas.height / sh) : Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
       ctx.save();
+      const blendModes: Record<string, GlobalCompositeOperation> = { normal: "source-over", multiply: "multiply", screen: "screen", overlay: "overlay", darken: "darken", lighten: "lighten", "soft-light": "soft-light", "hard-light": "hard-light" };
+      ctx.globalCompositeOperation = blendModes[clip.blendMode || "normal"] || "source-over";
       const localTime = time - clip.start;
       const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1);
       const inProgress = clip.transitionIn ? Math.max(0,Math.min(1,localTime/clip.transitionIn)) : 1;
