@@ -195,25 +195,28 @@ export default function App() {
   const previewClip = activeTimelineClips.filter(clip => assets.some(item => item.id === clip.assetId && item.kind !== "audio")).slice(-1)[0] || activeTimelineClips.slice(-1)[0];
   const previewAsset = assets.find(item => item.id === previewClip?.assetId);
   const previewAnimated = useMemo(() => {
-    const base = { zoom: previewClip?.zoom ?? 100, rotation: previewClip?.rotation ?? 0, offsetX: previewClip?.offsetX ?? 0, offsetY: previewClip?.offsetY ?? 0, opacity: previewAnimated.opacity * previewAnimated.transitionAlpha };
+    const base = { zoom: previewClip?.zoom ?? 100, rotation: previewClip?.rotation ?? 0, offsetX: previewClip?.offsetX ?? 0, offsetY: previewClip?.offsetY ?? 0, opacity: previewClip?.opacity ?? 1 };
     const frames = [...(previewClip?.keyframes || [])].filter(frame => Number.isFinite(frame.time)).sort((a,b)=>a.time-b.time);
-    if (!frames.length || !previewClip) return { ...base, slide: 0, transitionAlpha: 1, transitionBlur: 0, wipe: 1, zoomBoost: 1 };
-    const local = Math.max(0, playhead - previewClip.start);
     let values = base;
-    if (local <= frames[0].time) values = frames[0];
-    else if (local >= frames[frames.length-1].time) values = frames[frames.length-1];
-    else {
-      const rightIndex = frames.findIndex(frame=>frame.time>=local), left=frames[rightIndex-1], right=frames[rightIndex];
-      const raw=Math.max(0,Math.min(1,(local-left.time)/Math.max(.0001,right.time-left.time)));
-      const p=left.easing==="ease-in"?raw*raw:left.easing==="ease-out"?1-(1-raw)*(1-raw):left.easing==="ease-in-out"?(raw<.5?2*raw*raw:1-Math.pow(-2*raw+2,2)/2):raw;
-      const mix=(a:number,b:number)=>a+(b-a)*p;
-      values={zoom:mix(left.zoom,right.zoom),rotation:mix(left.rotation,right.rotation),offsetX:mix(left.offsetX,right.offsetX),offsetY:mix(left.offsetY,right.offsetY),opacity:mix(left.opacity,right.opacity)};
+    if (frames.length && previewClip) {
+      const local = Math.max(0, playhead - previewClip.start);
+      if (local <= frames[0].time) values = frames[0];
+      else if (local >= frames[frames.length-1].time) values = frames[frames.length-1];
+      else {
+        const rightIndex = frames.findIndex(frame=>frame.time>=local), left=frames[rightIndex-1], right=frames[rightIndex];
+        const raw=Math.max(0,Math.min(1,(local-left.time)/Math.max(.0001,right.time-left.time)));
+        const p=left.easing==="ease-in"?raw*raw:left.easing==="ease-out"?1-(1-raw)*(1-raw):left.easing==="ease-in-out"?(raw<.5?2*raw*raw:1-Math.pow(-2*raw+2,2)/2):raw;
+        const mix=(a:number,b:number)=>a+(b-a)*p;
+        values={zoom:mix(left.zoom,right.zoom),rotation:mix(left.rotation,right.rotation),offsetX:mix(left.offsetX,right.offsetX),offsetY:mix(left.offsetY,right.offsetY),opacity:mix(left.opacity,right.opacity)};
+      }
     }
-    const length=clipDuration(previewClip), tin=previewClip.transitionIn?Math.max(0,Math.min(1,local/previewClip.transitionIn)):1;
-    const tout=previewClip.transitionOut?Math.max(0,Math.min(1,(length-local)/previewClip.transitionOut)):1;
-    const transition=Math.min(tin,tout), style=previewClip.transitionStyle||"fade";
+    const local = previewClip ? Math.max(0,playhead-previewClip.start) : 0;
+    const length = previewClip ? clipDuration(previewClip) : 0;
+    const tin = previewClip?.transitionIn ? Math.max(0,Math.min(1,local/previewClip.transitionIn)) : 1;
+    const tout = previewClip?.transitionOut ? Math.max(0,Math.min(1,(length-local)/previewClip.transitionOut)) : 1;
+    const transition = Math.min(tin,tout), style=previewClip?.transitionStyle||"fade";
     return { ...values, transitionAlpha:style==="fade"?transition:1, transitionBlur:style==="blur"?(1-transition)*12:0, wipe:style==="wipe"?transition:1, slide:style==="slide"?(1-tin)*16-(1-tout)*16:0, zoomBoost:style==="zoom"?(0.82+0.18*tin)*(0.82+0.18*tout):1 };
-  }, [previewClip, playhead]);
+  }
   useEffect(() => {
     const viewport = timelineScrollRef.current;
     if (!viewport) return;
