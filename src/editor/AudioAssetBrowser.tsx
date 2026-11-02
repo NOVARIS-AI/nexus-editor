@@ -1,36 +1,76 @@
 import { useMemo, useState } from "react";
-import { Music2, Search, Upload, ExternalLink, AudioLines, Sparkles } from "lucide-react";
+import { AudioLines, Download, ExternalLink, Music2, Pause, Play, Search, Upload, Sparkles } from "lucide-react";
 
-type Props = { onImport: () => void };
-type SoundItem = { name: string; tags: string; kind: "effect" | "music" };
-const EFFECTS: SoundItem[] = [
-  ...["Viral whoosh","Reverse whoosh","Air sweep","Transition sweep","Soft impact","Cinematic hit","Bass drop","Deep boom","Riser build","Downlifter","Glitch hit","Digital glitch","Vinyl scratch","Record stop","Camera shutter","Flash pop","Notification ping","Message pop","Keyboard typing","Mouse click","Button tap","Success chime","Error beep","Magic sparkle","Fairy shimmer","Laser zap","Retro game coin","Arcade blip","Crowd cheer","Applause","Laugh track","Dramatic gasp","Footsteps","Door knock","Door slam","Page flip","Paper rustle","Water splash","Rain ambience","Ocean waves","Wind gust","Birdsong","Fire crackle","Thunder rumble","Heartbeat pulse","Engine rev","Car pass-by","Skateboard roll","Swipe transition","Cartoon boing","Funny pop","Bubble pop","鐘 bell chime","Clock tick","Tape rewind","Echo hit","Sub bass hit","Cinematic trailer hit","Suspense drone","Horror sting","Soft sparkle","Glassy shimmer","Whoop","Crowd murmur","Stadium chant","Whistle","Clap","Snap","Finger snap","Camera film roll","Projector hum","Old phone ring","Alarm clock","Robot voice texture","Sci-fi scanner","Electric zap","Mechanical servo","Metal clang","Glass break (licensed effect)","Bottle pop","Footstep gravel","Footstep wood","Door creak","Wind chimes","Forest ambience","Night insects","Underwater bubbles","Waves wash","Train pass","Airplane pass","Motorcycle rev","Rain on window","Fireworks ambience","Distant siren","Dramatic riser","Impact punch","Punchy hit","Bass wobble","DJ scratch","Crowd wow","Cute sparkle"].map(name=>({name,tags:"creator edit transition meme cinematic",kind:"effect" as const})),
-];
-const MUSIC: SoundItem[] = [
-  ...["Afrobeats groove","Amapiano log drum","Afro-fusion bounce","Naija street-pop vibe","Gospel praise instrumental","Worship piano","Inspirational piano","Motivational hip-hop","Trap beat","Drill instrumental","Phonk drive","Jersey club bounce","House groove","Deep house","Afro-house","Dance pop","Electronic festival","Future bass","Synthwave retro","Cyberpunk pulse","Cinematic orchestral","Epic trailer","Emotional strings","Sad piano","Lo-fi study beat","Chillhop","Jazz café","R&B slow jam instrumental","Soul groove","Funk bass","Disco revival","Funky vlog","Happy ukulele","Feel-good acoustic","Corporate upbeat","Tech presentation","Minimal ambient","Dreamy pads","Meditation calm","Nature documentary","Travel vlog","Luxury lifestyle","Fashion runway","Beauty tutorial","Cooking vlog","Gaming background","Comedy sneaky","Suspense tension","Horror atmosphere","Action pulse","Sports hype","Workout energy","Kids playful","Holiday festive","Christmas sparkle","Summer tropical","Reggae sunshine","Dancehall bounce","Latin pop","Reggaeton beat","Indian fusion","Arabic percussion","Orchestral piano","Acoustic guitar","Marimba pop","Percussion loop","Drum break","Bass house","Viral short-form beat","Podcast bed","News intro","Logo reveal sting","Retro 8-bit","Rainy day ambience","Ocean calm","African percussion","Talking drum groove","Highlife guitar","Palmwine guitar","Afro-soul","Afro-gospel","Praise break","Celebration instrumental","Wedding romance","Graduation inspiration","Product reveal","Unboxing groove","Before-and-after reveal","Time-lapse energy","Speed ramp beat","Transition music","Fashion beat","Storytime underscore","Documentary underscore","Clean corporate bed","Soft background loop","Upbeat creator intro","Outro theme"].map(name=>({name,tags:"background music beat loop creator",kind:"music" as const})),
-];
+type AudioResult = { id: string; title: string; pageUrl: string; downloadUrl: string; creator: string; license: string; licenseUrl: string; attribution: string; mimeType: string; duration?: number };
+type Props = { onImport: () => void; onAddAudio: (file: File, source: { pageUrl: string; creator: string; license: string; licenseUrl: string; attribution: string }) => Promise<void> | void };
 const SOURCES = [
-  {name:"Mixkit",note:"Free sound effects and music under its licence",url:"https://mixkit.co/"},
-  {name:"Pixabay",note:"Royalty-free music and sound effects; check each track licence",url:"https://pixabay.com/music/"},
-  {name:"Freesound",note:"Community audio; licences vary by upload",url:"https://freesound.org/"},
-  {name:"Wikimedia Commons",note:"Openly licensed and public-domain audio; check attribution",url:"https://commons.wikimedia.org/wiki/Category:Audio_files"},
-  {name:"TikTok Creative Center",note:"Discover trending sounds and music available for eligible TikTok use",url:"https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en"},
-  {name:"Instagram Reels Audio",note:"Discover audio in Instagram; availability and reuse rights depend on account and region",url:"https://www.instagram.com/reels/audio/"},
-  {name:"Meta Sound Collection",note:"Meta-provided sounds for eligible Facebook and Instagram content",url:"https://www.facebook.com/sound/collection/"},
+ {name:"Wikimedia Commons",note:"Openly licensed and public-domain audio; each result shows its licence.",url:"https://commons.wikimedia.org/wiki/Category:Audio_files"},
+ {name:"Mixkit",note:"Browse free music and effects; check the current licence.",url:"https://mixkit.co/"},
+ {name:"Pixabay",note:"Browse music and effects; check each track's licence.",url:"https://pixabay.com/music/"},
+ {name:"Freesound",note:"Community audio; licences vary by upload.",url:"https://freesound.org/"},
+ {name:"TikTok Creative Center",note:"Discover trending sounds available for eligible TikTok use.",url:"https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en"},
+ {name:"Meta Sound Collection",note:"Meta-provided sounds for eligible Facebook and Instagram content.",url:"https://www.facebook.com/sound/collection/"}
 ];
-export function AudioAssetBrowser({onImport}:Props){
- const [tab,setTab]=useState<"effects"|"music">("effects"); const [query,setQuery]=useState(""); const [source,setSource]=useState("Mixkit");
- const items=tab==="effects"?EFFECTS:MUSIC; const filtered=useMemo(()=>items.filter(x=>(x.name+" "+x.tags).toLowerCase().includes(query.toLowerCase())),[items,query]);
- const chosen=SOURCES.find(x=>x.name===source)||SOURCES[0];
- const term=encodeURIComponent(query.trim()||(tab==="effects"?"popular sound effects":"creator background music"));
- const searchUrl=source==="Mixkit"?(tab==="effects"?"https://mixkit.co/free-sound-effects/search/"+term+"/":"https://mixkit.co/free-stock-music/search/"+term+"/"):source==="Pixabay"?(tab==="effects"?"https://pixabay.com/sound-effects/search/"+term+"/":"https://pixabay.com/music/search/"+term+"/"):source==="Freesound"?"https://freesound.org/search/?q="+term:source==="TikTok Creative Center"?"https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en":source==="Instagram Reels Audio"?"https://www.instagram.com/reels/audio/":source==="Meta Sound Collection"?"https://www.facebook.com/sound/collection/":"https://commons.wikimedia.org/w/index.php?search="+term;
- return <section className="nexus-audio-library"><div className="nexus-audio-heading"><div><b>Creator audio library</b><small>Discover sounds, beats and music for edits</small></div><span><AudioLines size={18}/></span></div>
- <div className="nexus-audio-tabs"><button className={tab==="effects"?"active":""} onClick={()=>{setTab("effects");setQuery("");}}>Sound effects <small>{EFFECTS.length} ideas</small></button><button className={tab==="music"?"active":""} onClick={()=>{setTab("music");setQuery("");}}>Music & beats <small>{MUSIC.length} ideas</small></button></div>
- <label className="nexus-audio-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={tab==="effects"?"Search whoosh, pop, impact, viral…":"Search Afrobeats, Amapiano, lo-fi, cinematic…"}/></label>
- <div className="nexus-audio-count">{filtered.length} matching ideas · choose a style, then find a licensed recording</div>
- <div className="nexus-audio-tags">{filtered.slice(0,80).map(item=><button key={item.name} onClick={()=>{setQuery(item.name);}}>{item.name}<span>↗</span></button>)}</div>
- <div className="nexus-audio-source"><div><b>Search online audio</b><small>{chosen.note}</small></div><select value={source} onChange={e=>setSource(e.target.value)}>{SOURCES.map(s=><option key={s.name}>{s.name}</option>)}</select><a href={searchUrl} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Search {source}</a></div>
- <div className="nexus-audio-actions"><button onClick={onImport}><Upload size={15}/> Import downloaded audio</button><small>After downloading a track, import it here to preview and place it on your timeline.</small></div>
- <div className="nexus-audio-platform-note"><Sparkles size={15}/><span>Trending TikTok and Instagram sounds: use the platform’s official sound library or import audio you have permission to use. Platform music rights may not cover exports to other apps or commercial projects.</span></div>
+function plain(value?: string) { return (value || "").replace(/<[^>]*>/g," ").replace(/&#039;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,"&").replace(/\s+/g," ").trim(); }
+export function AudioAssetBrowser({onImport,onAddAudio}:Props) {
+ const [tab,setTab]=useState<"effects"|"music">("effects");
+ const [query,setQuery]=useState("");
+ const [source,setSource]=useState("Wikimedia Commons");
+ const [results,setResults]=useState<AudioResult[]>([]);
+ const [busy,setBusy]=useState(false);
+ const [message,setMessage]=useState("Search real reusable audio files. Preview a result, then download and add it to your timeline.");
+ const [playing,setPlaying]=useState<string|null>(null);
+ const [downloaded,setDownloaded]=useState<string[]>([]);
+ const selected=SOURCES.find(item=>item.name===source)||SOURCES[0];
+ const term=encodeURIComponent(query.trim()||(tab==="effects"?"sound effect":"background music"));
+ const externalUrl=source==="Mixkit"?(tab==="effects"?"https://mixkit.co/free-sound-effects/":"https://mixkit.co/free-stock-music/"):source==="Pixabay"?(tab==="effects"?"https://pixabay.com/sound-effects/":"https://pixabay.com/music/"):source==="Freesound"?"https://freesound.org/search/?q="+term:selected.url;
+ async function searchAudio() {
+  if(source!=="Wikimedia Commons"){window.open(externalUrl,"_blank","noopener,noreferrer");setMessage("Opened "+source+". Choose a track there, download it if its licence permits, then use Import downloaded audio.");return;}
+  setBusy(true);setResults([]);setMessage("Searching Wikimedia Commons for audio files…");
+  try {
+   const params=new URLSearchParams({action:"query",generator:"search",gsrsearch:query.trim()|| (tab==="effects"?"sound effect":"background music"),gsrnamespace:"6",gsrlimit:"40",prop:"imageinfo",iiprop:"url|extmetadata",format:"json",origin:"*"});
+   const response=await fetch("https://commons.wikimedia.org/w/api.php?"+params.toString(),{headers:{Accept:"application/json"}});
+   if(!response.ok)throw new Error("Audio search is temporarily unavailable.");
+   const data=await response.json();
+   const found=Object.values(data.query?.pages||{}).flatMap((page:any)=>{
+    const info=page.imageinfo?.[0],meta=info?.extmetadata||{},mime=plain(meta.MIMEType?.value||"").toLowerCase();
+    if(!info?.url||!mime.startsWith("audio/"))return [];
+    const license=plain(meta.LicenseShortName?.value);if(!license)return [];
+    const title=String(page.title||"Audio file").replace(/^File:/,"");
+    const creator=plain(meta.Artist?.value);
+    return [{id:String(page.pageid),title,pageUrl:info.descriptionurl||"https://commons.wikimedia.org/wiki/"+encodeURIComponent(page.title),downloadUrl:info.url,creator,license,licenseUrl:plain(meta.LicenseUrl?.value),attribution:plain(meta.Attribution?.value||meta.Credit?.value||creator),mimeType:mime} as AudioResult];
+   });
+   setResults(found);setMessage(found.length?found.length+" licensed audio candidates found. Check attribution and licence details before publishing.":"No matching audio files found. Try a broader search such as 'drum', 'piano', 'rain' or 'whoosh'.");
+  } catch(error){setMessage(error instanceof Error?error.message:"Could not search audio right now.");}
+  finally{setBusy(false);}
+ }
+ async function downloadAndAdd(item:AudioResult){
+  setPlaying(null);setMessage("Downloading "+item.title+"…");
+  try{
+   const response=await fetch(item.downloadUrl);if(!response.ok)throw new Error("The audio download failed.");
+   const blob=await response.blob();const mime=blob.type||item.mimeType;
+   if(!mime.startsWith("audio/"))throw new Error("The source did not return a verified audio file.");
+   const extension=mime.split("/")[1]?.split(";")[0].replace(/[^a-z0-9]/gi,"")||"audio";
+   const safe=item.title.replace(/[^a-z0-9-_]+/gi,"-").slice(0,65)||"nexus-audio";
+   const file=new File([blob],safe+"."+extension,{type:mime});
+   await onAddAudio(file,{pageUrl:item.pageUrl,creator:item.creator,license:item.license,licenseUrl:item.licenseUrl,attribution:item.attribution});
+   setDownloaded(old=>[item.title,...old.filter(x=>x!==item.title)]);
+   setMessage("Downloaded and added to the audio timeline: "+item.title);
+  }catch(error){setMessage((error instanceof Error?error.message:"Download failed.")+" You can open the source page and import the file manually.");}
+ }
+ return <section className="nexus-audio-library">
+  <div className="nexus-audio-heading"><div><b>Creator audio library</b><small>Search · preview · download · add to timeline</small></div><span><AudioLines size={18}/></span></div>
+  <div className="nexus-audio-tabs"><button className={tab==="effects"?"active":""} onClick={()=>setTab("effects")}>Sound effects</button><button className={tab==="music"?"active":""} onClick={()=>setTab("music")}>Music & beats</button></div>
+  <label className="nexus-audio-search"><Search size={16}/><input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void searchAudio();}} placeholder={tab==="effects"?"Search whoosh, rain, applause, drum…":"Search Afrobeats, piano, ambient, guitar…"}/></label>
+  <div className="nexus-audio-source"><div><b>Audio source</b><small>{selected.note}</small></div><select value={source} onChange={e=>setSource(e.target.value)}>{SOURCES.map(item=><option key={item.name}>{item.name}</option>)}</select><a href={externalUrl} target="_blank" rel="noreferrer"><ExternalLink size={15}/> Browse {source}</a></div>
+  <div className="nexus-audio-actions"><button disabled={busy} onClick={()=>void searchAudio()}><Search size={15}/>{busy?"Searching…":"Search audio"}</button><button onClick={onImport}><Upload size={15}/> Import audio from device</button></div>
+  <p className="nexus-audio-count" aria-live="polite">{message}</p>
+  {results.map(item=><article className="nexus-audio-result" key={item.id}>
+   <div className="nexus-audio-result-main"><span className="nexus-audio-result-icon"><Music2 size={17}/></span><div><b>{item.title}</b><small>{item.mimeType} · {item.license} · {item.creator||"Creator not listed"}</small><small>{item.attribution||"Review source attribution requirements"}</small><a href={item.pageUrl} target="_blank" rel="noreferrer">Source & licence details <ExternalLink size={11}/></a></div></div>
+   <audio controls preload="none" src={playing===item.id?item.downloadUrl:undefined} onPlay={()=>setPlaying(item.id)} onPause={()=>setPlaying(old=>old===item.id?null:old)} />
+   <button className="nexus-audio-download" onClick={()=>void downloadAndAdd(item)}><Download size={15}/> Download & add to timeline</button>
+  </article>)}
+  {downloaded.length>0&&<div className="nexus-audio-downloaded"><b>Downloaded in this session</b>{downloaded.map(name=><small key={name}>✓ {name}</small>)}</div>}
+  <div className="nexus-audio-platform-note"><Sparkles size={15}/><span>TikTok and Instagram sounds are not copied or scraped. Use their official libraries where permitted, or import audio you have permission to use. Platform music rights may not cover exports to other apps or commercial projects.</span></div>
  </section>;
 }
