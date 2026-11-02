@@ -183,7 +183,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const maskShape = clip.maskShape || "none";
       if (maskShape !== "none") { ctx.beginPath(); if (maskShape === "circle") ctx.arc(0, 0, Math.min(dw, dh) / 2, 0, Math.PI * 2); else if (maskShape === "rounded") { const radius = Math.min(dw, dh) * .12; ctx.roundRect(-dw/2, -dh/2, dw, dh, radius); } else if (maskShape === "horizontal") ctx.rect(-dw/2, -dh*.25, dw, dh*.5); else if (maskShape === "vertical") ctx.rect(-dw*.25, -dh/2, dw*.5, dh); ctx.clip(); }
       ctx.rotate(animated.rotation*Math.PI/180);
-      ctx.scale((animated.zoom/100)*zoomBoost,(animated.zoom/100)*zoomBoost);
+      ctx.scale((animated.zoom/100)*zoomBoost*(clip.flipHorizontal?-1:1),(animated.zoom/100)*zoomBoost*(clip.flipVertical?-1:1));
       ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
       const vignette = Math.max(0, Math.min(100, clip.vignette ?? 0));
       if (vignette > 0) { const radius = Math.hypot(dw, dh) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-dw/2, -dh/2, dw, dh); }
