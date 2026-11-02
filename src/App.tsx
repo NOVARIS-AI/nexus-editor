@@ -15,7 +15,7 @@ import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 import { getBrowserEngineHealth } from "./editor/engine-registry";
 import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/transcription-engines";
 import { askNexusDirector } from "./editor/ai-director";
-import { getEngineJob, getEngineStatus, submitEngineJob, type NexusEngineJob } from "./editor/engine-jobs";
+import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -88,7 +88,7 @@ export default function App() {
   const [transcriptionText, setTranscriptionText] = useState("");
   const [transcriptionSegments, setTranscriptionSegments] = useState<{start:number;end:number;text:string}[]>([]);
   const [transcriptionBusy, setTranscriptionBusy] = useState(false);
-  const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>([]);
+  const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>(() => loadSavedGenerationJobs());
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
   const [engineAvailability, setEngineAvailability] = useState<{brain:{configured:boolean;model?:string};engines:Record<string,{configured:boolean;provider:string;fallback:string}>} | null>(null);
   const [darkMode, setDarkMode] = useState(true);
@@ -115,6 +115,7 @@ export default function App() {
     return () => { aiWorker.current?.terminate(); aiWorker.current = null; };
   }, []);
   useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); return () => controller.abort(); }, []);
+  useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
   useEffect(() => {
     const pending = generationJobs.filter(job => !job.id.startsWith("unavailable-") && (job.state === "queued" || job.state === "running"));
     if (!pending.length) return;
