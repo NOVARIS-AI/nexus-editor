@@ -201,7 +201,7 @@ export default function App() {
   }
   function split() {
     if (!selectedClip) return;
-    const at = selectedClip.sourceIn + playhead - selectedClip.start;
+    const at = selectedClip.sourceIn + (playhead - selectedClip.start) * Math.max(.1, selectedClip.speed || 1);
     if (at <= selectedClip.sourceIn + .04 || at >= selectedClip.sourceOut - .04) { setStatus("Place the playhead inside the clip to split"); return; }
     const right = { ...selectedClip, id: uid(), start: playhead, sourceIn: at, label: selectedClip.label + " (split)" };
     applyClipChange([...clips.map(c => c.id === selected ? { ...c, sourceOut: at } : c), right], "Clip split successfully");
