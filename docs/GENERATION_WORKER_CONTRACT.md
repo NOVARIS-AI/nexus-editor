@@ -80,4 +80,4 @@ Output URLs must be public or signed HTTPS URLs reachable by the user's browser.
 
 ## Current limitations
 
-The Vercel API proxy validates HTTPS worker endpoints, job state, progress and output URLs. It does not itself create media. A worker must be deployed, configured in Vercel, and tested with a real job before its engine can be called operational. The free GPU notebook is an optional experimental image worker; its runtime and public URL are temporary.
+The Vercel API proxy validates HTTPS worker endpoints, job state, progress and output URLs. It does not itself create media. A worker must be deployed, configured in Vercel, and tested with a real job before its engine can be called operational. The free GPU notebook is an optional experimental image worker; its runtime and public URL are temporary. Video and audio worker endpoints are reserved contracts only until independent model-backed workers are deployed. Browser export uses native MP4 only where MediaRecorder reports support and otherwise falls back to WebM; there is no universal MP4 muxer yet.
