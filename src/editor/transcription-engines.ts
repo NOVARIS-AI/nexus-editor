@@ -36,7 +36,8 @@ export async function transcribeWhisper(file: File, onProgress: Progress = () =>
 export async function transcribeVosk(file: File, onProgress: Progress = () => {}): Promise<TranscriptResult> {
   onProgress("Loading Vosk browser runtime and English model…");
   const Vosk = await import("vosk-browser");
-  const modelUrl = import.meta.env.VITE_VOSK_MODEL_URL || "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip";
+  const modelUrl = import.meta.env.VITE_VOSK_MODEL_URL;
+  if (!modelUrl) throw new Error("Vosk needs VITE_VOSK_MODEL_URL set to a compatible Vosk browser model archive. This is a model URL, not an API key.");
   const model = await Vosk.createModel(modelUrl);
   try {
     const recognizer = new model.KaldiRecognizer();
