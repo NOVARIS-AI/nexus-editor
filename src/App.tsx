@@ -805,7 +805,7 @@ export default function App() {
       setAiReply("Removed “" + selectedClip.label + "” from the timeline."); return;
     }
     if (/\b(add|insert|create)\b.*\b(text|title)\b|\b(text|title)\b.*\b(add|insert|create)\b/.test(request)) {
-      const textMatch = request.match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
+      const textMatch = aiBrief.trim().match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
       const content = textMatch?.[1]?.trim().replace(/^["“]|["”]$/g, "") || "Your text";
       addGraphicLayer(content.slice(0, 180));
       setActiveTool("text"); setActiveSubtool("add");
