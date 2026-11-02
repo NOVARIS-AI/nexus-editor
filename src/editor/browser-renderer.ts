@@ -97,7 +97,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       recorder.onerror = () => reject(new Error("The browser stopped the export unexpectedly."));
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
-    const drawCover = (source: CanvasImageSource, sw: number, sh: number, clip: TimelineClip) => {
+    const drawCover = (source: CanvasImageSource, sw: number, sh: number, clip: TimelineClip, time: number) => {
       if (!sw || !sh) return;
       const scale = clip.fit === "contain" ? Math.min(canvas.width / sw, canvas.height / sh) : Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
@@ -123,8 +123,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           .sort((a, b) => trackOrder(a) - trackOrder(b) || a.start - b.start);
         for (const clip of visualClips) {
           const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
-          if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip);
-          else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip);
+          if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
+          else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip, time);
         }
         for (const clip of input.clips) {
           const speed = Math.max(.1, clip.speed || 1);
