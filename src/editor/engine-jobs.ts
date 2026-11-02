@@ -18,7 +18,6 @@ export async function getEngineJob(engine:NexusEngineJob["engine"],id:string,sig
  return data as NexusEngineJob;
 }
 
-
 const JOB_HISTORY_KEY = "nexus-editor-generation-jobs-v1";
 const MAX_SAVED_JOBS = 30;
 
