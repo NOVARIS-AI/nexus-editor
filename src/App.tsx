@@ -13,6 +13,7 @@ import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject
 import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
 import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 import { getBrowserEngineHealth } from "./editor/engine-registry";
+import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/transcription-engines";
 import { askNexusDirector } from "./editor/ai-director";
 import { getEngineJob, submitEngineJob, type NexusEngineJob } from "./editor/engine-jobs";
 
@@ -80,6 +81,10 @@ export default function App() {
   const [mediaAnalyses, setMediaAnalyses] = useState<MediaAnalysis[]>([]);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [engineReport, setEngineReport] = useState<string[]>([]);
+  const [transcriptionEngine, setTranscriptionEngine] = useState<"whisper" | "vosk" | "groq">("whisper");
+  const [transcriptionStatus, setTranscriptionStatus] = useState("Choose an audio or video file from your media library.");
+  const [transcriptionText, setTranscriptionText] = useState("");
+  const [transcriptionBusy, setTranscriptionBusy] = useState(false);
   const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>([]);
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
@@ -235,6 +240,26 @@ export default function App() {
     } catch (error) {
       setMediaSearchStatus(error instanceof Error ? error.message : "Could not import this source image.");
     }
+  }
+  async function runTranscription() {
+    const source = asset;
+    if (!source?.file || (source.kind !== "audio" && source.kind !== "video")) {
+      setTranscriptionStatus("Select an imported audio or video clip first.");
+      return;
+    }
+    setTranscriptionBusy(true); setTranscriptionText("");
+    setTranscriptionStatus("Starting " + transcriptionEngine + " transcription…");
+    try {
+      const result = transcriptionEngine === "whisper"
+        ? await transcribeWhisper(source.file, setTranscriptionStatus)
+        : transcriptionEngine === "vosk"
+          ? await transcribeVosk(source.file, setTranscriptionStatus)
+          : await transcribeOnline(source.file);
+      setTranscriptionText(result.text);
+      setTranscriptionStatus(result.text ? "Transcription complete · " + result.engine.toUpperCase() : "No speech was detected. Try another engine or review the audio.");
+    } catch (error) {
+      setTranscriptionStatus(error instanceof Error ? error.message : "Transcription failed.");
+    } finally { setTranscriptionBusy(false); }
   }
   async function analyzeAllMedia() {
     if (!assets.length) { setAiReply("Import media or search for reusable media first. There is nothing to analyse yet."); return; }
@@ -664,7 +689,14 @@ export default function App() {
 
 
 
-      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="theme-picker-block">
+      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Speech transcription engines</h2><p>Choose a local engine for privacy or the online provider for cloud transcription.</p>
+          <div className="setting-row"><span><b>Engine</b><small>Whisper and Vosk run in your browser after their models are available.</small></span><select value={transcriptionEngine} onChange={e=>setTranscriptionEngine(e.target.value as "whisper"|"vosk"|"groq")}><option value="whisper">Offline Whisper · Tiny</option><option value="vosk">Offline Vosk</option><option value="groq">Online API · Groq</option></select></div>
+          <div className="setting-row"><span><b>Selected media</b><small>{asset?.name || "No selected audio/video clip"}</small></span><button onClick={()=>setPage("editor")}>Open editor</button></div>
+          <button className="gradient-button" disabled={transcriptionBusy} onClick={runTranscription}>{transcriptionBusy ? "Transcribing…" : "Transcribe selected media"}</button>
+          <p className="engine-adapter-status">{transcriptionStatus}</p>
+          {transcriptionText && <textarea readOnly value={transcriptionText} rows={8} aria-label="Transcription result" />}
+          <small>Online mode requires GROQ_API_KEY in Vercel. Vosk requires a compatible Vosk browser model archive URL in VITE_VOSK_MODEL_URL. Whisper downloads and caches its model on first use.</small>
+          <h2>Appearance</h2><p>Choose how NEXUS EDITOR looks on your device.</p><div className="setting-row"><span><b>Dark appearance</b><small>Use the dark creative workspace theme.</small></span><button className={darkMode ? "toggle on" : "toggle"} onClick={() => setDarkMode(!darkMode)}><i/></button></div><div className="theme-picker-block">
             <div className="theme-picker-heading"><b>Colour theme</b><small>Pick the colour style for your entire workspace.</small></div>
             <div className="theme-options">{themes.map(t => <button key={t.id} className={theme === t.id ? "theme-option selected" : "theme-option"} onClick={() => changeTheme(t.id)} aria-pressed={theme === t.id}><span className="theme-swatches">{t.colors.map((color, i) => <i key={i} style={{ background: color }} />)}</span><span className="theme-option-name">{t.name}</span>{theme === t.id && <Check size={15} className="theme-check" />}</button>)}</div>
           </div>
