@@ -47,6 +47,8 @@ export default function App() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>([]);
   const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>({});
+  const [voiceRecording, setVoiceRecording] = useState(false);
+  const [voiceRecordingSeconds, setVoiceRecordingSeconds] = useState(0);
   const [textLayers, setTextLayers] = useState<TimelineTextLayer[]>([]);
   const [selectedTextLayer, setSelectedTextLayer] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<TimelineClip[][]>([]);
@@ -114,6 +116,15 @@ export default function App() {
   const video = useRef<HTMLVideoElement>(null);
   const audioPreview = useRef<HTMLAudioElement>(null);
   const aiWorker = useRef<Worker | null>(null);
+  const voiceRecorder = useRef<MediaRecorder | null>(null);
+  const voiceStream = useRef<MediaStream | null>(null);
+  const voiceChunks = useRef<BlobPart[]>([]);
+  const voiceTimer = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (voiceTimer.current !== null) window.clearInterval(voiceTimer.current);
+    if (voiceRecorder.current && voiceRecorder.current.state !== "inactive") voiceRecorder.current.stop();
+    voiceStream.current?.getTracks().forEach(track => track.stop());
+  }, []);
   useEffect(() => {
     try {
       const worker = new Worker(new URL("./editor/ai.worker.ts", import.meta.url), { type: "module" });
@@ -381,6 +392,66 @@ export default function App() {
     }
     setMediaAnalyses(results); setAnalysisBusy(false);
     setAiReply("Media analysis finished for "+results.length+" asset(s). Image dimensions, video metadata/brightness samples and audio energy/silence estimates are available. Semantic object recognition and speech transcription are not connected yet.");
+  }
+  async function startVoiceoverRecording() {
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setStatus("Voice recording is not supported in this browser. Open NEXUS Studio in an updated Chrome browser.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      voiceStream.current = stream;
+      const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      voiceChunks.current = [];
+      recorder.ondataavailable = event => { if (event.data.size) voiceChunks.current.push(event.data); };
+      recorder.onstop = () => {
+        if (voiceTimer.current !== null) window.clearInterval(voiceTimer.current);
+        voiceTimer.current = null;
+        stream.getTracks().forEach(track => track.stop());
+        voiceStream.current = null;
+        setVoiceRecording(false);
+        const blob = new Blob(voiceChunks.current, { type: recorder.mimeType || "audio/webm" });
+        if (!blob.size) { setStatus("No audio was captured. Check microphone permission and try again."); return; }
+        const extension = blob.type.includes("mp4") ? "m4a" : "webm";
+        const file = new File([blob], "NEXUS-Voiceover-" + new Date().toISOString().replace(/[:.]/g,"-") + "." + extension, { type: blob.type || "audio/webm" });
+        const objectUrl = URL.createObjectURL(file);
+        const probe = document.createElement("audio");
+        probe.preload = "metadata";
+        probe.src = objectUrl;
+        const finish = (length: number) => {
+          const finalDuration = Number.isFinite(length) && length > 0 ? length : Math.max(1, voiceRecordingSeconds);
+          const created: MediaAsset = { id: uid(), name: file.name, kind: "audio", duration: finalDuration, mimeType: file.type, file, objectUrl, source: { type: "personal" } };
+          const clip: TimelineClip = { id: uid(), assetId: created.id, trackId: "audio-4", start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalDuration, label: "Voiceover · " + clock(finalDuration), gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
+          setAssets(old => [...old, created]);
+          applyClipChange([...clips, clip], "Voiceover recorded and added to the Voice track.");
+          setSelected(clip.id);
+          setPlayhead(clip.start);
+          setPage("editor");
+          setActiveTool("audio");
+          setActiveSubtool("voiceover");
+          setStatus("Voiceover added to the timeline. You can trim, process and mix it like any other audio clip.");
+        };
+        probe.onloadedmetadata = () => finish(probe.duration);
+        probe.onerror = () => finish(0);
+      };
+      recorder.start(250);
+      voiceRecorder.current = recorder;
+      setVoiceRecordingSeconds(0);
+      setVoiceRecording(true);
+      voiceTimer.current = window.setInterval(() => setVoiceRecordingSeconds(value => value + 1), 1000);
+      setStatus("Recording voiceover. Speak clearly; tap Stop recording when finished.");
+    } catch (error) {
+      voiceStream.current?.getTracks().forEach(track => track.stop());
+      voiceStream.current = null;
+      setStatus(error instanceof Error ? "Microphone unavailable: " + error.message : "Microphone permission was not granted.");
+    }
+  }
+  function stopVoiceoverRecording() {
+    if (voiceRecorder.current && voiceRecorder.current.state !== "inactive") {
+      voiceRecorder.current.stop();
+      voiceRecorder.current = null;
+    }
   }
   async function detectSelectedAudioBeats() {
     const audioAsset = (selectedClip && assets.find(item => item.id === selectedClip.assetId && item.kind === "audio")) || assets.find(item => item.kind === "audio");
@@ -857,9 +928,9 @@ export default function App() {
 {(activeSubtool==="sounds"||activeSubtool==="effects"||!activeSubtool) && <AudioAssetBrowser onImport={()=>{setShowAttachmentPicker(true);setStatus("Choose a downloaded or personally licensed audio file to add it to your timeline.");}} onAddAudio={addDownloadedAudio}/>}
 
 {activeSubtool==="extract" && <p>Direct audio extraction from video is not connected yet. Import a separate audio track for now.</p>}
-{activeSubtool==="voiceover" && <p>Voice recording is not connected yet. Record on your phone and import the file here.</p>}
+{activeSubtool==="voiceover" && <div className="nexus-context-controls"><p>Record narration directly into the project. Your browser will ask for microphone permission; the recording is placed on the Voice track automatically.</p><section className="nexus-effect-group"><b>{voiceRecording ? "Recording in progress" : "Voiceover recorder"}</b><strong>{clock(voiceRecordingSeconds)}</strong>{voiceRecording ? <button className="active" onClick={stopVoiceoverRecording}>Stop recording and add to timeline</button> : <button onClick={()=>void startVoiceoverRecording()}>Start voice recording</button>}<small>Uses your device microphone with browser echo cancellation, noise suppression and automatic gain control where supported.</small></section></div>}
 {activeSubtool==="mixer" && <div className="nexus-context-controls"><p>Balance the four audio buses. Track volume and stereo pan are applied during export; Solo temporarily isolates one bus.</p>{defaultTracks.filter(track=>track.kind==="audio").map(track=>{const mix=trackMix[track.id]||{volume:1,pan:0,solo:false,muted:false};return <section key={track.id} className="nexus-effect-group"><b>{track.name}</b><label>Volume <input type="range" min="0" max="2" step=".05" value={mix.volume} onChange={e=>setTrackMix(old=>({...old,[track.id]:{...mix,volume:Number(e.target.value)}}))}/><small>{Math.round(mix.volume*100)}%</small></label><label>Stereo pan <input type="range" min="-1" max="1" step=".05" value={mix.pan} onChange={e=>setTrackMix(old=>({...old,[track.id]:{...mix,pan:Number(e.target.value)}}))}/><small>{mix.pan<-.05?"Left":mix.pan>.05?"Right":"Centre"}</small></label><button className={mix.solo?"active":""} onClick={()=>setTrackMix(old=>({...old,[track.id]:{...mix,solo:!mix.solo}}))}>{mix.solo?"Unsolo":"Solo"}</button><button className={mix.muted?"active":""} onClick={()=>setTrackMix(old=>({...old,[track.id]:{...mix,muted:!mix.muted}}))}>{mix.muted?"Unmute track":"Mute track"}</button><button onClick={()=>setTrackMix(old=>({...old,[track.id]:{volume:1,pan:0,solo:false,muted:false}}))}>Reset bus</button></section>;})}</div>}{activeSubtool==="beats" && <div className="nexus-context-controls"><p>Analyse an imported music or audio track locally. Markers are estimated from energy/transient peaks, so use them as editing guides rather than guaranteed musical downbeats.</p><button disabled={beatAnalysisBusy || !assets.some(item=>item.kind==="audio")} onClick={()=>void detectSelectedAudioBeats()}>{beatAnalysisBusy?"Analysing audio…":"Detect beat markers"}</button><button disabled={!beatMarkers.length} onClick={clearBeatMarkers}>Clear markers</button><div className="nexus-effect-group"><span>{beatMarkers.length} detected markers</span>{beatMarkers.map((marker,index)=><button key={marker.assetId+"-"+marker.time+"-"+index} onClick={()=>{const clip=clips.find(item=>item.assetId===marker.assetId);setPlayhead((clip?.start||0)+marker.time);if(clip)setSelected(clip.id);setStatus("Playhead moved to estimated beat at "+marker.time.toFixed(2)+"s.");}}>{clock(marker.time)} · {marker.time.toFixed(2)}s</button>)}</div></div>}
-{selectedClip && <><label>Audio track <select value={selectedClip.trackId} onChange={e=>updateSelectedClip({trackId:e.target.value})}>{defaultTracks.filter(track=>track.kind==="audio").map(track=><option key={track.id} value={track.id}>{track.name}</option>)}</select></label><label>Clip volume <input type="range" min="0" max="2" step="0.05" value={selectedClip.gain??1} onChange={e=>updateSelectedClip({gain:Number(e.target.value)})}/><small>{Math.round((selectedClip.gain??1)*100)}% gain</small></label><label>Low-cut filter <input type="range" min="20" max="1200" step="10" value={selectedClip.highPassHz??20} onChange={e=>updateSelectedClip({highPassHz:Number(e.target.value)})}/><small>{selectedClip.highPassHz??20} Hz · reduce rumble and handling noise</small></label><label>High-cut filter <input type="range" min="1500" max="20000" step="100" value={selectedClip.lowPassHz??20000} onChange={e=>updateSelectedClip({lowPassHz:Number(e.target.value)})}/><small>{(selectedClip.lowPassHz??20000)>=20000?"Open / neutral":(selectedClip.lowPassHz??20000)+" Hz · soften high frequencies"}</small></label><label>Voice / audio compression <input type="range" min="0" max="100" step="5" value={selectedClip.compression??0} onChange={e=>updateSelectedClip({compression:Number(e.target.value)})}/><small>{selectedClip.compression??0}% · even out loud and quiet sections during export</small></label><button onClick={()=>updateSelectedClip({highPassHz:20,lowPassHz:20000,compression:0})}>Reset audio processing</button><label>Trim start <input type="range" min="0" max={Math.max(0,(assets.find(item=>item.id===selectedClip.assetId)?.duration||selectedClip.sourceOut)-0.1)} step="0.05" value={selectedClip.sourceIn} onChange={e=>{const value=Number(e.target.value);if(value<selectedClip.sourceOut-0.1)updateSelectedClip({sourceIn:value});}}/></label><label>Trim end <input type="range" min={selectedClip.sourceIn+0.1} max={assets.find(item=>item.id===selectedClip.assetId)?.duration||selectedClip.sourceOut} step="0.05" value={selectedClip.sourceOut} onChange={e=>updateSelectedClip({sourceOut:Number(e.target.value)})}/></label><label>Fade in <input type="range" min="0" max={Math.min(10,(selectedClip.sourceOut-selectedClip.sourceIn)/2)} step="0.1" value={selectedClip.fadeIn||0} onChange={e=>updateSelectedClip({fadeIn:Number(e.target.value)})}/></label><label>Fade out <input type="range" min="0" max={Math.min(10,(selectedClip.sourceOut-selectedClip.sourceIn)/2)} step="0.1" value={selectedClip.fadeOut||0} onChange={e=>updateSelectedClip({fadeOut:Number(e.target.value)})}/></label><button className={selectedClip.muted?"active":""} onClick={()=>updateSelectedClip({muted:!selectedClip.muted})}>{selectedClip.muted?"Unmute audio":"Mute audio"}</button><small>Multiple audio tracks can play together. Track placement, trim, gain and fades are included in the export mix.</small></>}
+{selectedClip && <><label>Audio track <select value={selectedClip.trackId} onChange={e=>updateSelectedClip({trackId:e.target.value})}>{defaultTracks.filter(track=>track.kind==="audio").map(track=><option key={track.id} value={track.id}>{track.name}</option>)}</select></label><label>Clip volume <input type="range" min="0" max="2" step="0.05" value={selectedClip.gain??1} onChange={e=>updateSelectedClip({gain:Number(e.target.value)})}/><small>{Math.round((selectedClip.gain??1)*100)}% gain</small></label><label>Low-cut filter <input type="range" min="20" max="1200" step="10" value={selectedClip.highPassHz??20} onChange={e=>updateSelectedClip({highPassHz:Number(e.target.value)})}/><small>{selectedClip.highPassHz??20} Hz · reduce rumble and handling noise</small></label><label>High-cut filter <input type="range" min="1500" max="20000" step="100" value={selectedClip.lowPassHz??20000} onChange={e=>updateSelectedClip({lowPassHz:Number(e.target.value)})}/><small>{(selectedClip.lowPassHz??20000)>=20000?"Open / neutral":(selectedClip.lowPassHz??20000)+" Hz · soften high frequencies"}</small></label><label>Voice / audio compression <input type="range" min="0" max="100" step="5" value={selectedClip.compression??0} onChange={e=>updateSelectedClip({compression:Number(e.target.value)})}/><small>{selectedClip.compression??0}% · even out loud and quiet sections during export</small></label><div className="nexus-effect-group"><b>Vocal processing presets</b><button onClick={()=>updateSelectedClip({highPassHz:80,lowPassHz:16000,compression:45})}>Clean voice</button><button onClick={()=>updateSelectedClip({highPassHz:60,lowPassHz:12000,compression:30})}>Warm voice</button><button onClick={()=>updateSelectedClip({highPassHz:250,lowPassHz:4000,compression:65})}>Radio voice</button><small>These presets use EQ and dynamics processing during export. They are not AI vocal isolation and cannot fully remove background speech or music.</small></div><button onClick={()=>updateSelectedClip({highPassHz:20,lowPassHz:20000,compression:0})}>Reset audio processing</button><label>Trim start <input type="range" min="0" max={Math.max(0,(assets.find(item=>item.id===selectedClip.assetId)?.duration||selectedClip.sourceOut)-0.1)} step="0.05" value={selectedClip.sourceIn} onChange={e=>{const value=Number(e.target.value);if(value<selectedClip.sourceOut-0.1)updateSelectedClip({sourceIn:value});}}/></label><label>Trim end <input type="range" min={selectedClip.sourceIn+0.1} max={assets.find(item=>item.id===selectedClip.assetId)?.duration||selectedClip.sourceOut} step="0.05" value={selectedClip.sourceOut} onChange={e=>updateSelectedClip({sourceOut:Number(e.target.value)})}/></label><label>Fade in <input type="range" min="0" max={Math.min(10,(selectedClip.sourceOut-selectedClip.sourceIn)/2)} step="0.1" value={selectedClip.fadeIn||0} onChange={e=>updateSelectedClip({fadeIn:Number(e.target.value)})}/></label><label>Fade out <input type="range" min="0" max={Math.min(10,(selectedClip.sourceOut-selectedClip.sourceIn)/2)} step="0.1" value={selectedClip.fadeOut||0} onChange={e=>updateSelectedClip({fadeOut:Number(e.target.value)})}/></label><button className={selectedClip.muted?"active":""} onClick={()=>updateSelectedClip({muted:!selectedClip.muted})}>{selectedClip.muted?"Unmute audio":"Mute audio"}</button><small>Multiple audio tracks can play together. Track placement, trim, gain and fades are included in the export mix.</small></>}
 </div>{activeTool==="edit" && selectedClip && <div className="nexus-context-controls"><button onClick={split}><Scissors size={15}/> Split at playhead</button><button className={muteClip?"active":""} onClick={()=>{setMuteClip(v=>!v);updateSelectedClip({muted:!muteClip});}}><Volume2 size={15}/> {muteClip?"Unmute":"Mute clip"}</button><button onClick={trimSelectedAtPlayhead}>Trim end here</button><button onClick={()=>nudgeSelectedClip(-1)}>← 1s</button><button onClick={()=>nudgeSelectedClip(1)}>1s →</button><div className="nexus-speed-controls"><label>Playback speed <input type="range" min=".25" max="4" step=".05" value={selectedClip.speed ?? 1} onChange={e=>{const value=Number(e.target.value);updateSelectedClip({speed:value});setStatus(`Clip speed set to ${value.toFixed(2)}×`);}}/></label><div className="nexus-speed-presets">{[{label:"0.25×",value:.25},{label:"0.5×",value:.5},{label:"0.75×",value:.75},{label:"1×",value:1},{label:"1.5×",value:1.5},{label:"2×",value:2},{label:"3×",value:3},{label:"4×",value:4}].map(p=><button key={p.value} className={(selectedClip.speed??1)===p.value?"active":""} onClick={()=>{updateSelectedClip({speed:p.value});setStatus(`Clip speed set to ${p.label}`);}}>{p.label}</button>)}</div><small>Timeline duration at this speed: {clock((selectedClip.sourceOut-selectedClip.sourceIn)/Math.max(.1,selectedClip.speed??1))} · Original source: {clock(selectedClip.sourceOut-selectedClip.sourceIn)}</small><button onClick={()=>{updateSelectedClip({speed:1});setStatus("Clip speed reset to normal.");}}>Reset to 1×</button></div><label>Clip opacity <input type="range" min="0" max="1" step=".05" value={selectedClip.opacity ?? 1} onChange={e=>updateSelectedClip({opacity:Number(e.target.value)})}/></label><label>Fit <select value={selectedClip.fit || "cover"} onChange={e=>updateSelectedClip({fit:e.target.value as "cover"|"contain"})}><option value="cover">Fill / crop</option><option value="contain">Fit inside</option></select></label><label>Gain <input type="range" min="0" max="1" step=".05" value={clipGain} onChange={e=>{const value=Number(e.target.value);setClipGain(value);updateSelectedClip({gain:value});if(video.current)applyMediaElementGain(video.current,value);if(audioPreview.current)applyMediaElementGain(audioPreview.current,value);}}/></label><label>Fade in <input type="range" min="0" max="5" step=".1" value={selectedClip.fadeIn||0} onChange={e=>updateSelectedClip({fadeIn:Number(e.target.value)})}/></label><label>Fade out <input type="range" min="0" max="5" step=".1" value={selectedClip.fadeOut||0} onChange={e=>updateSelectedClip({fadeOut:Number(e.target.value)})}/></label></div>}
             <nav className="editor-tool-dock" aria-label="Editing tools">{[{id:"edit",label:"Edit",icon:Scissors},{id:"audio",label:"Audio",icon:Music2},{id:"text",label:"Text",icon:Type},{id:"overlay",label:"Overlay",icon:Layers},{id:"effects",label:"Effects",icon:WandSparkles},{id:"captions",label:"Captions",icon:Captions},{id:"filters",label:"Filters",icon:SlidersHorizontal},{id:"adjust",label:"Adjust",icon:Palette},{id:"media",label:"Media",icon:Film},{id:"stickers",label:"Stickers",icon:Sticker},{id:"background",label:"Background",icon:ImageIcon},{id:"ratio",label:"Ratio",icon:Crop}].map(item=>{const Icon=item.icon;return <button key={item.id} className={activeTool===item.id?"active":""} onClick={()=>{setActiveTool(item.id);setActiveSubtool(item.id==="edit"?"select":"");if(item.id==="media")setShowAttachmentPicker(true);}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>
           </div>
