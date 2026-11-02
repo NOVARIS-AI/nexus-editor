@@ -4,7 +4,8 @@ export interface MediaAsset {
   width?: number; height?: number; mimeType: string; file?: File; objectUrl?: string;
   source?: { type: "personal" | "commons" | "stock" | "generated"; pageUrl?: string; creator?: string; license?: string; licenseUrl?: string; attribution?: string };
 }
-export interface ClipKeyframe { time: number; zoom: number; rotation: number; offsetX: number; offsetY: number; opacity: number; }\nexport interface TimelineClip {
+export interface ClipKeyframe { time: number; zoom: number; rotation: number; offsetX: number; offsetY: number; opacity: number; }
+export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
   sourceIn: number; sourceOut: number; label: string;
   gain?: number; muted?: boolean; fadeIn?: number; fadeOut?: number; speed?: number; rotation?: number; brightness?: number; contrast?: number; saturation?: number; zoom?: number; offsetX?: number; offsetY?: number; filter?: string; opacity?: number; transitionIn?: number; transitionOut?: number; fit?: "cover" | "contain"; keyframes?: ClipKeyframe[];
