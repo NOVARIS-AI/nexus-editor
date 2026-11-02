@@ -628,7 +628,7 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .editor-lanes{overflow:visible;min-width:0;touch-action:pan-x pan-y;cursor:crosshair}
 .editor-lanes-inner{min-width:0}
 .editor-lane{min-width:0;min-height:34px}
-.editor-clip{touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none}
+.editor-clip{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 .editor-clip:active{cursor:grabbing}
 .editor-clip.active{z-index:3;box-shadow:0 0 0 2px var(--accent-c),0 4px 15px #0008}
 .editor-playhead{z-index:5;pointer-events:none;box-shadow:0 0 8px #ffd16688}
