@@ -17,7 +17,8 @@ export type RenderInput = {
   signal?: AbortSignal;
 };
 
-const waitForMedia = (media: HTMLMediaElement) => new Promise<void>((resolve, reject) => {
+const waitForMedia = (media: HTMLMediaElement, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  if (signal?.aborted) return reject(new DOMException("Export cancelled.", "AbortError"));
   if (media.readyState >= 2) return resolve();
   const timer = window.setTimeout(() => {
     cleanup();
@@ -29,20 +30,26 @@ const waitForMedia = (media: HTMLMediaElement) => new Promise<void>((resolve, re
     window.clearTimeout(timer);
     media.removeEventListener("loadeddata", done);
     media.removeEventListener("error", fail);
+    signal?.removeEventListener("abort", aborted);
   };
+  const aborted = () => { cleanup(); reject(new DOMException("Export cancelled.", "AbortError")); };
+  signal?.addEventListener("abort", aborted, { once: true });
   media.addEventListener("loadeddata", done, { once: true });
   media.addEventListener("error", fail, { once: true });
   media.load();
 });
 
-const seekMedia = async (media: HTMLMediaElement, time: number) => {
+const seekMedia = async (media: HTMLMediaElement, time: number, signal?: AbortSignal) => {
+  if (signal?.aborted) throw new DOMException("Export cancelled.", "AbortError");
   if (!Number.isFinite(time) || time < 0) throw new Error("A timeline clip has an invalid source in-point.");
   if (Math.abs(media.currentTime - time) < 0.04) return;
   await new Promise<void>((resolve, reject) => {
     const timer = window.setTimeout(() => { cleanup(); reject(new Error("A media clip could not seek to its selected in-point.")); }, 8000);
     const done = () => { cleanup(); resolve(); };
     const fail = () => { cleanup(); reject(new Error("A media clip failed while seeking for export.")); };
-    const cleanup = () => { window.clearTimeout(timer); media.removeEventListener("seeked", done); media.removeEventListener("error", fail); };
+    const cleanup = () => { window.clearTimeout(timer); media.removeEventListener("seeked", done); media.removeEventListener("error", fail); signal?.removeEventListener("abort", aborted); };
+    const aborted = () => { cleanup(); reject(new DOMException("Export cancelled.", "AbortError")); };
+    signal?.addEventListener("abort", aborted, { once: true });
     media.addEventListener("seeked", done, { once: true });
     media.addEventListener("error", fail, { once: true });
     try { media.currentTime = time; } catch (error) { cleanup(); reject(error); }
@@ -123,9 +130,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         imageByClip.set(clip.id, image);
       } else if (asset.kind === "video") {
         const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = !audioContext; video.playsInline = true; video.preload = "auto";
-        await waitForMedia(video);
+        await waitForMedia(video, input.signal);
         throwIfAborted();
-        await seekMedia(video, clip.sourceIn);
+        await seekMedia(video, clip.sourceIn, input.signal);
         throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
@@ -135,9 +142,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         mediaByClip.set(clip.id, video); activeVideos.push(video);
       } else {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
-        await waitForMedia(audio);
+        await waitForMedia(audio, input.signal);
         throwIfAborted();
-        await seekMedia(audio, clip.sourceIn);
+        await seekMedia(audio, clip.sourceIn, input.signal);
         throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
