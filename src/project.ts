@@ -27,7 +27,7 @@ export function parseProject(text: string): NexusProject {
     throw new Error("This file is not a supported NEXUS EDITOR project.");
   return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [] };
 }
-export function clipDuration(clip: TimelineClip) { return Math.max(0, clip.sourceOut - clip.sourceIn); }
+export function clipDuration(clip: TimelineClip) { return Math.max(0, clip.sourceOut - clip.sourceIn) / Math.max(.1, clip.speed || 1); }
 export function timelineDuration(clips: TimelineClip[]) {
   return clips.reduce((max, clip) => Math.max(max, clip.start + clipDuration(clip)), 0);
 }
