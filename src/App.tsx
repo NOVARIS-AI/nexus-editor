@@ -770,10 +770,34 @@ export default function App() {
       return;
     }
     if (/\b(unmute)\b/.test(request)) {
-      setMuteClip(false); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio unmuted in the preview. This mute switch currently affects preview playback only, not exported audio."); return;
+      if (!selectedClip) { setAiReply("Select a clip first so I can unmute it."); return; }
+      updateSelectedClip({ muted: false }); setMuteClip(false); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio unmuted. This change is saved on the selected clip and will be respected by export."); return;
     }
     if (/\b(mute|silence)\b/.test(request)) {
-      setMuteClip(true); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio muted in the preview. Note: the current mute switch affects preview playback only; track-level audio export is not implemented yet."); return;
+      if (!selectedClip) { setAiReply("Select a clip first so I can mute it."); return; }
+      updateSelectedClip({ muted: true }); setMuteClip(true); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio muted on the selected clip. The mute is saved and will also apply during export."); return;
+    }
+    const speedMatch = request.match(/\b(?:speed|playback)\s*(?:to|at|=)?\s*(0?\.\d+|[1-4](?:\.\d+)?)\s*x?\b/);
+    if (speedMatch) {
+      if (!selectedClip) { setAiReply("Select a clip first so I can change its speed."); return; }
+      const speed = Math.max(0.1, Math.min(4, Number(speedMatch[1])));
+      updateSelectedClip({ speed }); setActiveTool("edit"); setActiveSubtool("speed");
+      setAiReply("Set “" + selectedClip.label + "” to " + speed + "× speed. The clip duration and export timing will use this speed."); return;
+    }
+    const volumeMatch = request.match(/\b(?:volume|gain)\s*(?:to|at|=)?\s*(\d{1,3})\s*%/);
+    if (volumeMatch) {
+      if (!selectedClip) { setAiReply("Select a clip first so I can change its volume."); return; }
+      const gain = Math.max(0, Math.min(200, Number(volumeMatch[1]))) / 100;
+      updateSelectedClip({ gain }); setActiveTool("audio"); setActiveSubtool("volume");
+      setAiReply("Set “" + selectedClip.label + "” volume to " + Math.round(gain * 100) + "%. This clip gain is included in export."); return;
+    }
+    const fadeMatch = request.match(/\b(fade\s*in|fade\s*out)\s*(?:for|over)?\s*(\d+(?:\.\d+)?)?\s*(?:seconds?|secs?|s)?\b/);
+    if (fadeMatch) {
+      if (!selectedClip) { setAiReply("Select a clip first so I can apply a fade."); return; }
+      const seconds = Math.max(0, Math.min(10, Number(fadeMatch[2] || 1)));
+      updateSelectedClip(fadeMatch[1].toLowerCase().includes("in") ? { fadeIn: seconds } : { fadeOut: seconds });
+      setActiveTool("audio"); setActiveSubtool("fade");
+      setAiReply("Applied a " + seconds + " second " + (fadeMatch[1].toLowerCase().includes("in") ? "fade-in" : "fade-out") + " to “" + selectedClip.label + "”. The export renderer will use it."); return;
     }
     if (/\b(delete|remove)\b/.test(request) && /\b(clip|selected)\b/.test(request)) {
       if (!selectedClip) { setAiReply("Select the clip you want to remove first."); return; }
@@ -781,13 +805,16 @@ export default function App() {
       setAiReply("Removed “" + selectedClip.label + "” from the timeline."); return;
     }
     if (/\b(add|insert|create)\b.*\b(text|title)\b|\b(text|title)\b.*\b(add|insert|create)\b/.test(request)) {
-      setActiveTool("text"); setActiveSubtool("add"); setOverlayText("Your text");
-      setAiReply("Text editing is open and the preview text is ready to customise. Important: this text is currently a preview overlay, not yet a saved timeline text layer."); return;
+      const textMatch = request.match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
+      const content = textMatch?.[1]?.trim().replace(/^["“]|["”]$/g, "") || "Your text";
+      addGraphicLayer(content.slice(0, 180));
+      setActiveTool("text"); setActiveSubtool("add");
+      setAiReply("Added “" + content.slice(0, 180) + "” as a real timed text layer on the timeline. Select the layer to customise its style and duration."); return;
     }
     const ratioMatch = request.match(/\b(9:16|16:9|1:1|4:5|3:4)\b/);
     if (ratioMatch && /\b(ratio|format|canvas|aspect)\b/.test(request)) {
       setAspectRatio(ratioMatch[1]); setActiveTool("ratio"); setActiveSubtool(ratioMatch[1]);
-      setAiReply("Canvas preview ratio changed to " + ratioMatch[1] + ". Export rendering is not connected yet."); return;
+      setAiReply("Canvas ratio changed to " + ratioMatch[1] + ". The export uses this ratio too; choose an export preset or quality before rendering."); return;
     }
     if (requestedTool) {
       setActiveTool(requestedTool); setActiveSubtool(requestedTool === "edit" ? "select" : "");
