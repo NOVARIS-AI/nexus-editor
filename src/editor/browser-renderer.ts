@@ -167,7 +167,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha));
       const filter = FILTER_CSS[clip.filter || "Original"] || "none";
       const transitionBlur = transitionStyle === "blur" ? (1-transitionProgress)*12 : 0;
-      ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`, transitionBlur ? `blur(${transitionBlur}px)` : ""].filter(Boolean).join(" ");
+      const exposure = clip.exposure ?? 0, temperature = clip.temperature ?? 0, tint = clip.tint ?? 0, highlights = clip.highlights ?? 0, shadows = clip.shadows ?? 0;
+      const gradedBrightness = Math.max(.2, Math.min(2.5, (clip.brightness ?? 100) / 100 * Math.pow(2, exposure) * (1 + shadows / 650 - highlights / 900)));
+      const gradedContrast = Math.max(.4, Math.min(2, (clip.contrast ?? 100) / 100 * (1 + highlights / 450 - shadows / 700)));
+      ctx.filter = [filter, `brightness(${gradedBrightness})`, `contrast(${gradedContrast})`, `saturate(${(clip.saturation ?? 100)/100})`, temperature ? `sepia(${Math.abs(temperature)/260})` : "", temperature ? `hue-rotate(${-temperature*.28}deg)` : "", tint ? `hue-rotate(${tint*.32}deg)` : "", transitionBlur ? `blur(${transitionBlur}px)` : ""].filter(Boolean).join(" ");
       if (transitionStyle === "wipe") {
         const reveal = Math.max(.001, Math.min(1, transitionProgress));
         ctx.beginPath(); ctx.rect(0,0,canvas.width*reveal,canvas.height); ctx.clip();
@@ -178,6 +181,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       ctx.rotate(animated.rotation*Math.PI/180);
       ctx.scale((animated.zoom/100)*zoomBoost,(animated.zoom/100)*zoomBoost);
       ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
+      const vignette = Math.max(0, Math.min(100, clip.vignette ?? 0));
+      if (vignette > 0) { const radius = Math.hypot(canvas.width, canvas.height) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-canvas.width, -canvas.height, canvas.width * 2, canvas.height * 2); }
       ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
