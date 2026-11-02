@@ -238,13 +238,19 @@ export default function App() {
     });
     const finalAsset = { ...created, duration: mediaDuration || 5 };
     setAssets(old => old.map(item => item.id === created.id ? finalAsset : item));
-    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];\n    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));\n    const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];\n    const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalAsset.duration, label: created.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
+    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
+    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
+    const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+    const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalAsset.duration, label: created.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, clip], "Licensed audio downloaded and added to your timeline.");
     setSelected(clip.id); setPlayhead(clip.start); setPage("editor"); setActiveTool("audio"); setActiveSubtool("sounds");
     if (audioPreview.current) audioPreview.current.src = objectUrl;
   }
   function add(a: MediaAsset) {
-    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];\n    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));\n    const audioTrackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];\n    const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? audioTrackId : "video-1", start: a.kind === "audio" ? playhead : timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
+    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
+    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
+    const audioTrackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+    const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? audioTrackId : "video-1", start: a.kind === "audio" ? playhead : timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
     if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
@@ -589,7 +595,12 @@ export default function App() {
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
-        setAiReply(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
+        setAiReply(plan.summary + "
+
+" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("
+") + (plan.userReferenceNeeded ? "
+
+A reference photo/video is needed to represent you accurately." : ""));
         setEngineReport(["AI Director connected · " + result.model, ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
