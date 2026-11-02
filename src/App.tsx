@@ -364,6 +364,7 @@ export default function App() {
   const importedGenerationOutputs = useRef<Set<string>>(new Set());
   async function refreshGenerationJob(job:NexusEngineJob & {sceneTitle:string}) {
     let reservedUrl = "";
+    let reservedObjectUrl = "";
     try {
       const latest=await getEngineJob(job.engine,job.id);
       setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
@@ -385,6 +386,7 @@ export default function App() {
       const safeName=job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-").slice(0,70)||"nexus";
       const file=new File([blob],safeName+"-generated."+extension,{type:mimeType});
       const objectUrl=URL.createObjectURL(file);
+      reservedObjectUrl=objectUrl;
       let mediaDuration=5;
       if(expectedKind!=="image") {
         const probe=document.createElement(expectedKind);
@@ -405,6 +407,7 @@ export default function App() {
       setSelected(clip.id);setPage("editor");
       setAiReply("Generated "+expectedKind+" imported with its real media duration and added to the correct timeline track. You can now edit it.");
     } catch(error) {
+      if(reservedObjectUrl) URL.revokeObjectURL(reservedObjectUrl);
       if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
       setAiReply(error instanceof Error?error.message:"Could not refresh this generation job.");
     }
