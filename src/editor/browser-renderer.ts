@@ -308,8 +308,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             ctx.fillRect(boxX, -boxHeight / 2, boxWidth, boxHeight);
           }
           ctx.fillStyle = layer.color;
-          ctx.shadowColor = "rgba(0,0,0,.7)";
-          ctx.shadowBlur = 12;
+          ctx.shadowColor = layer.shadow === false ? "transparent" : "rgba(0,0,0,.7)";
+          ctx.shadowBlur = layer.shadow === false ? 0 : 12;
           lines.forEach((line, index) => ctx.fillText(line, 0, (index - (lines.length - 1) / 2) * lineHeight, maxWidth));
           ctx.restore();
         });
