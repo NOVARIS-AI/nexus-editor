@@ -75,13 +75,13 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const tracks = new Map((input.tracks || []).map((track, index) => [track.id, { ...track, order: index }]));
   const trackFor = (clip: TimelineClip) => tracks.get(clip.trackId);
   const trackHidden = (clip: TimelineClip) => trackFor(clip)?.hidden === true;
-  const trackMuted = (clip: TimelineClip) => trackFor(clip)?.muted === true;
+  const trackMuted = (clip: TimelineClip) => trackFor(clip)?.muted === true || (input.tracks || []).some(track => track.kind === "audio" && track.solo && track.id !== clip.trackId);
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
   const audioDestination = audioContext?.createMediaStreamDestination();
-  const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
+  const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode; panner?: StereoPannerNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   let canvasStream: MediaStream | null = null;
   let raf = 0;
@@ -107,8 +107,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         await seekMedia(video, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
-          const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
-          video.muted = false; audioNodes.set(clip.id, { element: video, gain });
+          const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          video.muted = false; audioNodes.set(clip.id, { element: video, gain, panner });
         }
         mediaByClip.set(clip.id, video); activeVideos.push(video);
       } else {
@@ -117,8 +117,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         await seekMedia(audio, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
-          const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
-          audioNodes.set(clip.id, { element: audio, gain });
+          const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          audioNodes.set(clip.id, { element: audio, gain, panner });
         }
       }
     }
@@ -225,7 +225,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               const elapsed = Math.max(0, local), remaining = Math.max(0, (clip.sourceOut - clip.sourceIn) / speed - elapsed);
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
               const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
-              audio.gain.gain.value = Math.max(0, Math.min(1, clip.gain ?? 1)) * Math.min(fadeIn, fadeOut);
+              const track = trackFor(clip);
+              audio.gain.gain.value = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut);
+              if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, track?.pan ?? 0));
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
         }
