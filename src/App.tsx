@@ -15,7 +15,7 @@ import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 import { getBrowserEngineHealth } from "./editor/engine-registry";
 import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/transcription-engines";
 import { askNexusDirector } from "./editor/ai-director";
-import { getEngineJob, submitEngineJob, type NexusEngineJob } from "./editor/engine-jobs";
+import { getEngineJob, getEngineStatus, submitEngineJob, type NexusEngineJob } from "./editor/engine-jobs";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -88,6 +88,7 @@ export default function App() {
   const [transcriptionBusy, setTranscriptionBusy] = useState(false);
   const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>([]);
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
+  const [engineAvailability, setEngineAvailability] = useState<{brain:{configured:boolean;model?:string};engines:Record<string,{configured:boolean;provider:string;fallback:string}>} | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -111,6 +112,7 @@ export default function App() {
     } catch { setAiContextStatus("Background helper unavailable · editor remains usable"); }
     return () => { aiWorker.current?.terminate(); aiWorker.current = null; };
   }, []);
+  useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); return () => controller.abort(); }, []);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
   const visualFilter = (clip?: TimelineClip) => { if (!clip) return "none"; const preset = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; return [preset, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); };
@@ -722,7 +724,12 @@ export default function App() {
 
 
 
-      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>Speech transcription engines</h2><p>Choose a local engine for privacy or the online provider for cloud transcription.</p>
+      {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>NEXUS engine status</h2><p>Live configuration check from the secure server. Unconfigured engines use the fallback listed here.</p>
+          <div className="engine-status-grid">
+            <div className="setting-row"><span><b>AI Director brain</b><small>{engineAvailability?.brain.model || "Model not configured"}</small></span><span className="setting-value">{engineAvailability ? (engineAvailability.brain.configured ? "Connected" : "Key needed") : "Checking…"}</span></div>
+            {Object.entries(engineAvailability?.engines || {}).map(([name,engine])=><div className="setting-row" key={name}><span><b>{name.toUpperCase()} engine</b><small>{engine.configured ? engine.provider : engine.fallback}</small></span><span className="setting-value">{engine.configured ? "Connected" : "Fallback"}</span></div>)}
+          </div>
+          <h2>Speech transcription engines</h2><p>Choose a local engine for privacy or the online provider for cloud transcription.</p>
           <div className="setting-row"><span><b>Engine</b><small>Whisper and Vosk run in your browser after their models are available.</small></span><select value={transcriptionEngine} onChange={e=>setTranscriptionEngine(e.target.value as "whisper"|"vosk"|"groq")}><option value="whisper">Offline Whisper · Tiny</option><option value="vosk">Offline Vosk</option><option value="groq">Online API · Groq</option></select></div>
           <div className="setting-row"><span><b>Selected media</b><small>{asset?.name || "No selected audio/video clip"}</small></span><button onClick={()=>setPage("editor")}>Open editor</button></div>
           <button className="gradient-button" disabled={transcriptionBusy} onClick={runTranscription}>{transcriptionBusy ? "Transcribing…" : "Transcribe selected media"}</button>
