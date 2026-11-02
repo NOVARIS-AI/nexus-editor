@@ -125,7 +125,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"
     ].find(type => MediaRecorder.isTypeSupported(type));
     if (!mimeType) throw new Error("This browser does not expose a supported MP4 or WebM recording format. Try an updated Chrome browser.");
-    const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond: input.width >= 3000 ? 12000000 : 6500000 });
+    const videoBitsPerSecond = Math.max(2_000_000, Math.min(24_000_000, Math.round(input.width * input.height * input.fps * 0.08)));
+    const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond });
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
     const stopped = new Promise<Blob>((resolve, reject) => {
