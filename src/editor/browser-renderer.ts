@@ -155,7 +155,30 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (!sw || !sh) return;
       const scale = clip.fit === "contain" ? Math.min(canvas.width / sw, canvas.height / sh) : Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
-      ctx.save(); const localTime = time - clip.start; const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1); const transitionAlpha = Math.min(clip.transitionIn ? Math.min(1,localTime/clip.transitionIn) : 1, clip.transitionOut ? Math.min(1,(clipLen-localTime)/clip.transitionOut) : 1); const animated = animatedValues(clip, time); ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha)); const filter = FILTER_CSS[clip.filter || "Original"] || "none"; ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100, canvas.height/2 + canvas.height*animated.offsetY/100); ctx.rotate(animated.rotation*Math.PI/180); ctx.scale(animated.zoom/100,animated.zoom/100); ctx.drawImage(source, -dw/2, -dh/2, dw, dh); ctx.restore();
+      ctx.save();
+      const localTime = time - clip.start;
+      const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1);
+      const inProgress = clip.transitionIn ? Math.max(0,Math.min(1,localTime/clip.transitionIn)) : 1;
+      const outProgress = clip.transitionOut ? Math.max(0,Math.min(1,(clipLen-localTime)/clip.transitionOut)) : 1;
+      const transitionProgress = Math.min(inProgress,outProgress);
+      const transitionStyle = clip.transitionStyle || "fade";
+      const transitionAlpha = transitionStyle === "fade" ? transitionProgress : 1;
+      const animated = animatedValues(clip, time);
+      ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha));
+      const filter = FILTER_CSS[clip.filter || "Original"] || "none";
+      const transitionBlur = transitionStyle === "blur" ? (1-transitionProgress)*12 : 0;
+      ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`, transitionBlur ? `blur(${transitionBlur}px)` : ""].filter(Boolean).join(" ");
+      if (transitionStyle === "wipe") {
+        const reveal = Math.max(.001, Math.min(1, transitionProgress));
+        ctx.beginPath(); ctx.rect(0,0,canvas.width*reveal,canvas.height); ctx.clip();
+      }
+      const zoomBoost = transitionStyle === "zoom" ? 1.18-(.18*transitionProgress) : 1;
+      const slideOffset = transitionStyle === "slide" ? (1-transitionProgress)*canvas.width*.16 : 0;
+      ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100 + slideOffset, canvas.height/2 + canvas.height*animated.offsetY/100);
+      ctx.rotate(animated.rotation*Math.PI/180);
+      ctx.scale((animated.zoom/100)*zoomBoost,(animated.zoom/100)*zoomBoost);
+      ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
+      ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const started = performance.now();
