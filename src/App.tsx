@@ -16,7 +16,7 @@ import {
 import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from "./types";
 import { AudioAssetBrowser } from "./editor/AudioAssetBrowser";
 import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
-import { analyzeMediaAsset, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
+import { analyzeMediaAsset, buildTextCompositionLayers, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
 import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
@@ -346,13 +346,8 @@ export default function App() {
   function addTextCompositionLayout() {
     const bodyText = compositionBody.trim();
     if (!bodyText) { setStatus("Enter the main text before creating a composition."); return; }
-    const start = playhead;
-    const common = { id: uid(), trackId: "text-1", start, duration: compositionDuration, shadow: true, animation: "fade" as const };
-    const layers: TimelineTextLayer[] = [];
-    if (compositionHeading.trim()) layers.push({ ...common, text: compositionHeading.trim().slice(0, 100), color: "#8ce6ef", fontSize: 24, fontFamily: "Arial", x: 50, y: 17, align: "center", backgroundColor: "transparent", padding: 0 });
-    const body: TimelineTextLayer = { ...common, id: uid(), text: bodyText.slice(0, 700), color: "#ffffff", fontSize: 52, fontFamily: "Georgia", x: 50, y: 49, align: "center", backgroundColor: "#111827", padding: 22 };
-    layers.push(body);
-    if (compositionFooter.trim()) layers.push({ ...common, id: uid(), text: compositionFooter.trim().slice(0, 120), color: "#8ce6ef", fontSize: 27, fontFamily: "Georgia", x: 50, y: 82, align: "center", backgroundColor: "transparent", padding: 0 });
+    const layers = buildTextCompositionLayers({ heading: compositionHeading, body: bodyText, footer: compositionFooter, start: playhead, duration: compositionDuration, makeId: uid });
+    const body = layers.find(layer => layer.text === bodyText.slice(0, 700)) || layers[0];
     setTextLayers(old => [...old, ...layers]);
     setSelectedTextLayer(body.id);
     setActiveTool("text");
