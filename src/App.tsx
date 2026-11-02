@@ -27,6 +27,7 @@ const themes = [
   { id: "rose", name: "Rose Pink", colors: ["#f04486", "#bd347d", "#ff9ab8"] },
   { id: "crimson", name: "Crimson Red", colors: ["#ef4444", "#b91c3c", "#ff8b73"] }
 ] as const;
+const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\'/g, "&apos;");
 const clock = (n: number) => {
   const m = Math.floor(n / 60), s = Math.floor(n % 60);
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
@@ -283,7 +284,7 @@ export default function App() {
   function createWisdomPoster() {
     const quote = aiBrief.trim();
     if (!quote) { setAiReply("Enter the exact wisdom quote you want on the poster. NEXUS will not invent or misattribute a quotation."); setPage("ai"); return; }
-    const safe = quote.replace(/[<>&"]/g, "").slice(0, 420);
+    const safe = quote.slice(0, 420);
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#080d1c"/><stop offset=".55" stop-color="#172044"/><stop offset="1" stop-color="#07566b"/></linearGradient><radialGradient id="glow"><stop stop-color="#b79cff" stop-opacity=".42"/><stop offset="1" stop-color="#b79cff" stop-opacity="0"/></radialGradient></defs><rect width="1080" height="1350" fill="url(#bg)"/><circle cx="850" cy="220" r="440" fill="url(#glow)"/><path d="M90 170h900M90 1180h900" stroke="#7ddde8" stroke-opacity=".55" stroke-width="2"/><text x="90" y="125" fill="#8ce6ef" font-family="Arial" font-size="26" letter-spacing="9">VELTRONIX NEXUS · WISDOM SERIES</text><text x="90" y="1080" fill="#d8d6f7" font-family="Arial" font-size="28" letter-spacing="4">A QUOTE TO REFLECT ON</text></svg>';
     const file = new File([svg], "nexus-wisdom-poster.svg", {type:"image/svg+xml"});
     const poster: MediaAsset = {id:uid(),name:"Wisdom quote poster background",kind:"image",duration:8,mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:"NEXUS native poster template"}};
@@ -395,8 +396,8 @@ export default function App() {
         } catch { /* use the honest native scene fallback below */ }
       }
       if (!chosen) {
-        const safeTitle = scene.title.replace(/[<>&"]/g, "");
-        const safeTopic = aiPlan.title.replace(/[<>&"]/g, "");
+        const safeTitle = escapeXml(scene.title.slice(0, 90));
+        const safeTopic = escapeXml(aiPlan.title.slice(0, 120));
         const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#17143c"/><stop offset="1" stop-color="#07566b"/></linearGradient></defs><rect width="1080" height="1920" fill="url(#g)"/><circle cx="850" cy="320" r="300" fill="#8c70ff" opacity=".18"/><circle cx="120" cy="1600" r="380" fill="#20d7dc" opacity=".13"/><text x="90" y="820" fill="#9eeaf1" font-family="Arial" font-size="38" letter-spacing="9">NEXUS EDITOR</text><text x="90" y="980" fill="white" font-family="Arial" font-size="76" font-weight="700">' + safeTitle + '</text><foreignObject x="90" y="1060" width="900" height="360"><div xmlns="http://www.w3.org/1999/xhtml" style="font:32px Arial;color:#e5e7ff;line-height:1.4">' + safeTopic + '</div></foreignObject><text x="90" y="1770" fill="#b5b6d9" font-family="Arial" font-size="26">EDITABLE PROJECT STARTER · SCENE ' + (index + 1) + '</text></svg>';
         const file = new File([svg], 'nexus-scene-' + (index + 1) + '.svg', { type: "image/svg+xml" });
         const objectUrl = URL.createObjectURL(file);
@@ -423,9 +424,11 @@ export default function App() {
     setAiReply("NEXUS AI Director is planning your scenes…");
     try {
       const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal") });
-      const plannedScenes = result.plan.scenes.map((scene,index) => ({ title: scene.title || "Scene " + (index+1), visual: scene.visual || "Supporting visual", narration: scene.narration || "", searchTerms: scene.searchTerms?.length ? scene.searchTerms : [scene.visual || brief], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: Math.max(1, Number(scene.duration) || 5) }));
+      const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
+      if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
       const target = match ? Math.min(180,Math.max(10,Number(match[1]))) : 30;
+      const plannedScenes = rawScenes.map((scene,index) => ({ title: String(scene.title || "Scene " + (index+1)).slice(0, 64), visual: String(scene.visual || "Supporting visual").slice(0, 600), narration: String(scene.narration || "").slice(0, 900), searchTerms: Array.isArray(scene.searchTerms) && scene.searchTerms.length ? scene.searchTerms.slice(0,4).map((term:string)=>String(term).slice(0,100)) : [String(scene.visual || brief).slice(0,120)], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: target / rawScenes.length }));
       setAiPlan({title:brief.slice(0,72),duration:target,scenes:plannedScenes,sourcingNote:result.plan.userReferenceNeeded ? "A personal reference photo or video is needed to depict you accurately." : "NEXUS will search licensed media first; missing visuals use editable native scenes until generation workers are connected."});
       setAiWorkflowStage("review");
       setAiReply(result.plan.summary + " Review the scenes and approve before timeline changes are made.");
