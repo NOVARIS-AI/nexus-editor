@@ -163,7 +163,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (local >= last.time) return { zoom:last.zoom, rotation:last.rotation, offsetX:last.offsetX, offsetY:last.offsetY, opacity:last.opacity };
       const rightIndex = frames.findIndex(frame => frame.time >= local);
       const left = frames[rightIndex - 1], right = frames[rightIndex];
-      const span = Math.max(.0001, right.time - left.time), progress = (local - left.time) / span;
+      const span = Math.max(.0001, right.time - left.time), raw = Math.max(0, Math.min(1, (local - left.time) / span));
+      const progress = left.easing === "ease-in" ? raw * raw : left.easing === "ease-out" ? 1 - (1 - raw) * (1 - raw) : left.easing === "ease-in-out" ? (raw < .5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2) : raw;
       const mix = (a: number, b: number) => a + (b - a) * progress;
       return { zoom:mix(left.zoom,right.zoom), rotation:mix(left.rotation,right.rotation), offsetX:mix(left.offsetX,right.offsetX), offsetY:mix(left.offsetY,right.offsetY), opacity:mix(left.opacity,right.opacity) };
     };
@@ -193,8 +194,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         const reveal = Math.max(.001, Math.min(1, transitionProgress));
         ctx.beginPath(); ctx.rect(0,0,canvas.width*reveal,canvas.height); ctx.clip();
       }
-      const zoomBoost = transitionStyle === "zoom" ? 1.18-(.18*transitionProgress) : 1;
-      const slideOffset = transitionStyle === "slide" ? (1-transitionProgress)*canvas.width*.16 : 0;
+      const zoomBoost = transitionStyle === "zoom" ? (0.82 + 0.18 * inProgress) * (0.82 + 0.18 * outProgress) : 1;
+      const slideOffset = transitionStyle === "slide" ? ((1-inProgress) - (1-outProgress)) * canvas.width * .16 : 0;
       ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100 + slideOffset, canvas.height/2 + canvas.height*animated.offsetY/100);
       const maskShape = clip.maskShape || "none";
       if (maskShape !== "none") { ctx.beginPath(); if (maskShape === "circle") ctx.arc(0, 0, Math.min(dw, dh) / 2, 0, Math.PI * 2); else if (maskShape === "rounded") { const radius = Math.min(dw, dh) * Math.max(0, Math.min(50, clip.maskRadius ?? 12)) / 100; ctx.roundRect(-dw/2, -dh/2, dw, dh, radius); } else if (maskShape === "horizontal") ctx.rect(-dw/2, -dh*.25, dw, dh*.5); else if (maskShape === "vertical") ctx.rect(-dw*.25, -dh/2, dw*.5, dh); ctx.clip(); }
