@@ -81,7 +81,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
   const audioDestination = audioContext?.createMediaStreamDestination();
-  const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode; panner?: StereoPannerNode }>();
+  const audioNodes = new Map<string, { element: HTMLMediaElement; highPass: BiquadFilterNode; lowPass: BiquadFilterNode; compressor: DynamicsCompressorNode; gain: GainNode; panner?: StereoPannerNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   let canvasStream: MediaStream | null = null;
   let raf = 0;
@@ -107,8 +107,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         await seekMedia(video, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
-          const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(gain); gain.connect(panner); panner.connect(audioDestination);
-          video.muted = false; audioNodes.set(clip.id, { element: video, gain, panner });
+          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          video.muted = false; audioNodes.set(clip.id, { element: video, highPass, lowPass, compressor, gain, panner });
         }
         mediaByClip.set(clip.id, video); activeVideos.push(video);
       } else {
@@ -117,8 +117,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         await seekMedia(audio, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
-          const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(gain); gain.connect(panner); panner.connect(audioDestination);
-          audioNodes.set(clip.id, { element: audio, gain, panner });
+          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          audioNodes.set(clip.id, { element: audio, highPass, lowPass, compressor, gain, panner });
         }
       }
     }
@@ -226,7 +226,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
               const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
               const track = trackFor(clip);
-              audio.gain.gain.value = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut);
+              audio.highPass.frequency.value = Math.max(20, Math.min(1200, clip.highPassHz ?? 20));\n              audio.lowPass.frequency.value = Math.max(1500, Math.min(20000, clip.lowPassHz ?? 20000));\n              const compression = Math.max(0, Math.min(100, clip.compression ?? 0));\n              audio.compressor.threshold.value = compression ? -6 - compression * 0.24 : 0;\n              audio.compressor.ratio.value = compression ? 1 + compression * 0.09 : 1;\n              audio.gain.gain.value = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut);
               if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, track?.pan ?? 0));
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
