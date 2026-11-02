@@ -176,6 +176,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           }
           const audio = audioNodes.get(clip.id);
           if (audio) {
+            // Apply the same mute, track visibility, clip gain and fades to audio-only
+            // clips and the audio channel embedded in video clips.
             if (active && !clip.muted && !trackMuted(clip)) {
               if (Math.abs(audio.element.currentTime - wanted) > .3) { try { audio.element.currentTime = wanted; } catch {} }
               if (audio.element.paused) void audio.element.play().catch(() => {});
