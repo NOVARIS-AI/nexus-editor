@@ -70,7 +70,9 @@ export async function transcribeVosk(file: File, onProgress: Progress = () => {}
 export async function transcribeOnline(file: File): Promise<TranscriptResult> {
   const response = await fetch("/api/transcribe", { method: "POST", headers: { "Content-Type": file.type || "application/octet-stream", "X-Audio-Filename": encodeURIComponent(file.name) }, body: file });
   if (!response.ok) {
-    const message = await response.text();
+    const body = await response.text();
+    let message = body;
+    try { message = JSON.parse(body).error || body; } catch { /* retain provider text */ }
     throw new Error(message || "Online transcription is not configured yet. Add GROQ_API_KEY in Vercel settings.");
   }
   const data = await response.json();
