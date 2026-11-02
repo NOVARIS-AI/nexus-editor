@@ -33,7 +33,7 @@ const readLocalDraft = (): LocalDraft | null => {
     try {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
-      const value = JSON.parse(raw) as Partial<LocalDraft> & { version?: number };
+      const value = JSON.parse(raw) as Partial<Omit<LocalDraft, "version">> & { version?: number };
       if ((value.version !== 1 && value.version !== 2) || typeof value.projectName !== "string" || !Array.isArray(value.clips) || !Array.isArray(value.textLayers)) continue;
       return { ...value, version: 2 } as LocalDraft;
     } catch { continue; }
