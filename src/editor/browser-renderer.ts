@@ -97,11 +97,11 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       recorder.onerror = () => reject(new Error("The browser stopped the export unexpectedly."));
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
-    const drawCover = (source: CanvasImageSource, sw: number, sh: number) => {
+    const drawCover = (source: CanvasImageSource, sw: number, sh: number, clip: TimelineClip) => {
       if (!sw || !sh) return;
       const scale = Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
-      ctx.drawImage(source, (canvas.width - dw) / 2, (canvas.height - dh) / 2, dw, dh);
+      ctx.save(); const filter = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); ctx.translate(canvas.width/2 + canvas.width*(clip.offsetX||0)/100, canvas.height/2 + canvas.height*(clip.offsetY||0)/100); ctx.rotate((clip.rotation||0)*Math.PI/180); ctx.scale((clip.zoom??100)/100,(clip.zoom??100)/100); ctx.drawImage(source, -dw/2, -dh/2, dw, dh); ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const started = performance.now();
@@ -123,8 +123,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           .sort((a, b) => trackOrder(a) - trackOrder(b) || a.start - b.start);
         for (const clip of visualClips) {
           const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
-          if (image) drawCover(image, image.naturalWidth, image.naturalHeight);
-          else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight);
+          if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip);
+          else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip);
         }
         for (const clip of input.clips) {
           const speed = Math.max(.1, clip.speed || 1);
