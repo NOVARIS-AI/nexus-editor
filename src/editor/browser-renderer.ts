@@ -80,7 +80,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const trackMuted = (clip: TimelineClip) => {
     const track = trackFor(clip);
     const audioSolo = (input.tracks || []).some(item => item.kind === "audio" && item.solo);
-    return track?.muted === true || track?.hidden === true || (!!audioSolo && track?.kind === "audio" && !track.solo);
+    return track?.muted === true || track?.hidden === true || (!!audioSolo && !track?.solo);
   };
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
