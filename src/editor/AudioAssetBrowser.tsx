@@ -67,7 +67,7 @@ export function AudioAssetBrowser({onImport,onAddAudio}:Props) {
   <p className="nexus-audio-count" aria-live="polite">{message}</p>
   {results.map(item=><article className="nexus-audio-result" key={item.id}>
    <div className="nexus-audio-result-main"><span className="nexus-audio-result-icon"><Music2 size={17}/></span><div><b>{item.title}</b><small>{item.mimeType} · {item.license} · {item.creator||"Creator not listed"}</small><small>{item.attribution||"Review source attribution requirements"}</small><a href={item.pageUrl} target="_blank" rel="noreferrer">Source & licence details <ExternalLink size={11}/></a></div></div>
-   <audio controls preload="none" src={playing===item.id?item.downloadUrl:undefined} onPlay={()=>setPlaying(item.id)} onPause={()=>setPlaying(old=>old===item.id?null:old)} />
+   <audio controls preload="none" src={item.downloadUrl} onPlay={()=>setPlaying(item.id)} onPause={()=>setPlaying(old=>old===item.id?null:old)} />
    <button className="nexus-audio-download" onClick={()=>void downloadAndAdd(item)}><Download size={15}/> Download & add to timeline</button>
   </article>)}
   {downloaded.length>0&&<div className="nexus-audio-downloaded"><b>Downloaded in this session</b>{downloaded.map(name=><small key={name}>✓ {name}</small>)}</div>}
