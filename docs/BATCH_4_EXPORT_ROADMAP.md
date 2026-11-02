@@ -15,14 +15,18 @@
 3. Build and deploy an independent audio/voiceover worker using an actual audio model/runtime.
 4. Add a deterministic MP4 encoder/muxer for browsers without native MP4 MediaRecorder support. The current fallback is WebM, not a hidden MP4 conversion.
 5. Test export duration, frame rate, audio/video sync, generated assets, long timelines and memory behavior on supported Android and desktop browsers.
-6. Add durable job persistence, expiration/cleanup and retry behavior.
+6. Upgrade client-side generation job recovery to server-side durable persistence with expiry/cleanup, retry policy and duplicate-submit protection. Browser local storage only preserves job IDs on the same browser/device.
+
+## GitHub-only integration pass (no Vercel deployment required)
+- Preserve recent generation job IDs and normalized status locally so a page refresh does not erase the job list; resume polling for queued/running jobs after the editor reloads.
+- Keep image, video and audio worker protocols separate by engine key. A worker is not operational until its own model returns correctly typed output that the editor can download and import.
+- The experimental Colab notebook is image-only. Video/audio worker models and a deterministic MP4 muxer remain separate release gates; no still-image or WebM fallback is represented as generated video or MP4.
 
 ## External setup boundary
 The repository cannot create a GPU session, keep a temporary notebook online, or provision Vercel environment secrets by itself. The worker URL and token must be created in the GPU runtime and configured privately in Vercel. Never commit or paste worker tokens into source control or chat.
 
 ## Release gates
 A worker is operational only after a real request, poll, output download and timeline import pass. Native MP4 is available only when the browser advertises a compatible MediaRecorder format; otherwise NEXUS saves WebM until a dedicated MP4 muxer is integrated and tested. A GitHub push is not proof of a passing build or a production deployment.
-
 
 ## Batch 5 starter work
 - Added editor keyboard shortcuts: Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo, and Delete/Backspace to remove the selected clip. Shortcuts are suppressed while typing in form fields or editable content.
