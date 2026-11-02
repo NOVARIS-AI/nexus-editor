@@ -22,6 +22,20 @@ const waitForMedia = (media: HTMLMediaElement) => new Promise<void>((resolve, re
   media.load();
 });
 
+const seekMedia = async (media: HTMLMediaElement, time: number) => {
+  if (!Number.isFinite(time) || time < 0) throw new Error("A timeline clip has an invalid source in-point.");
+  if (Math.abs(media.currentTime - time) < 0.04) return;
+  await new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => { cleanup(); reject(new Error("A media clip could not seek to its selected in-point.")); }, 8000);
+    const done = () => { cleanup(); resolve(); };
+    const fail = () => { cleanup(); reject(new Error("A media clip failed while seeking for export.")); };
+    const cleanup = () => { window.clearTimeout(timer); media.removeEventListener("seeked", done); media.removeEventListener("error", fail); };
+    media.addEventListener("seeked", done, { once: true });
+    media.addEventListener("error", fail, { once: true });
+    try { media.currentTime = time; } catch (error) { cleanup(); reject(error); }
+  });
+};
+
 function dimensions(ratio: string, quality: string) {
   const base = quality === "720p" ? 720 : quality === "2K" ? 1440 : quality === "4K Ultra HD" ? 2160 : 1080;
   const parts = ratio.split(":").map(Number);
@@ -33,7 +47,22 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (!("MediaRecorder" in window) || !HTMLCanvasElement.prototype.captureStream) {
     throw new Error("This browser does not support browser video recording. Try an updated Chrome browser.");
   }
-  if (!input.clips.length || input.duration <= 0) throw new Error("Add at least one timeline clip before exporting.");
+  if (!input.clips.length || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one timeline clip before exporting.");
+  if (!Number.isInteger(input.fps) || input.fps < 12 || input.fps > 60) throw new Error("Choose an export frame rate between 12 and 60 FPS.");
+  if (!Number.isInteger(input.width) || !Number.isInteger(input.height) || input.width < 160 || input.height < 160) throw new Error("Choose a valid export resolution.");
+  const memoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const maxPixels = memoryGb !== undefined && memoryGb <= 4 ? 4_500_000 : 8_500_000;
+  if (input.width * input.height > maxPixels) throw new Error("This resolution is too demanding for the available device memory. Choose 1080p or 720p for a more reliable export.");
+  const assetMap = new Map(input.assets.map(asset => [asset.id, asset]));
+  for (const clip of input.clips) {
+    const asset = assetMap.get(clip.assetId);
+    if (!asset) throw new Error("A timeline clip refers to missing media: " + clip.label);
+    if (!asset.objectUrl) throw new Error("The original media for " + clip.label + " is unavailable. Re-import that file before exporting.");
+    if (!Number.isFinite(clip.start) || !Number.isFinite(clip.sourceIn) || !Number.isFinite(clip.sourceOut) || clip.start < 0 || clip.sourceIn < 0 || clip.sourceOut <= clip.sourceIn) {
+      throw new Error("The timeline timing is invalid for " + clip.label + ". Check its trim points.");
+    }
+  }
+  const needsAudio = input.clips.some(clip => assetMap.get(clip.assetId)?.kind === "audio" || assetMap.get(clip.assetId)?.kind === "video");
   const canvas = document.createElement("canvas");
   canvas.width = input.width; canvas.height = input.height;
   const ctx = canvas.getContext("2d");
@@ -48,6 +77,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
   const audioDestination = audioContext?.createMediaStreamDestination();
+  if (needsAudio && (!audioContext || !audioDestination)) throw new Error("Audio export is unavailable in this browser. Use an updated Chrome browser with Web Audio support.");
   const audioNodes = new Map<string, { element: HTMLMediaElement; gain: GainNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   let canvasStream: MediaStream | null = null;
@@ -70,6 +100,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       } else if (asset.kind === "video") {
         const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = !audioContext; video.playsInline = true; video.preload = "auto";
         await waitForMedia(video);
+        await seekMedia(video, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
           const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
@@ -79,6 +110,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       } else {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
         await waitForMedia(audio);
+        await seekMedia(audio, clip.sourceIn);
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
           const gain = audioContext.createGain(); source.connect(gain); gain.connect(audioDestination);
