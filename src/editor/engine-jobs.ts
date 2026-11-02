@@ -11,8 +11,8 @@ export async function submitEngineJob(engine:NexusEngineJob["engine"],prompt:str
  if(!response.ok) throw new Error(data.error||"NEXUS "+engine+" engine is not ready ("+response.status+").");
  return data as NexusEngineJob;
 }
-export async function getEngineJob(id:string,signal?:AbortSignal):Promise<NexusEngineJob>{
- const response=await fetch("/api/engine-jobs?id="+encodeURIComponent(id),{signal,headers:{Accept:"application/json"}});
+export async function getEngineJob(engine:NexusEngineJob["engine"],id:string,signal?:AbortSignal):Promise<NexusEngineJob>{
+ const response=await fetch("/api/engine-jobs?engine="+encodeURIComponent(engine)+"&id="+encodeURIComponent(id),{signal,headers:{Accept:"application/json"}});
  const data=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(data.error||"Could not check the generation job.");
  return data as NexusEngineJob;
