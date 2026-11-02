@@ -99,9 +99,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     });
     const drawCover = (source: CanvasImageSource, sw: number, sh: number, clip: TimelineClip) => {
       if (!sw || !sh) return;
-      const scale = Math.max(canvas.width / sw, canvas.height / sh);
+      const scale = clip.fit === "contain" ? Math.min(canvas.width / sw, canvas.height / sh) : Math.max(canvas.width / sw, canvas.height / sh);
       const dw = sw * scale, dh = sh * scale;
-      ctx.save(); const filter = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); ctx.translate(canvas.width/2 + canvas.width*(clip.offsetX||0)/100, canvas.height/2 + canvas.height*(clip.offsetY||0)/100); ctx.rotate((clip.rotation||0)*Math.PI/180); ctx.scale((clip.zoom??100)/100,(clip.zoom??100)/100); ctx.drawImage(source, -dw/2, -dh/2, dw, dh); ctx.restore();
+      ctx.save(); const localTime = time - clip.start; const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1); const transitionAlpha = Math.min(clip.transitionIn ? Math.min(1,localTime/clip.transitionIn) : 1, clip.transitionOut ? Math.min(1,(clipLen-localTime)/clip.transitionOut) : 1); ctx.globalAlpha = Math.max(0, Math.min(1, (clip.opacity ?? 1) * transitionAlpha)); const filter = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; ctx.filter = [filter, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); ctx.translate(canvas.width/2 + canvas.width*(clip.offsetX||0)/100, canvas.height/2 + canvas.height*(clip.offsetY||0)/100); ctx.rotate((clip.rotation||0)*Math.PI/180); ctx.scale((clip.zoom??100)/100,(clip.zoom??100)/100); ctx.drawImage(source, -dw/2, -dh/2, dw, dh); ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const started = performance.now();
@@ -154,9 +154,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const track = tracks.get(layer.trackId);
           return !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
         }).forEach(layer => {
-          ctx.save(); ctx.fillStyle = layer.color; ctx.font = `bold ${Math.max(12, layer.fontSize * canvas.height / 1080)}px ${layer.fontFamily || "Arial"}`;
-          ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 12;
-          ctx.fillText(layer.text, canvas.width * ((layer.x ?? 50) / 100), canvas.height * ((layer.y ?? 50) / 100), canvas.width * .88); ctx.restore();
+          ctx.save(); const local = time-layer.start; const fade = layer.animation === "fade" ? Math.min(1,local/.35,(layer.duration-local)/.35) : layer.animation === "pop" ? Math.min(1,local/.2) : 1; ctx.globalAlpha = Math.max(0,Math.min(1,(layer.opacity??1)*fade)); ctx.fillStyle = layer.color; ctx.font = `bold ${Math.max(12, layer.fontSize * canvas.height / 1080)}px ${layer.fontFamily || "Arial"}`;
+          ctx.textAlign = layer.align || "center"; ctx.textBaseline = "middle"; if(layer.backgroundColor && layer.backgroundColor !== "transparent"){ const width=ctx.measureText(layer.text).width+(layer.padding||12)*2; const height=Math.max(24,layer.fontSize)+(layer.padding||12)*2; ctx.fillStyle=layer.backgroundColor; ctx.fillRect(canvas.width*((layer.x??50)/100)-width/2,canvas.height*((layer.y??50)/100)-height/2,width,height); ctx.fillStyle=layer.color; } if(layer.rotation) { ctx.translate(canvas.width*((layer.x??50)/100),canvas.height*((layer.y??50)/100)); ctx.rotate(layer.rotation*Math.PI/180); } ctx.shadowColor = "rgba(0,0,0,.7)"; ctx.shadowBlur = 12;
+          ctx.fillText(layer.text, layer.rotation ? 0 : canvas.width * ((layer.x ?? 50) / 100), layer.rotation ? 0 : canvas.height * ((layer.y ?? 50) / 100), canvas.width * .88); ctx.restore();
         });
         const progress = Math.min(99, Math.round(time / input.duration * 100));
         if (progress !== lastProgress) { lastProgress = progress; input.onProgress?.(progress); }
