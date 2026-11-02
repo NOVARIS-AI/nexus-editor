@@ -181,7 +181,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const slideOffset = transitionStyle === "slide" ? (1-transitionProgress)*canvas.width*.16 : 0;
       ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100 + slideOffset, canvas.height/2 + canvas.height*animated.offsetY/100);
       const maskShape = clip.maskShape || "none";
-      if (maskShape !== "none") { ctx.beginPath(); if (maskShape === "circle") ctx.arc(0, 0, Math.min(dw, dh) / 2, 0, Math.PI * 2); else if (maskShape === "rounded") { const radius = Math.min(dw, dh) * .12; ctx.roundRect(-dw/2, -dh/2, dw, dh, radius); } else if (maskShape === "horizontal") ctx.rect(-dw/2, -dh*.25, dw, dh*.5); else if (maskShape === "vertical") ctx.rect(-dw*.25, -dh/2, dw*.5, dh); ctx.clip(); }
+      if (maskShape !== "none") { ctx.beginPath(); if (maskShape === "circle") ctx.arc(0, 0, Math.min(dw, dh) / 2, 0, Math.PI * 2); else if (maskShape === "rounded") { const radius = Math.min(dw, dh) * Math.max(0, Math.min(50, clip.maskRadius ?? 12)) / 100; ctx.roundRect(-dw/2, -dh/2, dw, dh, radius); } else if (maskShape === "horizontal") ctx.rect(-dw/2, -dh*.25, dw, dh*.5); else if (maskShape === "vertical") ctx.rect(-dw*.25, -dh/2, dw*.5, dh); ctx.clip(); }
       ctx.rotate(animated.rotation*Math.PI/180);
       ctx.scale((animated.zoom/100)*zoomBoost*(clip.flipHorizontal?-1:1),(animated.zoom/100)*zoomBoost*(clip.flipVertical?-1:1));
       ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
