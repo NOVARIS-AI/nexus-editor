@@ -190,7 +190,8 @@ export default function App() {
     const moved = moveClip(clips, selectedClip.id, delta);
     applyClipChange(moved, "Selected clip moved " + (delta < 0 ? "earlier" : "later") + " on the timeline.");
   }
-  function addGraphicLayer(value: string, color = "#ffffff", backgroundColor = "transparent") { const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: value, color, fontSize: 64, fontFamily: "Arial", x: 50, y: 50, backgroundColor, padding: 12, align: "center", shadow: true }; setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setOverlayText(value); setTextColor(color); setTextSize(64); setActiveTool("text"); setStatus("Graphic or sticker layer added to the timeline."); }\n  function addTextLayer() {
+  function addGraphicLayer(value: string, color = "#ffffff", backgroundColor = "transparent") { const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: value, color, fontSize: 64, fontFamily: "Arial", x: 50, y: 50, backgroundColor, padding: 12, align: "center", shadow: true }; setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setOverlayText(value); setTextColor(color); setTextSize(64); setActiveTool("text"); setStatus("Graphic or sticker layer added to the timeline."); }
+  function addTextLayer() {
     const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || "Your text", color: textColor, fontSize: textSize, fontFamily: textFont, x: 50, y: 50 };
     setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus("Timed text layer added to the project timeline.");
   }
