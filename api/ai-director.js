@@ -1,0 +1,18 @@
+export default async function handler(req,res) {
+ res.setHeader("Cache-Control","no-store");
+ if(req.method!=="POST") return res.status(405).json({error:"Use POST."});
+ const {brief,context={}}=req.body||{};
+ if(typeof brief!=="string"||!brief.trim()||brief.length>12000) return res.status(400).json({error:"Provide a creative brief of up to 12,000 characters."});
+ const {NEXUS_AI_API_KEY:key,NEXUS_AI_BASE_URL:base,NEXUS_AI_MODEL:model}=process.env;
+ if(!key||!base||!model) return res.status(503).json({error:"NEXUS AI Brain is not configured. Add NEXUS_AI_API_KEY, NEXUS_AI_BASE_URL and NEXUS_AI_MODEL in the server environment; local editor controls remain available."});
+ const system = "You are the AI Director inside NEXUS Editor, not a separate video app. Plan creative work as editable project operations. Never claim assets were generated, downloaded, edited or exported unless a tool confirms it. Return concise JSON with keys: summary (string), scenes (array of {title,visual,duration,searchTerms,overlayText}), editPlan (array of {action,target,details}), assetNeeds (array of {kind,query,reason}), and userReferenceNeeded (boolean). Prefer sourcing licensed media before requesting generation. If the brief depicts the user, set userReferenceNeeded true unless suitable personal reference media is already listed in context. Do not invent asset URLs, licenses, or completed job IDs.";
+ try {
+  const upstream=await fetch(base.replace(/\/$/,"")+"/chat/completions",{method:"POST",headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},body:JSON.stringify({model,temperature:0.35,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:JSON.stringify({brief:brief.trim(),context})}]})});
+  const data=await upstream.json().catch(()=>({}));
+  if(!upstream.ok) return res.status(upstream.status).json({error:data.error?.message||"The configured AI provider returned an error."});
+  const content=data.choices?.[0]?.message?.content;
+  if(typeof content!=="string") return res.status(502).json({error:"The AI provider returned no usable director plan."});
+  let plan; try { plan=JSON.parse(content); } catch { return res.status(502).json({error:"The AI provider returned an invalid plan. No project changes were made."}); }
+  return res.status(200).json({plan,model,provider:"configured AI brain"});
+ } catch { return res.status(502).json({error:"The configured AI Brain could not be reached. No project changes were made."}); }
+}
