@@ -413,8 +413,8 @@ export default function App() {
     const parts = transcriptionSegments.length ? transcriptionSegments : [{ start: 0, end: Math.max(2, source.duration || 5), text: transcriptionText }];
     const usable = parts.filter(part => part.text.trim());
     const layers: TimelineTextLayer[] = usable.map((part, index) => ({
-      id: uid(), trackId: "text-1", start: (selectedClip?.start || 0) + Math.max(0, part.start),
-      duration: Math.max(0.6, Math.min(8, (part.end || part.start + 3) - part.start)),
+      id: uid(), trackId: "text-1", start: (selectedClip?.assetId === source.id ? selectedClip.start : 0) + Math.max(0, part.start) / Math.max(0.1, selectedClip?.assetId === source.id ? selectedClip.speed || 1 : 1),
+      duration: Math.max(0.6, Math.min(8, ((part.end || part.start + 3) - part.start) / Math.max(0.1, selectedClip?.assetId === source.id ? selectedClip.speed || 1 : 1))),
       text: part.text.trim(), color: "#ffffff", fontSize: 38, fontFamily: "Arial",
       x: 50, y: 82, align: "center", shadow: true, animation: "fade"
     }));
