@@ -114,6 +114,16 @@ export default function App() {
     return () => { aiWorker.current?.terminate(); aiWorker.current = null; };
   }, []);
   useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); return () => controller.abort(); }, []);
+  useEffect(() => {
+    const pending = generationJobs.filter(job => !job.id.startsWith("unavailable-") && (job.state === "queued" || job.state === "running"));
+    if (!pending.length) return;
+    let active = true;
+    const timer = window.setInterval(() => {
+      if (!active) return;
+      pending.forEach(job => { void refreshGenerationJob(job); });
+    }, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [generationJobs]);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
   const visualFilter = (clip?: TimelineClip) => { if (!clip) return "none"; const preset = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; return [preset, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); };
