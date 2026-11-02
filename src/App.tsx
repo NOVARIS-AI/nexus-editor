@@ -340,9 +340,6 @@ export default function App() {
       setEngineReport(["AI Director unavailable · local fallback used",error instanceof Error ? error.message : "No AI provider response."]);
     }
     const words = brief.toLowerCase();
-    const brief = (briefOverride ?? aiBrief).trim();
-    if (!brief) { setAiReply("Describe the video you want to make first."); return; }
-    const words = brief.toLowerCase();
     const duration = /\b(\d+)\s*(seconds?|secs?|s)\b/.exec(words);
     const totalSeconds = Math.min(180, Math.max(15, duration ? Number(duration[1]) : 30));
     const topic = brief.replace(/\b(create|make|build|a|an|video|about|for|me|please|of)\b/gi, " ").replace(/\s+/g, " ").trim() || brief;
