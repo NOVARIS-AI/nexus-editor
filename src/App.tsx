@@ -107,7 +107,8 @@ export default function App() {
   }, []);
   const selectedClip = clips.find(c => c.id === selected);
   const asset = assets.find(a => a.id === selectedClip?.assetId);
-  const visualFilter = (clip?: TimelineClip) => { if (!clip) return "none"; const preset = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; return [preset, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); };\n  const visibleTextLayer = textLayers.filter(layer => playhead >= layer.start && playhead <= layer.start + layer.duration).sort((a,b)=>b.start-a.start)[0];
+  const visualFilter = (clip?: TimelineClip) => { if (!clip) return "none"; const preset = clip.filter === "B&W" ? "grayscale(1)" : clip.filter === "Vintage" ? "sepia(.42)" : clip.filter === "Warm" ? "sepia(.18) saturate(1.18)" : clip.filter === "Cool" ? "hue-rotate(12deg) saturate(.9)" : clip.filter === "Cinematic" ? "contrast(1.12) saturate(1.12)" : "none"; return [preset, `brightness(${(clip.brightness ?? 100)/100})`, `contrast(${(clip.contrast ?? 100)/100})`, `saturate(${(clip.saturation ?? 100)/100})`].join(" "); };
+  const visibleTextLayer = textLayers.filter(layer => playhead >= layer.start && playhead <= layer.start + layer.duration).sort((a,b)=>b.start-a.start)[0];
   const duration = useMemo(() => timelineDuration(clips), [clips]);
   const engineStack = useMemo(() => detectEngineStack(), []);
   const project = { ...makeProject(projectName), clips, textLayers, assets: assets.map(({ file, objectUrl, ...a }) => a) };
