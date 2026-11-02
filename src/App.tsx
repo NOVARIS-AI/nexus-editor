@@ -27,6 +27,16 @@ import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
+type LocalDraft = { version: 1; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; aspectRatio: string; savedAt: number };
+const readLocalDraft = (): LocalDraft | null => {
+  try {
+    const raw = localStorage.getItem("nexus-editor-autosave-v1");
+    if (!raw) return null;
+    const value = JSON.parse(raw) as Partial<LocalDraft>;
+    if (value.version !== 1 || typeof value.projectName !== "string" || !Array.isArray(value.clips) || !Array.isArray(value.textLayers)) return null;
+    return value as LocalDraft;
+  } catch { return null; }
+};
 const themes = [
   { id: "violet", name: "Midnight Violet", colors: ["#a923ed", "#5d42ff", "#00bfe9"] },
   { id: "ocean", name: "Ocean Blue", colors: ["#168cff", "#2855e8", "#20d5e8"] },
@@ -43,13 +53,15 @@ const clock = (n: number) => {
 
 export default function App() {
   const [page, setPage] = useState<Page>("home");
-  const [projectName, setProjectName] = useState("Untitled Project");
+  const [recoveryDraft] = useState<LocalDraft | null>(() => readLocalDraft());
+  const [draftSaveStatus, setDraftSaveStatus] = useState(recoveryDraft ? "Recovered draft · re-import media" : "Autosave ready");
+  const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
-  const [clips, setClips] = useState<TimelineClip[]>([]);
+  const [clips, setClips] = useState<TimelineClip[]>(() => recoveryDraft?.clips || []);
   const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>({});
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [voiceRecordingSeconds, setVoiceRecordingSeconds] = useState(0);
-  const [textLayers, setTextLayers] = useState<TimelineTextLayer[]>([]);
+  const [textLayers, setTextLayers] = useState<TimelineTextLayer[]>(() => recoveryDraft?.textLayers || []);
   const [selectedTextLayer, setSelectedTextLayer] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<TimelineClip[][]>([]);
   const [redoStack, setRedoStack] = useState<TimelineClip[][]>([]);
@@ -69,7 +81,7 @@ export default function App() {
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [muteClip, setMuteClip] = useState(false);
   const [clipGain, setClipGain] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState("9:16");
+  const [aspectRatio, setAspectRatio] = useState(() => recoveryDraft?.aspectRatio || "9:16");
   const [exportQuality, setExportQuality] = useState("1080p");
   const [exportFps, setExportFps] = useState("30 FPS");
   const [exportPreset, setExportPreset] = useState("TikTok / Reels / Shorts");
@@ -141,6 +153,18 @@ export default function App() {
   }, []);
   useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); return () => controller.abort(); }, []);
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const snapshot: LocalDraft = { version: 1, projectName, clips, textLayers, aspectRatio, savedAt: Date.now() };
+        localStorage.setItem("nexus-editor-autosave-v1", JSON.stringify(snapshot));
+        setDraftSaveStatus("Autosaved on this device");
+      } catch {
+        setDraftSaveStatus("Autosave storage full · use Save project");
+      }
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [projectName, clips, textLayers, aspectRatio]);
   useEffect(() => {
     const pending = generationJobs.filter(job => !job.id.startsWith("unavailable-") && (job.state === "queued" || job.state === "running"));
     if (!pending.length) return;
@@ -843,7 +867,7 @@ export default function App() {
       {page === "editor" && <section className="editor-fullscreen">
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
-          <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"}</small></div>
+          <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
           <button className={"editor-top-icon ai-editor-trigger"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Toggle NEXUS AI guidance"><Sparkles size={18}/><span>AI</span></button><button className="editor-top-icon" onClick={()=>downloadProject(project,assets)} title="Save project"><Check size={18}/></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
