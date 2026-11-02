@@ -12,6 +12,8 @@ import { analyzeMediaAsset, getRenderCapabilities, interpretEditorCommand, makeE
 import { clipDuration, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
 import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
+import { getBrowserEngineHealth } from "./editor/engine-registry";
+import { askNexusDirector } from "./editor/ai-director";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -265,7 +267,8 @@ export default function App() {
   }
   function runProjectVerification() {
     const result=verifyProject(assets,clips); const render=getRenderCapabilities();
-    const lines=[result.ok?"Project structure check passed.":"Project structure check found issues.",...result.issues,render.summary];
+    const health=getBrowserEngineHealth();
+    const lines=[result.ok?"Project structure check passed.":"Project structure check found issues.",...result.issues,render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
     setEngineReport(lines);setAiReply(lines.join(" "));
   }
   function buildAIProjectTimeline() {
@@ -320,7 +323,7 @@ export default function App() {
     setAspectRatio(aiFormat);
     setActiveTool("media");
   }
-  function runAICommand() {
+  async function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
     if (!request) return;
     if (aiMode === "teach") {
@@ -331,8 +334,19 @@ export default function App() {
       return;
     }
     if (aiMode === "ask") {
-      const context = "Current project: " + projectName + ". Imported assets: " + assets.length + ". Timeline clips: " + clips.length + ". Selected clip: " + (selectedClip?.label || "none") + ". Active tool: " + activeTool + ". Canvas: " + aspectRatio + ".";
-      setAiReply(context + " I can answer basic questions about the current workspace and explain supported controls. A connected reasoning model is not configured in this build yet.");
+      setAiReply("NEXUS AI Director is reviewing your brief and current project…");
+      try {
+        const result = await askNexusDirector(aiBrief.trim(), {
+          projectName, assetCount: assets.length, assets: assets.map(item => ({ name: item.name, kind: item.kind, source: item.source?.type })),
+          clipCount: clips.length, selectedClip: selectedClip ? { label: selectedClip.label, start: selectedClip.start, duration: selectedClip.sourceOut - selectedClip.sourceIn } : null,
+          activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
+        });
+        const plan = result.plan;
+        setAiReply(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
+        setEngineReport(["AI Director connected · " + result.model, ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
+      } catch (error) {
+        setAiReply(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
+      }
       return;
     }
     const engineCommand = interpretEditorCommand(request);
