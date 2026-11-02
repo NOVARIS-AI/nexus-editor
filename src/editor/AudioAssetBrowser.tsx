@@ -15,6 +15,7 @@ const SOURCES = [
   {name:"Freesound",note:"Community audio; licences vary by upload",url:"https://freesound.org/"},
   {name:"Wikimedia Commons",note:"Openly licensed and public-domain audio; check attribution",url:"https://commons.wikimedia.org/wiki/Category:Audio_files"},
   {name:"TikTok Creative Center",note:"Discover trending sounds and music available for eligible TikTok use",url:"https://ads.tiktok.com/business/creativecenter/inspiration/popular/music/pc/en"},
+  {name:"Instagram Reels Audio",note:"Discover audio in Instagram; availability and reuse rights depend on account and region",url:"https://www.instagram.com/reels/audio/"},
   {name:"Meta Sound Collection",note:"Meta-provided sounds for eligible Facebook and Instagram content",url:"https://www.facebook.com/sound/collection/"},
 ];
 export function AudioAssetBrowser({onImport}:Props){
