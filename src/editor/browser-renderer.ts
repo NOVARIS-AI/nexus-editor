@@ -153,8 +153,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       recorder.onerror = () => reject(new Error("The browser stopped the export unexpectedly."));
       recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
+    const keyframesByClip = new Map(input.clips.map(clip => [clip.id, [...(clip.keyframes || [])].filter(frame => Number.isFinite(frame.time)).sort((a, b) => a.time - b.time)]));
     const animatedValues = (clip: TimelineClip, time: number) => {
-      const frames = [...(clip.keyframes || [])].filter(frame => Number.isFinite(frame.time)).sort((a, b) => a.time - b.time);
+      const frames = keyframesByClip.get(clip.id) || [];
       const base = { zoom: clip.zoom ?? 100, rotation: clip.rotation ?? 0, offsetX: clip.offsetX ?? 0, offsetY: clip.offsetY ?? 0, opacity: clip.opacity ?? 1 };
       if (!frames.length) return base;
       const local = Math.max(0, time - clip.start);
@@ -207,6 +208,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
+    const orderedVisualClips = input.clips.filter(clip => { const asset = assets.get(clip.assetId); return !!asset && asset.kind !== "audio" && !trackHidden(clip); }).sort((a,b)=>trackOrder(a)-trackOrder(b)||a.start-b.start);
     const started = performance.now();
     let lastFrame = -1;
     let lastProgress = -1;
@@ -217,15 +219,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const visualClips = input.clips
-          .filter(clip => {
-            const asset = assets.get(clip.assetId);
-            const speed = Math.max(.1, clip.speed || 1);
-            const length = Math.max(0, clip.sourceOut - clip.sourceIn) / speed;
-            return asset && asset.kind !== "audio" && !trackHidden(clip) && time >= clip.start && time < clip.start + length;
-          })
-          .sort((a, b) => trackOrder(a) - trackOrder(b) || a.start - b.start);
-        for (const clip of visualClips) {
+        for (const clip of orderedVisualClips) {
+          const speed = Math.max(.1, clip.speed || 1);
+          const length = Math.max(0, clip.sourceOut - clip.sourceIn) / speed;
+          if (time < clip.start || time >= clip.start + length) continue;
           const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
           if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
           else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip, time);
