@@ -27,15 +27,18 @@ import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
-type LocalDraft = { version: 1; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; tracks?: TimelineTrack[]; aspectRatio: string; savedAt: number };
+type LocalDraft = { version: 2; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; tracks?: TimelineTrack[]; aspectRatio: string; savedAt: number };
 const readLocalDraft = (): LocalDraft | null => {
-  try {
-    const raw = localStorage.getItem("nexus-editor-autosave-v1");
-    if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<LocalDraft>;
-    if (value.version !== 1 || typeof value.projectName !== "string" || !Array.isArray(value.clips) || !Array.isArray(value.textLayers)) return null;
-    return value as LocalDraft;
-  } catch { return null; }
+  for (const key of ["nexus-editor-autosave-v2", "nexus-editor-autosave-v1", "nexus-editor-autosave-backup"]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const value = JSON.parse(raw) as Partial<LocalDraft> & { version?: number };
+      if ((value.version !== 1 && value.version !== 2) || typeof value.projectName !== "string" || !Array.isArray(value.clips) || !Array.isArray(value.textLayers)) continue;
+      return { ...value, version: 2 } as LocalDraft;
+    } catch { continue; }
+  }
+  return null;
 };
 const themes = [
   { id: "violet", name: "Midnight Violet", colors: ["#a923ed", "#5d42ff", "#00bfe9"] },
@@ -94,6 +97,7 @@ export default function App() {
   const [exportPreset, setExportPreset] = useState("TikTok / Reels / Shorts");
   const [exportBusy, setExportBusy] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const exportAbortController = useRef<AbortController | null>(null);
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
   const [aiBrief, setAiBrief] = useState("");
@@ -166,9 +170,13 @@ export default function App() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const snapshot: LocalDraft = { version: 1, projectName, clips, textLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), aspectRatio, savedAt: Date.now() };
-        localStorage.setItem("nexus-editor-autosave-v1", JSON.stringify(snapshot));
-        setDraftSaveStatus("Autosaved on this device");
+        const snapshot: LocalDraft = { version: 2, projectName, clips, textLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), aspectRatio, savedAt: Date.now() };
+        const serialised = JSON.stringify(snapshot);
+        const previous = localStorage.getItem("nexus-editor-autosave-v2") || localStorage.getItem("nexus-editor-autosave-v1");
+        if (previous) localStorage.setItem("nexus-editor-autosave-backup", previous);
+        localStorage.setItem("nexus-editor-autosave-v2", serialised);
+        localStorage.setItem("nexus-editor-autosave-v1", serialised);
+        setDraftSaveStatus("Autosaved · recovery copy kept on this device");
       } catch {
         setDraftSaveStatus("Autosave storage full · use Save project");
       }
@@ -583,12 +591,14 @@ export default function App() {
     if (exportBusy) return;
     const fps = Number.parseInt(exportFps, 10) || 30;
     const size = getExportDimensions(aspectRatio, exportQuality);
+    const controller = new AbortController();
+    exportAbortController.current = controller;
     setExportBusy(true); setExportProgress(0);
     setStatus("Preparing media, audio mix and graphics layers for export…");
     try {
       const blob = await renderTimeline({
         assets, clips, textLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), width: size.width, height: size.height, fps,
-        duration: Math.max(0.1, duration),
+        duration: Math.max(0.1, duration), signal: controller.signal,
         onProgress: value => { setExportProgress(value); setStatus("Rendering video · " + value + "%"); }
       });
       const url = URL.createObjectURL(blob);
@@ -600,7 +610,12 @@ export default function App() {
       setStatus("Export complete · " + extension.toUpperCase() + " video saved to your device.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Video export failed. Your project is unchanged.");
-    } finally { setExportBusy(false); }
+    } finally { if (exportAbortController.current === controller) exportAbortController.current = null; setExportBusy(false); }
+  }
+  function cancelVideoExport() {
+    if (!exportAbortController.current) return;
+    exportAbortController.current.abort();
+    setStatus("Cancelling export safely… your project is unchanged.");
   }
   function runProjectVerification() {
     const result=verifyProject(assets,clips); const render=getRenderCapabilities();
@@ -983,6 +998,7 @@ export default function App() {
             <div className="editor-preview-meta"><span>PREVIEW · {previewClip?.label || "No active clip at playhead"}</span><div className="preview-meta-actions"><button onClick={()=>setShowAttachmentPicker(true)} className="preview-add-media"><Plus size={14}/> Add media</button><button onClick={()=>{setActiveTool("adjust");setActiveSubtool("Position");}}><SlidersHorizontal size={14}/> Adjust</button></div></div>
             <div className={"editor-preview-frame ratio-frame ratio-"+aspectRatio.replace(":","-")}>
               {previewAsset?.kind==="video"&&previewAsset.objectUrl?<video ref={video} src={previewAsset.objectUrl} controls playsInline onTimeUpdate={e=>{if(previewClip){const el=e.currentTarget;setPlayhead(previewClip.start+(el.currentTime-previewClip.sourceIn)/Math.max(.1,previewClip.speed||1));}}} muted={muteClip || !!previewClip?.muted} style={{filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha, transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", objectFit: previewClip?.fit === "contain" ? "contain" : "cover", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:previewAsset?.kind==="image"&&previewAsset.objectUrl?<img src={previewAsset.objectUrl} alt="Selected media preview" style={{filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha, transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>}
+              {activeTimelineClips.filter(clip=>clip.id!==previewClip?.id && assets.some(item=>item.id===clip.assetId && item.kind!=="audio")).map(layerClip=>{const layerAsset=assets.find(item=>item.id===layerClip.assetId);if(!layerAsset?.objectUrl)return null;const layerStyle:React.CSSProperties={position:"absolute",inset:0,width:"100%",height:"100%",objectFit:layerClip.fit==="contain"?"contain":"cover",opacity:layerClip.opacity??1,filter:visualFilter(layerClip),transform:`translate(${layerClip.offsetX||0}%, ${layerClip.offsetY||0}%) rotate(${layerClip.rotation||0}deg) scale(${layerClip.zoom||100}%) scaleX(${layerClip.flipHorizontal?-1:1}) scaleY(${layerClip.flipVertical?-1:1})`,pointerEvents:"none",clipPath:layerClip.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":layerClip.maskShape==="rounded"?`inset(0 round ${layerClip.maskRadius??12}%)":"none"};return layerAsset.kind==="image"?<img key={layerClip.id} src={layerAsset.objectUrl} alt="" aria-hidden="true" style={layerStyle}/>:<video key={layerClip.id} src={layerAsset.objectUrl} muted playsInline autoPlay onLoadedMetadata={event=>{try{event.currentTarget.currentTime=layerClip.sourceIn+Math.max(0,playhead-layerClip.start)*(layerClip.speed||1);}catch{}}} style={layerStyle}/>;})}
               {!!previewClip?.vignette && <div aria-hidden="true" style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:1,background:`radial-gradient(ellipse at center, transparent 42%, rgba(0,0,0,${Math.max(0,Math.min(100,previewClip.vignette))/100*.82}) 100%)`}}/>}
               {(visibleTextLayer || (activeTool==="text" && !textLayers.length)) && <div className="nexus-text-overlay" style={{...getGraphicsFallbackStyle(visibleTextLayer?.text || overlayText, visibleTextLayer?.color || textColor, visibleTextLayer?.fontSize || textSize, visibleTextLayer?.fontFamily || textFont), opacity: visibleTextLayer?.opacity ?? 1, left: (visibleTextLayer?.x ?? 50) + "%", top: (visibleTextLayer?.y ?? 50) + "%", transform: `translate(-50%, -50%) rotate(${visibleTextLayer?.rotation || 0}deg)`, textAlign: visibleTextLayer?.align || "center", background: visibleTextLayer?.backgroundColor || "transparent", padding: (visibleTextLayer?.padding || 0) + "px", textShadow: visibleTextLayer?.shadow === false ? "none" : undefined}}>{visibleTextLayer?.text || overlayText || "Type your text"}</div>}
               {previewAsset?.kind==="audio" && previewAsset.objectUrl && <audio ref={audioPreview} src={previewAsset.objectUrl} controls muted={muteClip || !!previewClip?.muted} style={{width:"90%",maxWidth:420}}/>}
@@ -1058,7 +1074,7 @@ export default function App() {
           <div className="editor-status-line"><i/>{status}<small className="engine-adapter-status"> · Editing: {engineStack.editing.active} · Audio: {engineStack.audio.active} · Graphics: {engineStack.graphics.active}</small></div>
         </div>}
         {editorView==="import" && <div className="editor-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Import media</h2><p>Add videos, photos and audio to this project.</p></div></div><button className="huge-import-zone" onClick={()=>setShowAttachmentPicker(true)}><Plus size={38}/><b>Choose from gallery</b><span>Open your phone gallery to select photos and videos</span><small>Photos · Videos · Audio · Files</small></button><div className="imported-media-list"><h3>Imported media ({assets.length})</h3>{assets.map(a=><div key={a.id}><span>{a.kind==="audio"?<Music2/>:a.kind==="image"?<ImageIcon/>:<Film/>}</span><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?clock(a.duration):"Reading…"}</small><button onClick={()=>{add(a);setEditorView("workspace");}}><Plus size={16}/> Add</button></div>)}</div></div>}
-        {editorView==="export" && <div className="editor-subpage export-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Export video</h2><p>Choose the quality and format for your finished video.</p></div></div><div className="export-center-layout"><div className="export-completion-card"><div className="export-big-icon"><Film size={32}/></div><h3>Ready to export</h3><p>{projectName} · {clock(duration)} · {clips.length} clips</p><div className="export-summary-row"><span>Resolution</span><b>{exportQuality}</b></div><div className="export-summary-row"><span>Frame rate</span><b>{exportFps}</b></div><div className="export-summary-row"><span>Aspect ratio</span><b>{aspectRatio}</b></div><button className="export-render-button" disabled={exportBusy || !clips.length} onClick={()=>void startVideoExport()}><ArrowDownToLine size={18}/> {exportBusy ? "Rendering " + exportProgress + "%" : "Export video"}</button>{exportBusy && <div className="nexus-export-progress"><i style={{width:exportProgress+"%"}}/></div>}<small>Browser renderer · MP4 when supported, otherwise WebM · includes timeline video, images, timed text and audio clips. Keep this tab open while rendering.</small></div><div className="export-options-panel"><h3>Social export preset</h3><label>Platform preset<select value={exportPreset} onChange={e=>applyExportPreset(e.target.value)}><option>TikTok / Reels / Shorts</option><option>YouTube</option><option>YouTube 4K</option><option>Instagram square</option><option>Instagram portrait</option><option>Facebook landscape</option><option>WhatsApp status</option></select></label><small>Presets set a starting aspect ratio, resolution and frame rate. You can customise the settings below.</small><h3>Export options</h3><label>Video quality<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}><option>720p</option><option>1080p</option><option>2K</option><option>4K Ultra HD</option></select></label><label>Frame rate<select value={exportFps} onChange={e=>setExportFps(e.target.value)}><option>24 FPS</option><option>30 FPS</option><option>60 FPS</option></select></label><button className="export-quick-action" disabled={!selectedClip} onClick={()=>{setPage("editor");setEditorView("workspace");setActiveTool("edit");setActiveSubtool("speed");setStatus("Select a clip to adjust its playback speed.");}}><Gauge size={18}/> Adjust selected clip speed</button><h3>Share destinations</h3><div className="export-share-grid">{["TikTok","YouTube","WhatsApp","Instagram","Facebook","Other"].map((name,i)=><button key={name} disabled><Share2 size={17}/><span>{name}</span></button>)}</div><small>Share options appear after a video has been rendered and saved to your device.</small></div></div></div>}
+        {editorView==="export" && <div className="editor-subpage export-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Export video</h2><p>Choose the quality and format for your finished video.</p></div></div><div className="export-center-layout"><div className="export-completion-card"><div className="export-big-icon"><Film size={32}/></div><h3>Ready to export</h3><p>{projectName} · {clock(duration)} · {clips.length} clips</p><div className="export-summary-row"><span>Resolution</span><b>{exportQuality}</b></div><div className="export-summary-row"><span>Frame rate</span><b>{exportFps}</b></div><div className="export-summary-row"><span>Aspect ratio</span><b>{aspectRatio}</b></div><button className="export-render-button" disabled={exportBusy || !clips.length} onClick={()=>void startVideoExport()}><ArrowDownToLine size={18}/> {exportBusy ? "Rendering " + exportProgress + "%" : "Export video"}</button>{exportBusy && <><div className="nexus-export-progress"><i style={{width:exportProgress+"%"}}/></div><button className="outline-button" onClick={cancelVideoExport}>Cancel export</button></>}<small>Browser renderer · MP4 when supported, otherwise WebM · includes timeline video, images, timed text and audio clips. Keep this tab open while rendering.</small></div><div className="export-options-panel"><h3>Social export preset</h3><label>Platform preset<select value={exportPreset} onChange={e=>applyExportPreset(e.target.value)}><option>TikTok / Reels / Shorts</option><option>YouTube</option><option>YouTube 4K</option><option>Instagram square</option><option>Instagram portrait</option><option>Facebook landscape</option><option>WhatsApp status</option></select></label><small>Presets set a starting aspect ratio, resolution and frame rate. You can customise the settings below.</small><h3>Export options</h3><label>Video quality<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}><option>720p</option><option>1080p</option><option>2K</option><option>4K Ultra HD</option></select></label><label>Frame rate<select value={exportFps} onChange={e=>setExportFps(e.target.value)}><option>24 FPS</option><option>30 FPS</option><option>60 FPS</option></select></label><button className="export-quick-action" disabled={!selectedClip} onClick={()=>{setPage("editor");setEditorView("workspace");setActiveTool("edit");setActiveSubtool("speed");setStatus("Select a clip to adjust its playback speed.");}}><Gauge size={18}/> Adjust selected clip speed</button><h3>Share destinations</h3><div className="export-share-grid">{["TikTok","YouTube","WhatsApp","Instagram","Facebook","Other"].map((name,i)=><button key={name} disabled><Share2 size={17}/><span>{name}</span></button>)}</div><small>Share options appear after a video has been rendered and saved to your device.</small></div></div></div>}
 
       </section>}
 
