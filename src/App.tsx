@@ -14,6 +14,7 @@ import { detectEngineStack, trimClipAtPlayhead, moveClip, applyMediaElementGain,
 import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 import { getBrowserEngineHealth } from "./editor/engine-registry";
 import { askNexusDirector } from "./editor/ai-director";
+import { getEngineJob, submitEngineJob, type NexusEngineJob } from "./editor/engine-jobs";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -79,6 +80,8 @@ export default function App() {
   const [mediaAnalyses, setMediaAnalyses] = useState<MediaAnalysis[]>([]);
   const [analysisBusy, setAnalysisBusy] = useState(false);
   const [engineReport, setEngineReport] = useState<string[]>([]);
+  const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>([]);
+  const [generationBusy, setGenerationBusy] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -270,6 +273,37 @@ export default function App() {
     const health=getBrowserEngineHealth();
     const lines=[result.ok?"Project structure check passed.":"Project structure check found issues.",...result.issues,render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
     setEngineReport(lines);setAiReply(lines.join(" "));
+  }
+  async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video") {
+    const key=engine+":"+scene.title;
+    setGenerationBusy(key); setAiReply("Submitting "+engine+" generation for "+scene.title+"…");
+    try {
+      const job=await submitEngineJob(engine,scene.visual+"; "+scene.searchTerms.join(", "),{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
+      setGenerationJobs(old=>[{...job,sceneTitle:scene.title},...old.filter(item=>item.id!==job.id)]);
+      setAiReply("Generation job queued for "+scene.title+". Refresh its status to see real worker progress.");
+    } catch(error) {
+      const message=error instanceof Error?error.message:"Generation worker unavailable.";
+      setAiReply(message+" Your storyboard and timeline have not been changed.");
+      setGenerationJobs(old=>[{id:"unavailable-"+Date.now(),engine,state:"failed",progress:0,message,sceneTitle:scene.title,error:message},...old]);
+    } finally { setGenerationBusy(null); }
+  }
+  async function refreshGenerationJob(job:NexusEngineJob & {sceneTitle:string}) {
+    try {
+      const latest=await getEngineJob(job.engine,job.id);
+      setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
+      if(latest.state==="succeeded" && latest.output?.url && !assets.some(item=>item.source?.type==="generated"&&item.source.pageUrl===latest.output?.url)) {
+        const url=latest.output.url;
+        if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
+        const response=await fetch(url); if(!response.ok) throw new Error("Generated output could not be downloaded.");
+        const blob=await response.blob(); const kind=job.engine==="video"?"video":"image";
+        const file=new File([blob],job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+(kind==="video"?"mp4":"png"),{type:blob.type||latest.output.mimeType||(kind==="video"?"video/mp4":"image/png")});
+        const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind,duration:kind==="video"?5:5,mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",pageUrl:url,creator:"NEXUS managed model worker"}};
+        setAssets(old=>[...old,created]);
+        const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+        applyClipChange([...clips,clip],"Generated scene added to the editable timeline."); setSelected(clip.id);setPage("editor");
+        setAiReply("Generated scene added to your project timeline. You can now trim, move and edit it.");
+      }
+    } catch(error) { setAiReply(error instanceof Error?error.message:"Could not refresh this generation job."); }
   }
   async function buildAIProjectTimeline() {
     if (!aiPlan) return;
@@ -586,7 +620,10 @@ export default function App() {
               {mediaAnalyses.length>0 && <div className="nexus-ai-analysis-results"><b>Media analysis · {mediaAnalyses.length} assets</b>{mediaAnalyses.map(item=><article key={item.assetId}><b>{item.name}</b><small>{item.kind.toUpperCase()} · {item.duration.toFixed(1)}s · {item.width?item.width+"×"+item.height:"dimensions unavailable"} · {(item.fileSize/1048576).toFixed(1)} MB</small>{item.audio&&<small>Audio RMS {(item.audio.rms*100).toFixed(1)}% · estimated silence {(item.audio.silenceRatio*100).toFixed(0)}% · {item.audio.beatCandidates.length} transient candidates</small>}{item.visual&&<small>{item.visual.sampledFrames} visual samples · {item.visual.sceneChanges.length} brightness-change candidates · average brightness {(item.visual.averageLuminance*100).toFixed(0)}%</small>}<small>{item.notes.join(" ")}</small></article>)}</div>}{engineReport.length>0&&<div className="nexus-ai-analysis-results"><b>Project verification</b>{engineReport.map((line,i)=><small key={i}>{line}</small>)}</div>}
               {aiPlan && <div className="nexus-ai-storyboard">
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
-                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p><button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
+                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
+                <div className="nexus-ai-generation-actions">{aiPlan.scenes.map((scene,index)=><div key={scene.title+"-"+index}><b>{scene.title}</b><div><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"image")}>Generate image</button><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"video")}>Generate video</button></div></div>)}</div>
+                {generationJobs.length>0&&<div className="nexus-ai-analysis-results"><b>Generation jobs</b>{generationJobs.map(job=><div key={job.id}><small>{job.sceneTitle} · {job.engine} · {job.state} · {Math.round(job.progress||0)}%</small><small>{job.message||job.error||"Waiting for worker update"}</small>{!job.id.startsWith("unavailable-")&&job.state!=="succeeded"&&job.state!=="failed"&&job.state!=="cancelled"&&<button onClick={()=>refreshGenerationJob(job)}>Refresh status</button>}</div>)}</div>}
+                <button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
               </div>}
             </div>}
             <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Ask about your edit or give an editing command…"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
