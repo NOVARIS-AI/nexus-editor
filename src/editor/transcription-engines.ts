@@ -28,19 +28,19 @@ export async function transcribeWhisper(file: File, onProgress: Progress = () =>
   });
   onProgress("Decoding audio locally…");
   const audio = mono16k(await decodeAudio(file));
-  const result = await transcriber(audio, { chunk_length_s: 30, stride_length_s: 5, return_timestamps: true });
-  const chunks = Array.isArray(result.chunks) ? result.chunks : [];
+  const result: any = await transcriber(audio, { chunk_length_s: 30, stride_length_s: 5, return_timestamps: true });
+  const chunks = Array.isArray(result?.chunks) ? result.chunks : [];
   return { engine: "whisper", text: result.text || "", segments: chunks.map((c: any) => ({ start: c.timestamp?.[0] || 0, end: c.timestamp?.[1] || 0, text: c.text || "" })) };
 }
 
 export async function transcribeVosk(file: File, onProgress: Progress = () => {}): Promise<TranscriptResult> {
   onProgress("Loading Vosk browser runtime and English model…");
   const Vosk = await import("vosk-browser");
-  const modelUrl = import.meta.env.VITE_VOSK_MODEL_URL;
+  const modelUrl = (import.meta as ImportMeta & { env: { VITE_VOSK_MODEL_URL?: string } }).env.VITE_VOSK_MODEL_URL;
   if (!modelUrl) throw new Error("Vosk needs VITE_VOSK_MODEL_URL set to a compatible Vosk browser model archive. This is a model URL, not an API key.");
   const model = await Vosk.createModel(modelUrl);
   try {
-    const recognizer = new model.KaldiRecognizer();
+    const recognizer = new model.KaldiRecognizer(16000);
     recognizer.setWords(true);
     const segments: {start:number;end:number;text:string}[] = [];
     recognizer.on("result", (message: any) => {
