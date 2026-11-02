@@ -119,6 +119,7 @@ export default function App() {
   const voiceRecorder = useRef<MediaRecorder | null>(null);
   const voiceStream = useRef<MediaStream | null>(null);
   const voiceChunks = useRef<BlobPart[]>([]);
+  const voiceElapsed = useRef(0);
   const voiceTimer = useRef<number | null>(null);
   useEffect(() => () => {
     if (voiceTimer.current !== null) window.clearInterval(voiceTimer.current);
@@ -420,7 +421,7 @@ export default function App() {
         probe.preload = "metadata";
         probe.src = objectUrl;
         const finish = (length: number) => {
-          const finalDuration = Number.isFinite(length) && length > 0 ? length : Math.max(1, voiceRecordingSeconds);
+          const finalDuration = Number.isFinite(length) && length > 0 ? length : Math.max(1, voiceElapsed.current);
           const created: MediaAsset = { id: uid(), name: file.name, kind: "audio", duration: finalDuration, mimeType: file.type, file, objectUrl, source: { type: "personal" } };
           const clip: TimelineClip = { id: uid(), assetId: created.id, trackId: "audio-4", start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalDuration, label: "Voiceover · " + clock(finalDuration), gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
           setAssets(old => [...old, created]);
@@ -438,8 +439,9 @@ export default function App() {
       recorder.start(250);
       voiceRecorder.current = recorder;
       setVoiceRecordingSeconds(0);
+      voiceElapsed.current = 0;
       setVoiceRecording(true);
-      voiceTimer.current = window.setInterval(() => setVoiceRecordingSeconds(value => value + 1), 1000);
+      voiceTimer.current = window.setInterval(() => { voiceElapsed.current += 1; setVoiceRecordingSeconds(voiceElapsed.current); }, 1000);
       setStatus("Recording voiceover. Speak clearly; tap Stop recording when finished.");
     } catch (error) {
       voiceStream.current?.getTracks().forEach(track => track.stop());
