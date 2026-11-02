@@ -369,7 +369,11 @@ export default function App() {
         if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
         const response=await fetch(url); if(!response.ok) throw new Error("Generated output could not be downloaded.");
         const blob=await response.blob(); const kind=job.engine==="video"?"video":"image";
-        const file=new File([blob],job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+(kind==="video"?"mp4":"png"),{type:blob.type||latest.output.mimeType||(kind==="video"?"video/mp4":"image/png")});
+        const mimeType=blob.type||latest.output.mimeType||(kind==="video"?"video/mp4":"image/png");
+        if(kind==="video"&&!mimeType.startsWith("video/")) throw new Error("The video worker returned a non-video file. It was not added to your timeline.");
+        if(kind==="image"&&!mimeType.startsWith("image/")) throw new Error("The image worker returned a non-image file. It was not added to your timeline.");
+        const extension=mimeType.split("/")[1]?.split(";")[0]?.replace(/[^a-z0-9]+/gi,"")|| (kind==="video"?"mp4":"png");
+        const file=new File([blob],job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+extension,{type:mimeType});
         const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind,duration:kind==="video"?5:5,mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",pageUrl:url,creator:"NEXUS managed model worker"}};
         setAssets(old=>[...old,created]);
         const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
