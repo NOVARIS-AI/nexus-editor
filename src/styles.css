@@ -635,3 +635,11 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .editor-bottom-tools.nexus-tool-stack{min-width:0}
 @media(max-width:700px){.editor-screen{grid-template-rows:minmax(165px,.92fr) minmax(190px,1fr) minmax(112px,126px) 16px}.editor-preview-zone{padding:5px 7px 2px}.editor-preview-frame{max-height:calc(100% - 42px)}.editor-timeline-zone{padding:5px 6px}.editor-timeline-head{flex-basis:32px}.editor-timeline-head small{max-width:34vw;font-size:7px}.editor-timeline-actions{max-width:58%}.editor-timeline-actions button{height:26px;min-width:25px;font-size:9px}.editor-timeline-rows{grid-template-columns:52px minmax(0,1fr);min-height:136px}.editor-timeline-ruler{margin-left:52px}.editor-lane-labels span{font-size:8px;padding-left:5px}.editor-lane-labels small{font-size:6px}.editor-clip{font-size:8px;padding:0 6px}}
 @media(max-height:650px) and (max-width:700px){.editor-screen{grid-template-rows:minmax(145px,.9fr) minmax(170px,1fr) minmax(100px,116px) 14px}}
+
+/* Direct clip-edge trimming and magnetic timeline snapping */
+.editor-clip{position:absolute;display:flex;align-items:center;justify-content:space-between;gap:4px;overflow:hidden;padding:0 2px}
+.editor-clip-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
+.editor-trim-handle{position:relative;z-index:4;flex:0 0 9px;align-self:stretch;min-height:22px;border-radius:4px;background:rgba(255,255,255,.72);touch-action:none;cursor:ew-resize}
+.editor-trim-handle:after{content:"";position:absolute;left:3px;top:35%;bottom:35%;width:2px;border-radius:2px;background:#302044}
+.editor-trim-handle:active{background:#fff;box-shadow:0 0 0 2px #ffd166}
+@media(max-width:700px){.editor-trim-handle{flex-basis:8px;min-height:26px}.editor-clip-title{font-size:8px}}
