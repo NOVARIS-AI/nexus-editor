@@ -6,6 +6,7 @@
 - Import failures release the duplicate guard and revoke temporary object URLs; failed imports leave the project unchanged.
 - Browser export prefers a native MP4 MediaRecorder format only when the current browser reports support; otherwise it falls back to WebM. The download extension follows the actual recorded MIME type.
 - Export validation includes missing media/timing checks, resolution/memory guardrails, media seeking and audio capability checks.
+- Embedded video audio now follows clip mute, track mute/hidden, gain and fade settings during export, matching audio-only clips.
 - GitHub Actions workflow runs TypeScript and Vite production build on pushes and pull requests to main.
 
 ## Still required before Batch 4 can be declared complete
@@ -21,3 +22,8 @@ The repository cannot create a GPU session, keep a temporary notebook online, or
 
 ## Release gates
 A worker is operational only after a real request, poll, output download and timeline import pass. Native MP4 is available only when the browser advertises a compatible MediaRecorder format; otherwise NEXUS saves WebM until a dedicated MP4 muxer is integrated and tested. A GitHub push is not proof of a passing build or a production deployment.
+
+
+## Batch 5 starter work
+- Added editor keyboard shortcuts: Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo, and Delete/Backspace to remove the selected clip. Shortcuts are suppressed while typing in form fields or editable content.
+- This is a first usability/accessibility pass, not the complete Batch 5 release.
