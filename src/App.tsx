@@ -360,27 +360,53 @@ export default function App() {
       setGenerationJobs(old=>[{id:"unavailable-"+Date.now(),engine,state:"failed",progress:0,message,sceneTitle:scene.title,error:message},...old]);
     } finally { setGenerationBusy(null); }
   }
+  const importedGenerationOutputs = useRef<Set<string>>(new Set());
   async function refreshGenerationJob(job:NexusEngineJob & {sceneTitle:string}) {
+    let reservedUrl = "";
     try {
       const latest=await getEngineJob(job.engine,job.id);
       setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
-      if(latest.state==="succeeded" && latest.output?.url && !assets.some(item=>item.source?.type==="generated"&&item.source.pageUrl===latest.output?.url)) {
-        const url=latest.output.url;
-        if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
-        const response=await fetch(url); if(!response.ok) throw new Error("Generated output could not be downloaded.");
-        const blob=await response.blob(); const kind=job.engine==="video"?"video":"image";
-        const mimeType=blob.type||latest.output.mimeType||(kind==="video"?"video/mp4":"image/png");
-        if(kind==="video"&&!mimeType.startsWith("video/")) throw new Error("The video worker returned a non-video file. It was not added to your timeline.");
-        if(kind==="image"&&!mimeType.startsWith("image/")) throw new Error("The image worker returned a non-image file. It was not added to your timeline.");
-        const extension=mimeType.split("/")[1]?.split(";")[0]?.replace(/[^a-z0-9]+/gi,"")|| (kind==="video"?"mp4":"png");
-        const file=new File([blob],job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+extension,{type:mimeType});
-        const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind,duration:kind==="video"?5:5,mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",pageUrl:url,creator:"NEXUS managed model worker"}};
-        setAssets(old=>[...old,created]);
-        const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
-        applyClipChange([...clips,clip],"Generated scene added to the editable timeline."); setSelected(clip.id);setPage("editor");
-        setAiReply("Generated scene added to your project timeline. You can now trim, move and edit it.");
+      if(latest.state!=="succeeded" || !latest.output?.url || job.engine==="render") return;
+      const url=latest.output.url;
+      if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
+      if(importedGenerationOutputs.current.has(url) || assets.some(item=>item.source?.type==="generated"&&item.source.pageUrl===url)) return;
+      importedGenerationOutputs.current.add(url); reservedUrl=url;
+      const response=await fetch(url,{headers:{Accept:"image/*,video/*,audio/*"}});
+      if(!response.ok) throw new Error("Generated output could not be downloaded (HTTP "+response.status+").");
+      const blob=await response.blob();
+      const expectedKind=job.engine as "image"|"video"|"audio";
+      const declared=(latest.output.mimeType||"").split(";")[0].trim().toLowerCase();
+      const actual=(blob.type||"").split(";")[0].trim().toLowerCase();
+      const mimeType=actual||declared;
+      if(!mimeType || mimeType==="application/octet-stream") throw new Error("The worker did not provide a verifiable media MIME type. The output was not imported.");
+      if(!mimeType.startsWith(expectedKind+"/")) throw new Error("The "+job.engine+" worker returned "+mimeType+" instead of "+expectedKind+" media. Nothing was added to the project.");
+      const extension=mimeType.split("/")[1]?.replace(/[^a-z0-9.+-]/gi,"")||"bin";
+      const safeName=job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-").slice(0,70)||"nexus";
+      const file=new File([blob],safeName+"-generated."+extension,{type:mimeType});
+      const objectUrl=URL.createObjectURL(file);
+      let mediaDuration=5;
+      if(expectedKind!=="image") {
+        const probe=document.createElement(expectedKind);
+        probe.preload="metadata"; probe.src=objectUrl;
+        try {
+          mediaDuration=await new Promise<number>((resolve,reject)=>{
+            const timer=window.setTimeout(()=>reject(new Error("Generated media metadata could not be read. The output was downloaded but not imported.")),12000);
+            probe.onloadedmetadata=()=>{window.clearTimeout(timer);resolve(Number.isFinite(probe.duration)&&probe.duration>0?probe.duration:0);};
+            probe.onerror=()=>{window.clearTimeout(timer);reject(new Error("Generated media could not be decoded by this browser. It was not added to the timeline."));};
+          });
+        } finally { probe.removeAttribute("src");probe.load(); }
       }
-    } catch(error) { setAiReply(error instanceof Error?error.message:"Could not refresh this generation job."); }
+      if(expectedKind!=="image"&&mediaDuration<=0) throw new Error("Generated media has no usable duration.");
+      const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind:expectedKind,duration:expectedKind==="image"?5:mediaDuration,mimeType:file.type,file,objectUrl,source:{type:"generated",pageUrl:url,creator:"NEXUS managed model worker"}};
+      const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+      setAssets(old=>[...old,created]);
+      applyClipChange([...clips,clip],"Generated "+expectedKind+" added to the editable timeline.");
+      setSelected(clip.id);setPage("editor");
+      setAiReply("Generated "+expectedKind+" imported with its real media duration and added to the correct timeline track. You can now edit it.");
+    } catch(error) {
+      if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
+      setAiReply(error instanceof Error?error.message:"Could not refresh this generation job.");
+    }
   }
   async function buildAIProjectTimeline() {
     if (!aiPlan) return;
