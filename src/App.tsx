@@ -27,7 +27,7 @@ import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
-type LocalDraft = { version: 1; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; aspectRatio: string; savedAt: number };
+type LocalDraft = { version: 1; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; tracks?: TimelineTrack[]; aspectRatio: string; savedAt: number };
 const readLocalDraft = (): LocalDraft | null => {
   try {
     const raw = localStorage.getItem("nexus-editor-autosave-v1");
@@ -58,8 +58,8 @@ export default function App() {
   const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>(() => recoveryDraft?.clips || []);
-  const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>({});
-  const [trackStates, setTrackStates] = useState<TimelineTrack[]>(() => defaultTracks.map(track => ({ ...track, locked: false })));
+  const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>(() => Object.fromEntries((recoveryDraft?.tracks || []).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}])));
+  const [trackStates, setTrackStates] = useState<TimelineTrack[]>(() => recoveryDraft?.tracks?.length ? recoveryDraft.tracks : defaultTracks.map(track => ({ ...track, locked: false })));
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [voiceRecordingSeconds, setVoiceRecordingSeconds] = useState(0);
   const [textLayers, setTextLayers] = useState<TimelineTextLayer[]>(() => recoveryDraft?.textLayers || []);
@@ -164,7 +164,7 @@ export default function App() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
-        const snapshot: LocalDraft = { version: 1, projectName, clips, textLayers, aspectRatio, savedAt: Date.now() };
+        const snapshot: LocalDraft = { version: 1, projectName, clips, textLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), aspectRatio, savedAt: Date.now() };
         localStorage.setItem("nexus-editor-autosave-v1", JSON.stringify(snapshot));
         setDraftSaveStatus("Autosaved on this device");
       } catch {
@@ -172,7 +172,7 @@ export default function App() {
       }
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [projectName, clips, textLayers, aspectRatio]);
+  }, [projectName, clips, textLayers, trackStates, trackMix, aspectRatio]);
   useEffect(() => {
     const pending = generationJobs.filter(job => !job.id.startsWith("unavailable-") && (job.state === "queued" || job.state === "running"));
     if (!pending.length) return;
@@ -849,7 +849,7 @@ export default function App() {
     if (!file) return;
     try {
       const p = parseProject(await file.text());
-      setProjectName(p.name); setClips(p.clips); setTextLayers(p.textLayers || []); setStatus("Project opened — re-import source media to relink assets"); setPage("editor");
+      setProjectName(p.name); setClips(p.clips); setTextLayers(p.textLayers || []); setTrackStates(p.tracks?.length ? p.tracks : defaultTracks); setTrackMix(Object.fromEntries((p.tracks||[]).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}]))); setStatus("Project opened — audio bus settings restored; re-import source media to relink assets"); setPage("editor");
     } catch { setStatus("Could not open this project file"); }
   }
   const nav = [
