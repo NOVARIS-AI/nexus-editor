@@ -28,6 +28,11 @@ export function parseProject(text: string): NexusProject {
   if (value.format !== "nexusproj" || value.schemaVersion !== 1 ||
       !Array.isArray(value.assets) || !Array.isArray(value.tracks) || !Array.isArray(value.clips))
     throw new Error("This file is not a supported NEXUS EDITOR project.");
+  const assetIds = new Set(value.assets.map(asset => asset?.id).filter(Boolean));
+  if (value.clips.some(clip => !clip || typeof clip.id !== "string" || !assetIds.has(clip.assetId) || !Number.isFinite(clip.start) || clip.start < 0 || !Number.isFinite(clip.sourceIn) || !Number.isFinite(clip.sourceOut) || clip.sourceOut <= clip.sourceIn))
+    throw new Error("This project contains a clip with missing media or invalid timing. The original file has not been changed.");
+  if (value.tracks.some(track => !track || typeof track.id !== "string" || typeof track.name !== "string"))
+    throw new Error("This project contains an invalid timeline track.");
   return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [] };
 }
 export function clipDuration(clip: TimelineClip) { return Math.max(0, clip.sourceOut - clip.sourceIn) / Math.max(.1, clip.speed || 1); }
