@@ -184,7 +184,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       ctx.scale((animated.zoom/100)*zoomBoost,(animated.zoom/100)*zoomBoost);
       ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
       const vignette = Math.max(0, Math.min(100, clip.vignette ?? 0));
-      if (vignette > 0) { const radius = Math.hypot(canvas.width, canvas.height) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-canvas.width, -canvas.height, canvas.width * 2, canvas.height * 2); }
+      if (vignette > 0) { const radius = Math.hypot(dw, dh) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-dw/2, -dh/2, dw, dh); }
       ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
