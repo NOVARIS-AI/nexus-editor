@@ -610,7 +610,7 @@ export default function App() {
                 <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({assets.length})</button><button disabled={analysisBusy||!assets.length} onClick={()=>void analyzeAllMedia()}>{analysisBusy?"Analysing…":"Analyse media"}</button><button onClick={runProjectVerification}>Verify project</button>
               </div>
               <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
-              <button className="nexus-ai-plan-button" onClick={createAIProjectPlan}><Sparkles size={15}/> Create editable project plan</button>
+              <button className="nexus-ai-plan-button" onClick={() => void createAIProjectPlan()}><Sparkles size={15}/> Create editable project plan</button>
               <div className="nexus-ai-online-search">
                 <b>Find media online</b>
                 <div><input value={mediaSearchQuery} onChange={e=>setMediaSearchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")findOnlineMedia();}} placeholder="Search a scene or subject…"/><button disabled={mediaSearchBusy} onClick={()=>findOnlineMedia()}>{mediaSearchBusy?"Searching…":"Search"}</button></div>
