@@ -53,9 +53,15 @@ export function AudioAssetBrowser({onImport,onAddAudio}:Props) {
    const extension=mime.split("/")[1]?.split(";")[0].replace(/[^a-z0-9]/gi,"")||"audio";
    const safe=item.title.replace(/[^a-z0-9-_]+/gi,"-").slice(0,65)||"nexus-audio";
    const file=new File([blob],safe+"."+extension,{type:mime});
+   // Save a device copy as well as importing the same verified file into the project.
+   const deviceUrl=URL.createObjectURL(blob);
+   const anchor=document.createElement("a");
+   anchor.href=deviceUrl;anchor.download=safe+"."+extension;
+   document.body.appendChild(anchor);anchor.click();anchor.remove();
+   window.setTimeout(()=>URL.revokeObjectURL(deviceUrl),30000);
    await onAddAudio(file,{pageUrl:item.pageUrl,creator:item.creator,license:item.license,licenseUrl:item.licenseUrl,attribution:item.attribution});
    setDownloaded(old=>[item.title,...old.filter(x=>x!==item.title)]);
-   setMessage("Downloaded and added to the audio timeline: "+item.title);
+   setMessage("Downloaded a device copy and added the audio to your project timeline: "+item.title);
   }catch(error){setMessage((error instanceof Error?error.message:"Download failed.")+" You can open the source page and import the file manually.");}
  }
  return <section className="nexus-audio-library">
