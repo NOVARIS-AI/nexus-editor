@@ -7,7 +7,7 @@ export interface MediaAsset {
 export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
   sourceIn: number; sourceOut: number; label: string;
-  gain?: number; muted?: boolean; fadeIn?: number; fadeOut?: number; speed?: number; rotation?: number; brightness?: number; contrast?: number; saturation?: number; zoom?: number; offsetX?: number; offsetY?: number; filter?: string;
+  gain?: number; muted?: boolean; fadeIn?: number; fadeOut?: number; speed?: number; rotation?: number; brightness?: number; contrast?: number; saturation?: number; zoom?: number; offsetX?: number; offsetY?: number; filter?: string; opacity?: number; transitionIn?: number; transitionOut?: number; fit?: "cover" | "contain";
   aiScene?: { title: string; visual: string; narration: string; sourceType: "personal" | "commons" | "native-fallback" };
 }
 export interface TimelineTrack {
@@ -15,7 +15,7 @@ export interface TimelineTrack {
 }
 export interface TimelineTextLayer {
   id: string; trackId: string; start: number; duration: number; text: string;
-  color: string; fontSize: number; fontFamily: string; x?: number; y?: number;
+  color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; animation?: "none" | "fade" | "pop";
 }
 export interface NexusProject {
   format: "nexusproj"; schemaVersion: 1; name: string; createdAt: string; updatedAt: string;
