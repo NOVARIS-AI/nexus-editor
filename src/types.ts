@@ -13,7 +13,7 @@ export interface TimelineClip {
 }
 export interface TimelineTrack {
   id: string; name: string; kind: "video" | "audio" | "overlay"; muted: boolean; hidden: boolean;
-  volume?: number; pan?: number; solo?: boolean; locked?: boolean;
+  volume?: number; pan?: number; solo?: boolean; locked?: boolean; opacity?: number; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
 }
 export interface TimelineTextLayer {
   id: string; trackId: string; start: number; duration: number; text: string;

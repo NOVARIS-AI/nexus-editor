@@ -193,7 +193,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const dw = sw * scale, dh = sh * scale;
       ctx.save();
       const blendModes: Record<string, GlobalCompositeOperation> = { normal: "source-over", multiply: "multiply", screen: "screen", overlay: "overlay", darken: "darken", lighten: "lighten", "soft-light": "soft-light", "hard-light": "hard-light" };
-      ctx.globalCompositeOperation = blendModes[clip.blendMode || "normal"] || "source-over";
+      const track = trackFor(clip);
+      ctx.globalCompositeOperation = blendModes[track?.blendMode || clip.blendMode || "normal"] || "source-over";
       const localTime = time - clip.start;
       const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1);
       const inProgress = clip.transitionIn ? Math.max(0,Math.min(1,localTime/clip.transitionIn)) : 1;
@@ -202,7 +203,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const transitionStyle = clip.transitionStyle || "fade";
       const transitionAlpha = transitionStyle === "fade" ? transitionProgress : 1;
       const animated = animatedValues(clip, time);
-      ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha));
+      ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha * (track?.opacity ?? 1)));
       const filter = FILTER_CSS[clip.filter || "Original"] || "none";
       const transitionBlur = transitionStyle === "blur" ? (1-transitionProgress)*12 : 0;
       const exposure = clip.exposure ?? 0, temperature = clip.temperature ?? 0, tint = clip.tint ?? 0, highlights = clip.highlights ?? 0, shadows = clip.shadows ?? 0;
