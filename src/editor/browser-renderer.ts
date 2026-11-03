@@ -107,6 +107,14 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   const audioContext = AudioContextCtor ? new AudioContextCtor() : null;
   const audioDestination = audioContext?.createMediaStreamDestination();
+  const masterLimiter = audioContext?.createDynamicsCompressor();
+  const masterOutput = audioContext?.createGain();
+  if (masterLimiter && masterOutput && audioDestination) {
+    masterLimiter.threshold.value = -1.5; masterLimiter.knee.value = 0; masterLimiter.ratio.value = 20;
+    masterLimiter.attack.value = 0.003; masterLimiter.release.value = 0.14;
+    masterOutput.gain.value = 0.9;
+    masterLimiter.connect(masterOutput); masterOutput.connect(audioDestination);
+  }
   const audioNodes = new Map<string, { element: HTMLMediaElement; highPass: BiquadFilterNode; lowPass: BiquadFilterNode; compressor: DynamicsCompressorNode; analyser: AnalyserNode; gateBuffer: Float32Array; gain: GainNode; panner?: StereoPannerNode }>();
   const activeVideos: HTMLVideoElement[] = [];
   let canvasStream: MediaStream | null = null;
@@ -137,7 +145,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(video);
-          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(masterLimiter || audioDestination);
           video.muted = false; audioNodes.set(clip.id, { element: video, highPass, lowPass, compressor, analyser, gateBuffer, gain, panner });
         }
         mediaByClip.set(clip.id, video); activeVideos.push(video);
@@ -149,7 +157,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         throwIfAborted();
         if (audioContext && audioDestination) {
           const source = audioContext.createMediaElementSource(audio);
-          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(audioDestination);
+          const highPass = audioContext.createBiquadFilter(); highPass.type = "highpass"; highPass.frequency.value = 20; const lowPass = audioContext.createBiquadFilter(); lowPass.type = "lowpass"; lowPass.frequency.value = 20000; const compressor = audioContext.createDynamicsCompressor(); compressor.threshold.value = 0; compressor.knee.value = 30; compressor.ratio.value = 1; compressor.attack.value = 0.003; compressor.release.value = 0.25; const analyser = audioContext.createAnalyser(); analyser.fftSize = 256; const gateBuffer = new Float32Array(analyser.fftSize); const gain = audioContext.createGain(); const panner = audioContext.createStereoPanner(); source.connect(highPass); highPass.connect(lowPass); lowPass.connect(compressor); compressor.connect(analyser); analyser.connect(gain); gain.connect(panner); panner.connect(masterLimiter || audioDestination);
           audioNodes.set(clip.id, { element: audio, highPass, lowPass, compressor, analyser, gateBuffer, gain, panner });
         }
       }
@@ -266,8 +274,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const length = clipDuration(clip);
           if (time < clip.start || time >= clip.start + length) continue;
           const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
-          if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
-          else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip, time);
+          if (image) drawCover(chromaSource(image, image.naturalWidth, image.naturalHeight, clip), image.naturalWidth, image.naturalHeight, clip, time);
+          else if (video && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
         }
         for (const clip of input.clips) {
           const local = time - clip.start;
@@ -303,7 +311,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               const gateStrength = Math.max(0, Math.min(100, clip.noiseGate ?? 0));
               if (gateStrength > 0) { audio.analyser.getFloatTimeDomainData(audio.gateBuffer); let energy = 0; for (let sample = 0; sample < audio.gateBuffer.length; sample++) energy += audio.gateBuffer[sample] * audio.gateBuffer[sample]; const rms = Math.sqrt(energy / audio.gateBuffer.length); const threshold = 0.0005 + gateStrength * 0.00035; gateLevel = rms < threshold ? 0 : 1; }
               audio.gain.gain.setTargetAtTime(Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut) * gateLevel, audioContext!.currentTime, 0.025);
-              if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, track?.pan ?? 0));
+              if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, (track?.pan ?? 0) + (clip.pan ?? 0)));
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
         }
