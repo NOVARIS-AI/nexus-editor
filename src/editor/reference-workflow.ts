@@ -9,7 +9,7 @@ export type ReferenceAssetContext = { id: string; name: string; kind: string; ro
 export function detectReferenceWorkflow(input: string): { useReference: boolean; extractAudio: boolean } {
   const value = input.toLowerCase();
   const extractAudio = /\b(extract|separate|pull|get|take)\b.{0,45}\b(audio|sound|music)\b|\b(audio|sound)\b.{0,45}\b(from|inside|in)\b.{0,25}\b(this|the|it)\b.{0,20}\b(video|clip)?\b|\b(audio|sound)\b.{0,20}\bin it\b/.test(value);
-  const useReference = /\b(reference|template|like this|same style|recreate|recreate this|match this|based on this|use this video|use this picture|use this photo|replace the person|replace it with|with this picture|with this image)\b/.test(value);
+  const useReference = /\b(reference|template|like this|same style|recreate|recreate this|match this|based on this|use this video|use this picture|use this photo|look at this|look at this picture|look at this video|this is the template|that video is the template|use this as a template|use this as reference|replace the person|replace it with|with this picture|with this image|analyse this image|analyze this image|analyse this video|analyze this video)\b/.test(value);
   return { useReference, extractAudio };
 }
 export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: ReferenceAnalysisLike[]): ReferenceAssetContext[] {
