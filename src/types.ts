@@ -17,6 +17,7 @@ export interface TimelineTrack {
 }
 export interface TimelineTextLayer {
   id: string; trackId: string; start: number; duration: number; text: string;
+  blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
   color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; animation?: "none" | "fade" | "pop";
 }
 export interface NexusProject {

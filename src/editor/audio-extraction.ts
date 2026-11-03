@@ -1,78 +1,71 @@
-import type { MediaAsset } from "../types";
-
+type CaptureVideo = HTMLVideoElement & { captureStream?: () => MediaStream; mozCaptureStream?: () => MediaStream };
+const AUDIO_MIME_TYPES = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"];
+function chooseAudioMime() { return AUDIO_MIME_TYPES.find(type => MediaRecorder.isTypeSupported(type)); }
+function waitForSeek(video: HTMLVideoElement, time: number) {
+  return new Promise<void>((resolve, reject) => {
+    if (Math.abs(video.currentTime - time) < 0.04) { resolve(); return; }
+    const timer = window.setTimeout(() => { cleanup(); reject(new Error("The video could not seek to the selected in-point.")); }, 15000);
+    const cleanup = () => { window.clearTimeout(timer); video.removeEventListener("seeked", ready); video.removeEventListener("error", failed); };
+    const ready = () => { cleanup(); resolve(); }, failed = () => { cleanup(); reject(new Error("The video failed while seeking.")); };
+    video.addEventListener("seeked", ready, { once: true }); video.addEventListener("error", failed, { once: true }); video.currentTime = time;
+  });
+}
 export async function extractAudioTrackFromVideo(file: File, sourceIn: number, sourceOut: number): Promise<File> {
-  if (!Number.isFinite(sourceIn) || !Number.isFinite(sourceOut) || sourceIn < 0 || sourceOut <= sourceIn) {
-    throw new Error("Choose a valid video segment before extracting audio.");
-  }
-  if (typeof MediaRecorder === "undefined") throw new Error("Audio extraction needs MediaRecorder support in an updated browser.");
-  const video = document.createElement("video");
-  const url = URL.createObjectURL(file);
-  const capture = video as HTMLVideoElement & { captureStream?: () => MediaStream; mozCaptureStream?: () => MediaStream };
-  let stream: MediaStream | null = null;
-  let recorder: MediaRecorder | null = null;
+  if (!Number.isFinite(sourceIn) || !Number.isFinite(sourceOut) || sourceIn < 0 || sourceOut <= sourceIn) throw new Error("Choose a valid video segment before extracting audio.");
+  if (typeof MediaRecorder === "undefined") throw new Error("Audio extraction needs MediaRecorder support in this browser.");
+  const mimeType = chooseAudioMime();
+  if (!mimeType) throw new Error("This browser does not offer a supported audio recording format.");
+  const video = document.createElement("video") as CaptureVideo, url = URL.createObjectURL(file);
+  let sourceStream: MediaStream | null = null, outputStream: MediaStream | null = null, audioContext: AudioContext | null = null, recorder: MediaRecorder | null = null;
   try {
-    video.preload = "auto";
-    video.playsInline = true;
-    video.muted = false;
-    video.volume = 1;
-    video.src = url;
+    video.preload = "auto"; video.playsInline = true; video.muted = false; video.volume = 1; video.src = url;
     await new Promise<void>((resolve, reject) => {
-      const timer = window.setTimeout(() => { cleanup(); reject(new Error("The video did not become ready for audio extraction.")); }, 20000);
+      const timer = window.setTimeout(() => { cleanup(); reject(new Error("The video did not become ready. Try a shorter or browser-supported video.")); }, 25000);
       const cleanup = () => { window.clearTimeout(timer); video.removeEventListener("loadedmetadata", ready); video.removeEventListener("error", failed); };
-      const ready = () => { cleanup(); resolve(); };
-      const failed = () => { cleanup(); reject(new Error("This video could not be decoded by the browser.")); };
-      video.addEventListener("loadedmetadata", ready, { once: true });
-      video.addEventListener("error", failed, { once: true });
-      if (video.readyState >= 1) ready();
+      const ready = () => { cleanup(); resolve(); }, failed = () => { cleanup(); reject(new Error("This video format could not be decoded by the browser.")); };
+      video.addEventListener("loadedmetadata", ready, { once: true }); video.addEventListener("error", failed, { once: true }); if (video.readyState >= 1) ready();
     });
-    const captureStream = capture.captureStream || capture.mozCaptureStream;
-    if (!captureStream) throw new Error("This browser cannot capture media playback for extraction. Try a current desktop Chrome or Firefox browser.");
-    stream = captureStream.call(video);
-    const audioTracks = stream.getAudioTracks();
-    if (!audioTracks.length) throw new Error("No audio track was detected in this video.");
-    const audioStream = new MediaStream(audioTracks);
-    const mimeType = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus"].find(type => MediaRecorder.isTypeSupported(type));
-    if (!mimeType) throw new Error("This browser does not offer a supported audio recording format.");
-    recorder = new MediaRecorder(audioStream, { mimeType, audioBitsPerSecond: 160000 });
+    const end = Math.min(sourceOut, Number.isFinite(video.duration) ? video.duration : sourceOut);
+    if (sourceIn >= end) throw new Error("The selected in-point is beyond the available video duration.");
+    await waitForSeek(video, sourceIn);
+    const nativeCapture = video.captureStream || video.mozCaptureStream;
+    if (nativeCapture) { try { sourceStream = nativeCapture.call(video); const tracks = sourceStream.getAudioTracks(); if (tracks.length) outputStream = new MediaStream(tracks); } catch { outputStream = null; } }
+    // Mobile fallback: record the decoded media-element audio through Web Audio.
+    if (!outputStream) {
+      const Ctor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) throw new Error("This browser supports neither media capture nor Web Audio audio extraction.");
+      audioContext = new Ctor(); await audioContext.resume();
+      const destination = audioContext.createMediaStreamDestination();
+      audioContext.createMediaElementSource(video).connect(destination);
+      outputStream = destination.stream;
+    }
+    if (!outputStream.getAudioTracks().length) throw new Error("No audio track was detected in this video.");
+    recorder = new MediaRecorder(outputStream, { mimeType, audioBitsPerSecond: 128000 });
     const chunks: BlobPart[] = [];
     const stopped = new Promise<Blob>((resolve, reject) => {
       recorder!.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
-      recorder!.onerror = () => reject(new Error("The browser recorder stopped while extracting audio."));
+      recorder!.onerror = () => reject(new Error("The browser recorder stopped unexpectedly during extraction."));
       recorder!.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
     });
-    await new Promise<void>((resolve, reject) => {
-      const timer = window.setTimeout(() => { cleanup(); reject(new Error("The video could not seek to the selected in-point.")); }, 12000);
-      const cleanup = () => { window.clearTimeout(timer); video.removeEventListener("seeked", ready); video.removeEventListener("error", failed); };
-      const ready = () => { cleanup(); resolve(); };
-      const failed = () => { cleanup(); reject(new Error("The video failed while seeking to its selected in-point.")); };
-      if (Math.abs(video.currentTime - sourceIn) < 0.03) resolve();
-      else { video.addEventListener("seeked", ready, { once: true }); video.addEventListener("error", failed, { once: true }); video.currentTime = sourceIn; }
-    });
     recorder.start(250);
-    const reachedEnd = new Promise<void>((resolve, reject) => {
-      const target = Math.min(sourceOut, Number.isFinite(video.duration) ? video.duration : sourceOut);
-      const timer = window.setTimeout(() => { cleanup(); reject(new Error("Audio capture timed out. Try extracting a shorter segment.")); }, Math.max(30000, (target-sourceIn)*1000+12000));
-      const finish = () => { cleanup(); resolve(); };
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => { cleanup(); video.pause(); reject(new Error("Audio extraction timed out. Try a shorter video segment.")); }, Math.max(30000, (end-sourceIn)*1000+15000));
       const cleanup = () => { window.clearTimeout(timer); video.removeEventListener("timeupdate", check); video.removeEventListener("ended", finish); video.removeEventListener("error", failed); };
-      const check = () => { if (video.currentTime >= target - 0.04) { video.pause(); finish(); } };
-      const failed = () => { cleanup(); reject(new Error("The video playback failed during audio extraction.")); };
-      video.addEventListener("timeupdate", check);
-      video.addEventListener("ended", finish, { once: true });
-      video.addEventListener("error", failed, { once: true });
-      void video.play().catch(error => { cleanup(); reject(new Error(error instanceof Error ? "Playback was blocked: " + error.message : "Video playback was blocked.")); });
+      const finish = () => { cleanup(); video.pause(); resolve(); };
+      const check = () => { if (video.currentTime >= end - 0.035) finish(); };
+      const failed = () => { cleanup(); reject(new Error("Video playback failed during audio extraction.")); };
+      video.addEventListener("timeupdate", check); video.addEventListener("ended", finish, { once: true }); video.addEventListener("error", failed, { once: true });
+      void video.play().catch(error => { cleanup(); reject(new Error(error instanceof Error ? "Playback was blocked. Tap Extract again after interacting with the editor." : "Video playback was blocked.")); });
     });
-    await reachedEnd;
-    recorder.stop();
+    if (recorder.state !== "inactive") recorder.stop();
     const blob = await stopped;
-    if (!blob.size) throw new Error("The selected video segment produced an empty audio recording.");
-    const extension = mimeType.includes("ogg") ? "ogg" : "webm";
-    return new File([blob], file.name.replace(/\\.[^.]+$/, "") + "-audio." + extension, { type: mimeType, lastModified: Date.now() });
+    if (!blob.size) throw new Error("The selected segment produced an empty audio recording.");
+    const extension = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + "-audio." + extension, { type: mimeType, lastModified: Date.now() });
   } finally {
     if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
-    video.pause();
-    stream?.getTracks().forEach(track => track.stop());
-    video.removeAttribute("src");
-    video.load();
-    URL.revokeObjectURL(url);
+    video.pause(); sourceStream?.getTracks().forEach(track => track.stop()); outputStream?.getTracks().forEach(track => track.stop());
+    if (audioContext) { try { await audioContext.close(); } catch {} }
+    video.removeAttribute("src"); video.load(); URL.revokeObjectURL(url);
   }
 }

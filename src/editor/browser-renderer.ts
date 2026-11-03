@@ -325,6 +325,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const local = time - layer.start;
           const fade = layer.animation === "fade" ? Math.min(1, local / .35, (layer.duration - local) / .35) : layer.animation === "pop" ? Math.min(1, local / .2) : 1;
           ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 1) * fade));
+          const textBlendModes: Record<string, GlobalCompositeOperation> = { normal: "source-over", multiply: "multiply", screen: "screen", overlay: "overlay", darken: "darken", lighten: "lighten", "soft-light": "soft-light", "hard-light": "hard-light" };
+          ctx.globalCompositeOperation = textBlendModes[layer.blendMode || "normal"] || "source-over";
           const fontSize = Math.max(12, layer.fontSize * canvas.height / 1080);
           const maxWidth = canvas.width * .88;
           const lineHeight = fontSize * 1.2;
