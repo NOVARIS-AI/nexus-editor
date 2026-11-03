@@ -659,3 +659,13 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 }
 
 .editor-audio-waveform{display:flex;align-items:center;gap:2px;height:22px;max-width:42%;overflow:hidden;opacity:.8}.editor-audio-waveform i{display:block;flex:1;min-width:2px;border-radius:2px;background:linear-gradient(180deg,#50d9ed,#8b72ff);pointer-events:none}.editor-clip{position:relative}.editor-clip .editor-clip-title{position:relative;z-index:1}.editor-audio-waveform{position:absolute;left:8px;right:8px;bottom:3px;z-index:0;pointer-events:none}
+
+/* NEXUS generated audio library */
+.nexus-audio-generated-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.nexus-audio-generated-item{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);min-width:0}
+.nexus-audio-generated-item>div:first-child{display:flex;flex-direction:column;gap:4px}
+.nexus-audio-generated-item b{font-size:13px}
+.nexus-audio-generated-item small{font-size:11px;color:var(--muted)}
+.nexus-audio-generated-item .nexus-speed-presets{display:flex;flex-wrap:wrap;gap:7px}
+.nexus-audio-generated-item button{font-size:11px;padding:7px 10px}
+@media(max-width:640px){.nexus-audio-generated-grid{grid-template-columns:1fr}.nexus-audio-generated-item{padding:10px}}

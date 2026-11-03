@@ -87,7 +87,19 @@ make("Real Estate Tour","Business","product",30,"16:9","Bright Studio","YOUR NEX
 make("Before & After","Creator","business",15,"9:16","High Contrast","THE TRANSFORMATION","Swipe through the difference.","BEFORE / AFTER","#a5b4fc","linear-gradient(145deg,#3730a3,#111827)"),
 make("Travel Cinematic","Lifestyle","travel",30,"16:9","Cinematic Teal","BEYOND THE MAP","See the world differently.","CINEMATIC FILM","#67e8f9","linear-gradient(145deg,#0f766e,#0f172a)"),
 make("App Walkthrough","Education","product",30,"9:16","Clean Neutral","TAKE A LOOK","A quick tour of the features.","APP GUIDE","#67e8f9","linear-gradient(145deg,#1e40af,#0f172a)"),
-make("Creator Intro","Creator","neon",15,"9:16","Cyber Glow","HEY, I'M ____","Here's what I create.","FOLLOW FOR MORE","#c4b5fd","linear-gradient(145deg,#6d28d9,#111827)")
+make("Creator Intro","Creator","neon",15,"9:16","Cyber Glow","HEY, I'M ____","Here's what I create.","FOLLOW FOR MORE","#c4b5fd","linear-gradient(145deg,#6d28d9,#111827)"),
+make("Sports Highlight","Sports","neon",20,"9:16","Punchy","GAME MOMENT","The play that changed everything.","MATCH HIGHLIGHT","#f97316","linear-gradient(145deg,#9a3412,#111827)"),
+make("Matchday Recap","Sports","business",30,"16:9","Epic Film","MATCHDAY","Every moment. Every emotion.","FULL TIME","#fbbf24","linear-gradient(145deg,#1e3a8a,#111827)"),
+make("Podcast Quote","Creator","birthday",18,"9:16","Moody","WORDS THAT STAY","A powerful moment from the conversation.","PODCAST MOMENT","#c4b5fd","linear-gradient(145deg,#4c1d95,#111827)"),
+make("Small Business Promo","Business","business",20,"9:16","Product Crisp","SHOP SMALL","Discover something made with care.","SUPPORT LOCAL","#6ee7b7","linear-gradient(145deg,#065f46,#111827)"),
+make("Church Announcement","Events","business",20,"16:9","Warm Film","YOU ARE INVITED","Join us for a special gathering.","SERVICE DETAILS","#fcd34d","linear-gradient(145deg,#78350f,#111827)"),
+make("Worship Moment","Creator","travel",25,"9:16","Soft Glow","A MOMENT OF WORSHIP","Keep this moment close.","WORSHIP SESSION","#e9d5ff","linear-gradient(145deg,#581c87,#111827)"),
+make("Study Notes","Education","product",25,"9:16","Clean Neutral","STUDY WITH ME","One topic at a time.","FOCUS SESSION","#67e8f9","linear-gradient(145deg,#164e63,#111827)"),
+make("How It Works","Education","business",30,"16:9","Bright Studio","HOW IT WORKS","A clear guide from start to finish.","EXPLAINER","#86efac","linear-gradient(145deg,#166534,#111827)"),
+make("Real Talk Reel","Creator","neon",20,"9:16","Soft Portrait","LET'S TALK","An honest thought worth sharing.","REAL TALK","#f9a8d4","linear-gradient(145deg,#9d174d,#111827)"),
+make("Portfolio Showcase","Business","product",30,"16:9","Editorial","SELECTED WORKS","A few projects. A lot of passion.","PORTFOLIO","#a5b4fc","linear-gradient(145deg,#312e81,#111827)"),
+make("New Collection","Product","neon",20,"9:16","Product White","JUST DROPPED","Meet the latest collection.","NEW ARRIVALS","#f9a8d4","linear-gradient(145deg,#9d174d,#111827)"),
+make("Travel Tips","Education","travel",25,"9:16","Golden Hour","TRAVEL SMARTER","Simple tips for your next trip.","SAVE FOR LATER","#fcd34d","linear-gradient(145deg,#0f766e,#111827)")
 ];
 
 export const CREATIVE_EFFECTS = [
