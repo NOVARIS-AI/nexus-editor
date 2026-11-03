@@ -35,7 +35,51 @@ export function parseProject(text: string): NexusProject {
     throw new Error("This project contains an invalid timeline track.");
   return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [] };
 }
-export function clipDuration(clip: TimelineClip) { return Math.max(0, clip.sourceOut - clip.sourceIn) / Math.max(.1, clip.speed || 1); }
+
+export function speedAtSourceProgress(clip: TimelineClip, progress: number) {
+  const base = Math.max(.1, Math.min(8, clip.speed || 1));
+  const points = [...(clip.speedCurve || [])]
+    .filter(point => Number.isFinite(point.position) && Number.isFinite(point.speed))
+    .map(point => ({ position: Math.max(0, Math.min(1, point.position)), speed: Math.max(.1, Math.min(8, point.speed)) }))
+    .sort((a, b) => a.position - b.position);
+  if (!points.length) return base;
+  const p = Math.max(0, Math.min(1, progress));
+  if (p <= points[0].position) return points[0].speed;
+  if (p >= points[points.length - 1].position) return points[points.length - 1].speed;
+  const index = points.findIndex(point => point.position >= p);
+  const left = points[index - 1], right = points[index];
+  const mix = (p - left.position) / Math.max(.0001, right.position - left.position);
+  return left.speed + (right.speed - left.speed) * mix;
+}
+function sourceTravelTime(clip: TimelineClip, sourceDelta: number) {
+  const span = Math.max(.0001, clip.sourceOut - clip.sourceIn);
+  const end = Math.max(0, Math.min(span, sourceDelta));
+  if (!clip.speedCurve?.length) return end / Math.max(.1, clip.speed || 1);
+  const steps = Math.max(24, Math.ceil(end * 12));
+  let total = 0;
+  for (let i = 0; i < steps; i++) {
+    const mid = (i + .5) / steps * end;
+    total += (end / steps) / speedAtSourceProgress(clip, mid / span);
+  }
+  return total;
+}
+export function clipDuration(clip: TimelineClip) {
+  return sourceTravelTime(clip, Math.max(0, clip.sourceOut - clip.sourceIn));
+}
+export function clipSourceAtTimeline(clip: TimelineClip, timelineTime: number) {
+  const span = Math.max(0, clip.sourceOut - clip.sourceIn);
+  const target = Math.max(0, Math.min(clipDuration(clip), timelineTime));
+  if (!clip.speedCurve?.length) return clip.sourceIn + target * Math.max(.1, clip.speed || 1);
+  let low = 0, high = span;
+  for (let i = 0; i < 28; i++) {
+    const mid = (low + high) / 2;
+    if (sourceTravelTime(clip, mid) < target) low = mid; else high = mid;
+  }
+  return clip.sourceIn + (low + high) / 2;
+}
+export function clipTimelineAtSource(clip: TimelineClip, sourceTime: number) {
+  return sourceTravelTime(clip, Math.max(0, Math.min(clip.sourceOut - clip.sourceIn, sourceTime - clip.sourceIn)));
+}
 export function timelineDuration(clips: TimelineClip[]) {
   return clips.reduce((max, clip) => Math.max(max, clip.start + clipDuration(clip)), 0);
 }

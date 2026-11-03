@@ -1,4 +1,5 @@
 import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from "../types";
+import { clipDuration, clipSourceAtTimeline, speedAtSourceProgress } from "../project";
 
 const FILTER_CSS: Record<string, string> = {"Original":"none","Cinematic":"contrast(1.16) saturate(1.18)","Vintage":"sepia(.42) contrast(1.04)","Warm":"sepia(.18) saturate(1.28)","Cool":"hue-rotate(12deg) saturate(.9)","B&W":"grayscale(1)","Noir":"grayscale(1) contrast(1.35)","Matte":"contrast(.88) saturate(.82) brightness(1.08)","Fade":"contrast(.88) saturate(.82) brightness(1.08)","Film Grain":"contrast(1.08) saturate(.88)","Golden":"sepia(.18) saturate(1.28)","Arctic":"hue-rotate(12deg) saturate(.9)","Dream":"brightness(1.08) saturate(1.12)","Vivid":"saturate(1.45) contrast(1.08)","Teal Orange":"contrast(1.16) saturate(1.18)","Soft Glow":"brightness(1.08) saturate(1.12)","Sepia":"sepia(.65)","Retro 70s":"sepia(.3) saturate(1.2)","Retro 90s":"sepia(.18) contrast(1.12)","Kodachrome":"sepia(.25) saturate(1.25) contrast(1.08)","Portra":"saturate(1.35) contrast(1.05)","Ektar":"saturate(1.5) contrast(1.1)","Fuji Film":"hue-rotate(-8deg) saturate(1.1)","Polaroid":"sepia(.25) saturate(1.3) brightness(1.05)","Bleach Bypass":"grayscale(1) contrast(1.2)","Cross Process":"hue-rotate(25deg) saturate(1.25)","Moody":"contrast(1.18) saturate(.85)","Dark Drama":"brightness(.86) contrast(1.25)","Bright Day":"brightness(1.12) saturate(1.08)","Pastel":"saturate(.75) brightness(1.06)","Rose":"sepia(.12) hue-rotate(-12deg) saturate(1.15)","Lavender":"hue-rotate(18deg) saturate(.9)","Mint":"hue-rotate(70deg) saturate(.8)","Ocean Blue":"hue-rotate(165deg) saturate(1.15)","Sunset":"sepia(.22) saturate(1.45)","Autumn":"sepia(.32) saturate(1.1)","Winter":"hue-rotate(190deg) saturate(.85)","Spring":"hue-rotate(-25deg) saturate(1.15)","Summer":"sepia(.12) saturate(1.25) brightness(1.08)","Neon":"saturate(1.5) hue-rotate(-8deg)","Cyberpunk":"hue-rotate(145deg) saturate(1.5) contrast(1.12)","Monochrome Blue":"hue-rotate(185deg) saturate(1.4) contrast(1.1)","Monochrome Red":"grayscale(1) sepia(.25)","High Contrast":"grayscale(1) sepia(.25) hue-rotate(300deg)","Low Contrast":"contrast(1.35) saturate(1.08)","Soft Portrait":"contrast(.92) brightness(1.04)","Skin Warmth":"contrast(.96) saturate(.9)","Desaturated":"sepia(.12) saturate(1.25)","Rich Color":"saturate(.65)","Night":"saturate(1.6) contrast(1.12)"};
 
@@ -196,7 +197,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const track = trackFor(clip);
       ctx.globalCompositeOperation = blendModes[track?.blendMode || clip.blendMode || "normal"] || "source-over";
       const localTime = time - clip.start;
-      const clipLen = (clip.sourceOut-clip.sourceIn)/Math.max(.1,clip.speed||1);
+      const clipLen = clipDuration(clip);
       const inProgress = clip.transitionIn ? Math.max(0,Math.min(1,localTime/clip.transitionIn)) : 1;
       const outProgress = clip.transitionOut ? Math.max(0,Math.min(1,(clipLen-localTime)/clip.transitionOut)) : 1;
       const transitionProgress = Math.min(inProgress,outProgress);
@@ -240,18 +241,17 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         for (const clip of orderedVisualClips) {
-          const speed = Math.max(.1, clip.speed || 1);
-          const length = Math.max(0, clip.sourceOut - clip.sourceIn) / speed;
+          const length = clipDuration(clip);
           if (time < clip.start || time >= clip.start + length) continue;
           const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
           if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
           else if (video && video.videoWidth && video.videoHeight) drawCover(video, video.videoWidth, video.videoHeight, clip, time);
         }
         for (const clip of input.clips) {
-          const speed = Math.max(.1, clip.speed || 1);
           const local = time - clip.start;
-          const active = local >= 0 && local < (clip.sourceOut - clip.sourceIn) / speed && !trackHidden(clip);
-          const wanted = clip.sourceIn + Math.max(0, local) * speed;
+          const active = local >= 0 && local < clipDuration(clip) && !trackHidden(clip);
+          const wanted = clipSourceAtTimeline(clip, Math.max(0, local));
+          const speed = speedAtSourceProgress(clip, (wanted - clip.sourceIn) / Math.max(.001, clip.sourceOut - clip.sourceIn));
           const video = mediaByClip.get(clip.id);
           if (video) {
             if (active) {
