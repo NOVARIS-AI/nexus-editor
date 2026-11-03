@@ -2,6 +2,7 @@ import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from 
 import { compileClipTiming } from "./render-timing";
 import { getNexusDeviceProfile } from "./device-profile";
 import { CREATIVE_FILTER_CSS } from "./creative-library";
+import { getSoftNoiseGateGain } from "./audio-processing";
 
 const FILTER_CSS: Record<string, string> = { ...CREATIVE_FILTER_CSS, "Original":"none","Cinematic":"contrast(1.16) saturate(1.18)","Vintage":"sepia(.42) contrast(1.04)","Warm":"sepia(.18) saturate(1.28)","Cool":"hue-rotate(12deg) saturate(.9)","B&W":"grayscale(1)","Noir":"grayscale(1) contrast(1.35)","Matte":"contrast(.88) saturate(.82) brightness(1.08)","Fade":"contrast(.88) saturate(.82) brightness(1.08)","Film Grain":"contrast(1.08) saturate(.88)","Golden":"sepia(.18) saturate(1.28)","Arctic":"hue-rotate(12deg) saturate(.9)","Dream":"brightness(1.08) saturate(1.12)","Vivid":"saturate(1.45) contrast(1.08)","Teal Orange":"contrast(1.16) saturate(1.18)","Soft Glow":"brightness(1.08) saturate(1.12)","Sepia":"sepia(.65)","Retro 70s":"sepia(.3) saturate(1.2)","Retro 90s":"sepia(.18) contrast(1.12)","Kodachrome":"sepia(.25) saturate(1.25) contrast(1.08)","Portra":"saturate(1.35) contrast(1.05)","Ektar":"saturate(1.5) contrast(1.1)","Fuji Film":"hue-rotate(-8deg) saturate(1.1)","Polaroid":"sepia(.25) saturate(1.3) brightness(1.05)","Bleach Bypass":"grayscale(1) contrast(1.2)","Cross Process":"hue-rotate(25deg) saturate(1.25)","Moody":"contrast(1.18) saturate(.85)","Dark Drama":"brightness(.86) contrast(1.25)","Bright Day":"brightness(1.12) saturate(1.08)","Pastel":"saturate(.75) brightness(1.06)","Rose":"sepia(.12) hue-rotate(-12deg) saturate(1.15)","Lavender":"hue-rotate(18deg) saturate(.9)","Mint":"hue-rotate(70deg) saturate(.8)","Ocean Blue":"hue-rotate(165deg) saturate(1.15)","Sunset":"sepia(.22) saturate(1.45)","Autumn":"sepia(.32) saturate(1.1)","Winter":"hue-rotate(190deg) saturate(.85)","Spring":"hue-rotate(-25deg) saturate(1.15)","Summer":"sepia(.12) saturate(1.25) brightness(1.08)","Neon":"saturate(1.5) hue-rotate(-8deg)","Cyberpunk":"hue-rotate(145deg) saturate(1.5) contrast(1.12)","Monochrome Blue":"hue-rotate(185deg) saturate(1.4) contrast(1.1)","Monochrome Red":"grayscale(1) sepia(.25)","High Contrast":"grayscale(1) sepia(.25) hue-rotate(300deg)","Low Contrast":"contrast(1.35) saturate(1.08)","Soft Portrait":"contrast(.92) brightness(1.04)","Skin Warmth":"contrast(.96) saturate(.9)","Desaturated":"sepia(.12) saturate(1.25)","Rich Color":"saturate(.65)","Night":"saturate(1.6) contrast(1.12)"};
 
@@ -328,8 +329,14 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               audio.compressor.ratio.value = compression ? 1 + compression * 0.09 : 1;
               let gateLevel = 1;
               const gateStrength = Math.max(0, Math.min(100, clip.noiseGate ?? 0));
-              if (gateStrength > 0) { audio.analyser.getFloatTimeDomainData(audio.gateBuffer); let energy = 0; for (let sample = 0; sample < audio.gateBuffer.length; sample++) energy += audio.gateBuffer[sample] * audio.gateBuffer[sample]; const rms = Math.sqrt(energy / audio.gateBuffer.length); const threshold = 0.0005 + gateStrength * 0.00035; gateLevel = rms < threshold ? 0 : 1; }
-              audio.gain.gain.setTargetAtTime(Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut) * gateLevel, audioContext!.currentTime, 0.025);
+              if (gateStrength > 0) {
+                audio.analyser.getFloatTimeDomainData(audio.gateBuffer);
+                let energy = 0;
+                for (let sample = 0; sample < audio.gateBuffer.length; sample++) energy += audio.gateBuffer[sample] * audio.gateBuffer[sample];
+                gateLevel = getSoftNoiseGateGain(Math.sqrt(energy / audio.gateBuffer.length), gateStrength);
+              }
+              const targetGain = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut) * gateLevel;
+              audio.gain.gain.setTargetAtTime(targetGain, audioContext!.currentTime, gateStrength > 0 ? 0.075 : 0.025);
               if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, (track?.pan ?? 0) + (clip.pan ?? 0)));
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
@@ -366,6 +373,12 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const x = canvas.width * ((layer.x ?? 50) / 100);
           const y = canvas.height * ((layer.y ?? 50) / 100);
           ctx.translate(x, y);
+          if (layer.animation === "pop") {
+            const entrance = Math.min(1, local / 0.2);
+            const eased = 1 - Math.pow(1 - entrance, 3);
+            const scale = 0.82 + eased * 0.18;
+            ctx.scale(scale, scale);
+          }
           if (layer.rotation) ctx.rotate(layer.rotation * Math.PI / 180);
           ctx.textAlign = layer.align || "center";
           ctx.textBaseline = "middle";
@@ -374,7 +387,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             const boxHeight = textHeight + padding * 2;
             const boxX = ctx.textAlign === "left" ? 0 : ctx.textAlign === "right" ? -boxWidth : -boxWidth / 2;
             ctx.fillStyle = layer.backgroundColor;
-            ctx.fillRect(boxX, -boxHeight / 2, boxWidth, boxHeight);
+            const left = boxX, top = -boxHeight / 2, radius = Math.min(18 * canvas.height / 1080, boxHeight / 2, boxWidth / 2);
+            if (typeof ctx.roundRect === "function") {
+              ctx.beginPath(); ctx.roundRect(left, top, boxWidth, boxHeight, radius); ctx.fill();
+            } else ctx.fillRect(left, top, boxWidth, boxHeight);
           }
           ctx.fillStyle = layer.color;
           ctx.shadowColor = layer.shadow === false ? "transparent" : "rgba(0,0,0,.7)";
