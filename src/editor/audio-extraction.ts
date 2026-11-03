@@ -17,6 +17,9 @@ export async function extractAudioTrackFromVideo(file: File, sourceIn: number, s
   if (!mimeType) throw new Error("This browser does not offer a supported audio recording format.");
   const video = document.createElement("video") as CaptureVideo, url = URL.createObjectURL(file);
   let sourceStream: MediaStream | null = null, outputStream: MediaStream | null = null, audioContext: AudioContext | null = null, recorder: MediaRecorder | null = null;
+  const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  // Start/resume Web Audio immediately while the extract button gesture is still active.
+  if (!video.captureStream && !video.mozCaptureStream && AudioContextCtor) { audioContext = new AudioContextCtor(); void audioContext.resume(); }
   try {
     video.preload = "auto"; video.playsInline = true; video.muted = false; video.volume = 1; video.src = url;
     await new Promise<void>((resolve, reject) => {
@@ -32,9 +35,8 @@ export async function extractAudioTrackFromVideo(file: File, sourceIn: number, s
     if (nativeCapture) { try { sourceStream = nativeCapture.call(video); const tracks = sourceStream.getAudioTracks(); if (tracks.length) outputStream = new MediaStream(tracks); } catch { outputStream = null; } }
     // Mobile fallback: record the decoded media-element audio through Web Audio.
     if (!outputStream) {
-      const Ctor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) throw new Error("This browser supports neither media capture nor Web Audio audio extraction.");
-      audioContext = new Ctor(); await audioContext.resume();
+      if (!AudioContextCtor) throw new Error("This browser supports neither media capture nor Web Audio audio extraction.");
+      audioContext ||= new AudioContextCtor(); await audioContext.resume();
       const destination = audioContext.createMediaStreamDestination();
       audioContext.createMediaElementSource(video).connect(destination);
       outputStream = destination.stream;
