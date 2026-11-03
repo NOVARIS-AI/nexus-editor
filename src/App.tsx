@@ -38,19 +38,8 @@ import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudi
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
-type LocalDraft = { version: 2; projectName: string; clips: TimelineClip[]; textLayers: TimelineTextLayer[]; tracks?: TimelineTrack[]; aspectRatio: string; savedAt: number };
-const readLocalDraft = (): LocalDraft | null => {
-  for (const key of ["nexus-editor-autosave-v2", "nexus-editor-autosave-v1", "nexus-editor-autosave-backup"]) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) continue;
-      const value = JSON.parse(raw) as Partial<Omit<LocalDraft, "version">> & { version?: number };
-      if ((value.version !== 1 && value.version !== 2) || typeof value.projectName !== "string" || !Array.isArray(value.clips) || !Array.isArray(value.textLayers)) continue;
-      return { ...value, version: 2 } as LocalDraft;
-    } catch { continue; }
-  }
-  return null;
-};
+import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
+const readLocalDraft = readRecoverableDraft;
 const themes = [
   { id: "violet", name: "Midnight Violet", colors: ["#a923ed", "#5d42ff", "#00bfe9"] },
   { id: "ocean", name: "Ocean Blue", colors: ["#168cff", "#2855e8", "#20d5e8"] },
@@ -188,18 +177,16 @@ export default function App() {
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      try {
-        const snapshot: LocalDraft = { version: 2, projectName, clips, textLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), aspectRatio, savedAt: Date.now() };
-        const serialised = JSON.stringify(snapshot);
-        const previous = localStorage.getItem("nexus-editor-autosave-v2") || localStorage.getItem("nexus-editor-autosave-v1");
-        if (previous) localStorage.setItem("nexus-editor-autosave-backup", previous);
-        localStorage.setItem("nexus-editor-autosave-v2", serialised);
-        localStorage.setItem("nexus-editor-autosave-v1", serialised);
-        setDraftSaveStatus("Autosaved · recovery copy kept on this device");
-      } catch {
-        setDraftSaveStatus("Autosave storage full · use Save project");
-      }
-    }, 800);
+      const snapshot: LocalDraft = {
+        version: 3, projectName, clips, textLayers,
+        tracks: trackStates.map(track => ({ ...track, ...(trackMix[track.id] || {}) })),
+        aspectRatio, savedAt: Date.now()
+      };
+      const saved = writeRecoverableDraft(snapshot);
+      setDraftSaveStatus(saved
+        ? "Autosaved · recovery backup kept on this device"
+        : "Autosave storage is full · export a project backup");
+    }, 900);
     return () => window.clearTimeout(timer);
   }, [projectName, clips, textLayers, trackStates, trackMix, aspectRatio]);
   useEffect(() => {
