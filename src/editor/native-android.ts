@@ -7,6 +7,7 @@ type NativeEngine = {
  extractAudio(o:{sourceUri:string;startSeconds:number;endSeconds:number}):Promise<{fileUri:string;fileName:string;mimeType:string}>;
  transcodeVideo(o:{sourceUri:string}):Promise<{fileUri:string;fileName:string;mimeType:string}>;
  cancelNativeExport():Promise<void>;
+ enqueueAudioExtraction(o:{sourceUri:string;startSeconds:number;endSeconds:number}):Promise<{jobId:string}>;
  enqueueBackgroundCopy(o:{sourceUri:string;outputName?:string}):Promise<{jobId:string}>;
  getBackgroundCopyStatus(o:{jobId:string}):Promise<{state:string;progress:number;fileUri?:string;error?:string}>;
 };
@@ -21,7 +22,18 @@ export async function pickNativeMediaFiles(types:string[]):Promise<File[]>{
 }
 function requireNativeUri(file:File):string{const uri=(file as NativeFile).__nexusNativeUri;if(!uri)throw new Error("Re-import this media through the APK's Android picker to use the native engine.");return uri;}
 async function readNativeOutput(uri:string,name:string,mime:string):Promise<File>{const response=await fetch(Capacitor.convertFileSrc(uri));if(!response.ok)throw new Error("Android created the output but the editor could not reopen it.");return new File([await response.blob()],name,{type:mime,lastModified:Date.now()});}
-export async function extractAudioNative(file:File,startSeconds:number,endSeconds:number):Promise<File>{if(!isNativeAndroid())throw new Error("Native audio extraction is available only inside the APK.");const out=await NativeEngine.extractAudio({sourceUri:requireNativeUri(file),startSeconds,endSeconds});return readNativeOutput(out.fileUri,file.name.replace(/\.[^.]+$/,"")+"-audio.m4a","audio/mp4");}
+export async function extractAudioNative(file:File,startSeconds:number,endSeconds:number):Promise<File>{
+ if(!isNativeAndroid())throw new Error("Native audio extraction is available only inside the APK.");
+ const queued=await NativeEngine.enqueueAudioExtraction({sourceUri:requireNativeUri(file),startSeconds,endSeconds});
+ const started=Date.now();
+ while(Date.now()-started<4*60*60*1000){
+  const status=await NativeEngine.getBackgroundCopyStatus({jobId:queued.jobId});
+  if(status.state==="SUCCEEDED"&&status.fileUri)return readNativeOutput(status.fileUri,file.name.replace(/\.[^.]+$/,"")+"-audio.m4a","audio/mp4");
+  if(status.state==="FAILED"||status.state==="CANCELLED")throw new Error(status.error||"Android background audio extraction did not complete.");
+  await new Promise(resolve=>setTimeout(resolve,650));
+ }
+ throw new Error("Android audio extraction is taking too long. Your original project is unchanged; try a shorter clip.");
+}
 export async function transcodeNativeVideo(file:File):Promise<File>{if(!isNativeAndroid())throw new Error("Media3 rendering is available only inside the APK.");const out=await NativeEngine.transcodeVideo({sourceUri:requireNativeUri(file)});return readNativeOutput(out.fileUri,out.fileName||"nexus-render.mp4","video/mp4");}
 export async function enqueueBackgroundNativeCopy(file:File,outputName:string):Promise<string>{const out=await NativeEngine.enqueueBackgroundCopy({sourceUri:requireNativeUri(file),outputName});return out.jobId;}
 export async function getBackgroundNativeCopyStatus(jobId:string){return NativeEngine.getBackgroundCopyStatus({jobId});}

@@ -30,9 +30,13 @@ Each clip's speed curve is now compiled once at export start into a source-time 
 ## Native Android media engines
 The APK bundles a Capacitor plugin backed by Android MediaExtractor/MediaMuxer, AndroidX Media3 Transformer and WorkManager.
 
-- **Native audio extraction:** extracts the audio track from a selected video segment without real-time playback capture. Codec/container compatibility depends on the source track and Android device.
+- **Native audio extraction:** runs as a WorkManager background job, extracts the selected audio range without real-time playback capture, and exposes progress/completion through the job-status bridge. Codec/container compatibility depends on the source track and Android device.
 - **Native Media3 transcode:** converts a single source video clip to H.264/AAC MP4. This is a native clip transcode path, not a full timeline renderer; multi-track compositing, text, transitions and editor effects are not passed to Media3.
-- **Background media job:** WorkManager can copy/remux the source audio/video tracks in the background and report progress. It does not render a multi-layer project or apply timeline effects.
+- **Background media jobs:** WorkManager runs selected-range audio extraction and codec-preserving source remux in the background, with progress and completion status. Source remux does not render a multi-layer project or apply timeline effects.
 - **Browser timeline export:** remains the current complete project-render path, including its supported compositing and audio effects. It is not frame-accurate WebCodecs output, and long exports remain constrained by WebView/browser memory and codec support.
 
 Native engine calls require a source URI supplied by the Android file picker. Files imported through a browser or relinked from a web project use the browser-based path. Native paths and the shared renderer still require physical-device validation before being considered production-ready. A successful CI APK build confirms compilation and packaging, not device-level playback/export quality.
+
+
+## Rendering boundaries
+The current browser renderer remains the project-level compositor. It composites overlapping video and image clips in track order, applies supported transforms, filters, masks, chroma key, transitions and timed text, and mixes timeline audio. The Android Media3 action is still a single-source transcode; WorkManager background jobs are media extraction/remux jobs, not a native multi-track project renderer. A full Android composition renderer and real-device QA remain open engineering milestones.
