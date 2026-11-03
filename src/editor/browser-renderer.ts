@@ -295,7 +295,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const fontSize = Math.max(12, layer.fontSize * canvas.height / 1080);
           const maxWidth = canvas.width * .88;
           const lineHeight = fontSize * 1.2;
-          ctx.font = \`bold \${fontSize}px \${layer.fontFamily || "Arial"}\`;
+          ctx.font = `bold ${fontSize}px ${layer.fontFamily || "Arial"}`;
           const lines: string[] = [];
           (layer.text || "").split(/\r?\n/).forEach(paragraph => {
             const words = paragraph.split(/\s+/).filter(Boolean);
