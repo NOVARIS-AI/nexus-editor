@@ -26,6 +26,7 @@ import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/tr
 import { askNexusDirector } from "./editor/ai-director";
 import { createApostleQuotePosterLayers } from "./editor/image-engine";
 import { getChromaSvgMatrix } from "./editor/video-engine";
+import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
 
