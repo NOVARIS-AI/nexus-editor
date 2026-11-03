@@ -61,6 +61,7 @@ export default function App() {
   const [draftSaveStatus, setDraftSaveStatus] = useState(recoveryDraft ? "Recovered draft · re-import media" : "Autosave ready");
   const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
+  const [pendingProjectAssets, setPendingProjectAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>(() => recoveryDraft?.clips || []);
   const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>(() => Object.fromEntries((recoveryDraft?.tracks || []).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}])));
   const [trackStates, setTrackStates] = useState<TimelineTrack[]>(() => recoveryDraft?.tracks?.length ? recoveryDraft.tracks : defaultTracks.map(track => ({ ...track, locked: false })));
@@ -345,13 +346,20 @@ export default function App() {
   }, [page, selected, clips, undoStack, redoStack]);
   function importMedia(files: FileList | null) {
     if (!files) return;
-    const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => ({
-      id: uid(), name: file.name,
-      kind: file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image",
-      duration: file.type.startsWith("image/") ? 5 : 0, mimeType: file.type,
-      file, objectUrl: URL.createObjectURL(file)
-    }));
-    setAssets(old => [...old, ...added]);
+    const remaining = [...pendingProjectAssets];
+    const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => {
+      const kind = file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image";
+      const matchIndex = remaining.findIndex(item => item.name === file.name && item.kind === kind);
+      const saved = matchIndex >= 0 ? remaining.splice(matchIndex, 1)[0] : undefined;
+      return {
+        ...(saved || {}),
+        id: saved?.id || uid(), name: file.name, kind,
+        duration: saved?.duration || (kind === "image" ? 5 : 0), mimeType: file.type,
+        file, objectUrl: URL.createObjectURL(file)
+      } as MediaAsset;
+    });
+    setPendingProjectAssets(remaining);
+    setAssets(old => [...old.filter(existing => !added.some(item => item.id === existing.id)), ...added]);
     added.forEach(a => {
       if (a.kind !== "image") {
         const probe = document.createElement(a.kind);
@@ -359,7 +367,12 @@ export default function App() {
         probe.onloadedmetadata = () => setAssets(old => old.map(x => x.id === a.id ? { ...x, duration: Number.isFinite(probe.duration) ? probe.duration : 5 } : x));
       }
     });
-    setStatus(added.length + " media file(s) imported");
+    if (pendingProjectAssets.length) {
+      const linked = added.filter(item => pendingProjectAssets.some(saved => saved.id === item.id)).length;
+      setStatus(remaining.length ? linked + " project media file(s) relinked · " + remaining.length + " still needed" : "All project media relinked · your timeline is ready");
+    } else {
+      setStatus(added.length + " media file(s) imported");
+    }
   }
   async function addDownloadedAudio(file: File, source: { pageUrl: string; creator: string; license: string; licenseUrl: string; attribution: string }) {
     const objectUrl = URL.createObjectURL(file);
@@ -944,8 +957,18 @@ export default function App() {
     if (!file) return;
     try {
       const p = parseProject(await file.text());
-      setProjectName(p.name); setClips(p.clips); setTextLayers(p.textLayers || []); setTrackStates(p.tracks?.length ? p.tracks : defaultTracks); setTrackMix(Object.fromEntries((p.tracks||[]).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}]))); setStatus("Project opened — audio bus settings restored; re-import source media to relink assets"); setPage("editor");
-    } catch { setStatus("Could not open this project file"); }
+      assets.forEach(item => { if (item.objectUrl) URL.revokeObjectURL(item.objectUrl); });
+      setAssets([]);
+      setPendingProjectAssets(p.assets as MediaAsset[]);
+      setProjectName(p.name); setClips(p.clips); setTextLayers(p.textLayers || []);
+      setSelected(null); setSelectedTextLayer(null); setBeatMarkers([]);
+      setTrackStates(p.tracks?.length ? p.tracks : defaultTracks);
+      setTrackMix(Object.fromEntries((p.tracks||[]).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}])));
+      setStatus(p.assets.length ? "Project opened · re-import the original media files to relink them automatically by filename and media type" : "Project opened · no external media files are required");
+      setPage("editor");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not open this project file");
+    }
   }
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
