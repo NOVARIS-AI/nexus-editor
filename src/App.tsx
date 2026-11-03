@@ -963,6 +963,76 @@ export default function App() {
     setAspectRatio(aiFormat);
     setActiveTool("media");
   }
+  function applyReferencePlanToTimeline(plan: { scenes: { title: string; visual: string; narration: string; duration: number; searchTerms: string[]; overlayText?: string }[] }, context: ReturnType<typeof buildReferenceContext>) {
+    const replacementAssets = assets.filter(item => {
+      const role = context.find(entry => entry.id === item.id)?.role;
+      return item.kind !== "audio" && role !== "reference video";
+    });
+    if (!replacementAssets.length) {
+      setAiReply("I have prepared the reference edit plan, but I need replacement pictures or clips before I can build the new timeline. The reference video is kept as a style guide, not reused as replacement footage.");
+      return false;
+    }
+    const audioSources = assets.filter(item => item.kind === "audio");
+    const base = timelineDuration(clips);
+    let cursor = base;
+    const additions: TimelineClip[] = [];
+    const textAdditions: TimelineTextLayer[] = [];
+    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
+    const usedAudioTracks = new Set(clips.filter(clip => clip.trackId.startsWith("audio-")).map(clip => clip.trackId));
+    let sceneCount = 0;
+    for (const [index, scene] of plan.scenes.slice(0, 8).entries()) {
+      const words = (scene.searchTerms.join(" ") + " " + scene.visual + " " + scene.title).toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2);
+      const ranked = replacementAssets.map(item => {
+        const name = item.name.toLowerCase();
+        const score = words.reduce((sum, word) => sum + (name.includes(word) ? 1 : 0), 0);
+        return { item, score };
+      }).sort((a,b) => b.score-a.score);
+      const chosen = ranked[index % Math.max(1, ranked.length)]?.item || replacementAssets[index % replacementAssets.length];
+      if (!chosen) continue;
+      const requestedLength = Math.max(1, Math.min(60, Number(scene.duration) || 5));
+      const availableLength = Math.max(0.5, Number(chosen.duration) || requestedLength);
+      const sourceLength = chosen.kind === "image" ? requestedLength : Math.min(requestedLength, availableLength);
+      const clip: TimelineClip = {
+        id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor,
+        sourceIn: 0, sourceOut: sourceLength, label: scene.title || chosen.name,
+        transitionIn: index === 0 ? 0 : 0.35, transitionOut: 0.35, transitionStyle: "fade",
+        fit: "cover", speed: 1,
+        aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" }
+      };
+      additions.push(clip);
+      const title = (scene.overlayText || scene.title || "").trim();
+      if (title) textAdditions.push({
+        id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceLength, 4),
+        text: title.slice(0, 180), color: "#ffffff", fontSize: 42, fontFamily: "Arial",
+        x: 50, y: 78, align: "center", shadow: true, animation: "fade"
+      });
+      cursor += sourceLength;
+      sceneCount++;
+    }
+    const audioAdditions: TimelineClip[] = [];
+    for (const source of audioSources.slice(0, 3)) {
+      const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[audioAdditions.length % audioTrackIds.length];
+      usedAudioTracks.add(trackId);
+      const length = Math.max(0.5, Number(source.duration) || 5);
+      audioAdditions.push({
+        id: uid(), assetId: source.id, trackId, start: base, sourceIn: 0,
+        sourceOut: length, label: source.name, gain: 0.75, muted: false,
+        fadeIn: 0.4, fadeOut: 0.8, speed: 1
+      });
+    }
+    if (!additions.length) return false;
+    applyClipChange([...clips, ...additions, ...audioAdditions], "AI reference edit assembled on the timeline.");
+    setTextLayers(old => [...old, ...textAdditions]);
+    setSelected(additions[0].id);
+    setPlayhead(base);
+    setProjectName(projectName || "NEXUS Reference Edit");
+    setPage("editor"); setEditorView("workspace");
+    setActiveTool("edit"); setActiveSubtool("select");
+    setAiWorkflowStage("editing");
+    setAiReply("I built an editable reference-inspired sequence with " + sceneCount + " visual scenes, " + textAdditions.length + " timed title layers and " + audioAdditions.length + " imported audio track(s). The reference video was used as guidance, while replacement media was placed on the timeline. Review the sequence and adjust the scene matches; this is an editable draft, not a finished export.");
+    return true;
+  }
+
   async function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
     if (!request) return;
@@ -1023,10 +1093,11 @@ export default function App() {
           referenceWorkflow: referenceContext, visualSamples, clipCount: clips.length,
           hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
-        setAiReply(result.plan.summary + "\n\n" +
+        const applied = applyReferencePlanToTimeline(result.plan, referenceContext);
+        if (!applied) setAiReply(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
-          "\n\nThis is a reference-based editing plan. Uploaded media stays unchanged. Visual samples were sent to the configured AI Brain when supported; the plan identifies which parts can be edited with the current timeline tools and which need generation workers.");
-        setEngineReport(["Reference workflow · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query)]);
+          "\n\nThe reference plan is ready. Add replacement media to build the editable timeline.");
+        setEngineReport(["AI Director · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
       }
