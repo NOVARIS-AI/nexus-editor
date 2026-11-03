@@ -3,16 +3,16 @@ export interface EditorToolEntry { id: string; label: string; actions: string[];
 
 export const EDITOR_TOOL_REGISTRY: EditorToolEntry[] = [
   { id: "edit", label: "Edit", actions: ["select", "split", "mute", "speed", "animation", "cover", "delete", "trim", "undo", "redo"], capability: "working" },
-  { id: "audio", label: "Audio", actions: ["sounds", "extract", "voiceover", "effects", "fade", "volume"], capability: "guidance" },
-  { id: "text", label: "Text", actions: ["add text", "fonts", "style", "animation", "align", "auto captions"], capability: "guidance" },
+  { id: "audio", label: "Audio", actions: ["generate original SFX", "generate music beds", "preview", "add to timeline", "extract", "fade", "volume"], capability: "working" },
+  { id: "text", label: "Text", actions: ["add timed text", "editable title layouts", "quote poster layers", "fonts", "style", "animation", "align"], capability: "working" },
   { id: "overlay", label: "Overlay", actions: ["add overlay", "mask", "blend", "position", "opacity"], capability: "guidance" },
   { id: "effects", label: "Effects", actions: ["one-tap looks", "video filters", "transitions", "motion keyframes"], capability: "working" },
   { id: "captions", label: "Captions", actions: ["auto captions", "manual captions", "caption style", "language"], capability: "guidance" },
   { id: "filters", label: "Filters", actions: ["100+ colour looks", "cinematic", "film", "portrait", "product", "creative"], capability: "working" },
-  { id: "adjust", label: "Adjust", actions: ["brightness", "contrast", "saturation", "exposure", "temperature", "hsl"], capability: "guidance" },
+  { id: "adjust", label: "Adjust", actions: ["image finishing presets", "brightness", "contrast", "saturation", "exposure", "temperature", "HSL"], capability: "working" },
   { id: "media", label: "Media", actions: ["import photos", "import videos", "import audio", "browse files", "media library"], capability: "working" },
   { id: "stickers", label: "Stickers", actions: ["emoji and symbols", "import image sticker"], capability: "working" },
   { id: "background", label: "Background", actions: ["color", "blur", "canvas"], capability: "guidance" },
   { id: "ratio", label: "Ratio", actions: ["9:16", "16:9", "1:1", "4:5", "3:4"], capability: "working" },
-  { id: "export", label: "Export", actions: ["resolution", "frame rate", "render", "share"], capability: "planned" }
+  { id: "export", label: "Export", actions: ["browser timeline render", "resolution", "frame rate", "download", "share"], capability: "working" }
 ];

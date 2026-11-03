@@ -985,6 +985,94 @@ export default function App() {
       }
       return;
     }
+    // NEXUS AI tool bridge: translate natural-language requests into real editor operations.
+    // Local tools edit the current project immediately; model-worker jobs are only submitted when configured.
+    const selectedKind = asset?.kind;
+    const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
+    const normalized = request.replace(/[’']/g, "'").replace(/\\s+/g, " ").trim();
+
+    const requestedTemplate = CREATIVE_TEMPLATES.find(item => normalized.includes(item.name.toLowerCase()));
+    if (requestedTemplate && /template|apply|use|make|create|start/.test(normalized)) {
+      applyCreativeTemplate(requestedTemplate);
+      setAiReply("Applied the " + requestedTemplate.name + " template to the project. Its title, subtitle and footer are editable timeline layers; visual clips received the template colour and transition defaults. Add or replace footage to finish the design.");
+      return;
+    }
+
+    const requestedEffect = CREATIVE_EFFECTS.find(item => normalized.includes(item.name.toLowerCase()));
+    if (requestedEffect && /effect|look|apply|make|give|style/.test(normalized)) {
+      if (!visualSelected) { setAiReply("Select a photo or video clip first. Then I can apply " + requestedEffect.name + " directly to it."); return; }
+      applyCreativeEffect(requestedEffect);
+      setAiReply("Applied " + requestedEffect.name + " to the selected visual clip. The effect is saved in the project settings and can be adjusted or undone.");
+      return;
+    }
+
+    const styleAliases: Record<string, "portrait"|"product"|"editorial"|"mono"|"food"|"landscape"|"night"|"pastel"|"dramatic"|"warm-film"|"clean-studio"|"cool-editorial"|"soft-glow"> = {
+      "portrait":"portrait","product":"product","editorial":"editorial","black and white":"mono","monochrome":"mono",
+      "food":"food","landscape":"landscape","night":"night","pastel":"pastel","dramatic":"dramatic",
+      "warm film":"warm-film","film":"warm-film","clean studio":"clean-studio","studio":"clean-studio",
+      "cool editorial":"cool-editorial","soft glow":"soft-glow"
+    };
+    const requestedStyle = Object.entries(styleAliases).find(([label]) => normalized.includes(label));
+    if (requestedStyle && /image|photo|picture|portrait|product|poster|style|look|edit/.test(normalized)) {
+      if (!visualSelected) { setAiReply("Select an image or video clip first so I can apply the " + requestedStyle[0] + " finishing preset."); return; }
+      updateSelectedClip(getImageStylePreset(requestedStyle[1]));
+      setActiveTool("adjust"); setActiveSubtool("image-style");
+      setAiReply("Applied the " + requestedStyle[0] + " image-finishing preset to the selected visual clip. All settings remain editable.");
+      return;
+    }
+
+    const requestedFilterName = [...CREATIVE_FILTERS.map(item => item.name), ...FILTER_PRESETS].find(name => normalized.includes(name.toLowerCase()));
+    if (requestedFilterName && /filter|colour|color|look|apply|make/.test(normalized)) {
+      if (!visualSelected) { setAiReply("Select a photo or video clip first to apply a colour filter."); return; }
+      updateSelectedClip({ filter: requestedFilterName });
+      setActiveTool("filters"); setActiveSubtool(requestedFilterName);
+      setAiReply("Applied the " + requestedFilterName + " filter to the selected visual clip. You can switch filters or fine-tune the image controls.");
+      return;
+    }
+
+    const namedAudio = NEXUS_AUDIO_PRESETS.find(item => normalized.includes(item.name.toLowerCase()));
+    const audioIntent = /music|sound effect|sfx|whoosh|impact|riser|chime|audio bed|background audio|background sound/.test(normalized);
+    if (namedAudio || audioIntent) {
+      const preset = namedAudio || (/(afro|afrobeats|afrobeat)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Afro Groove Bed") :
+        /(cinematic|trailer|epic)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Cinematic Build Bed") :
+        /(piano|emotional|warm)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Warm Piano Bed") :
+        /(lo.?fi|study|chill)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Lo-fi Study Bed") :
+        /(impact|hit|boom)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Cinematic Impact") :
+        /(riser|build)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Trailer Riser") :
+        /(chime|notification|ping)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Notification Chime") :
+        /(whoosh|transition|swoosh)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Soft Whoosh") :
+        NEXUS_AUDIO_PRESETS.find(item => item.name === "Ambient Pulse"));
+      if (preset) {
+        await addGeneratedAudio(preset);
+        setAiReply("Generated the original NEXUS " + preset.name + " audio locally and added the WAV asset to the audio timeline. Preview it, adjust its volume, and extend music beds by duplicating them.");
+        return;
+      }
+    }
+
+    const remoteKind = /\\b(video|clip|footage)\\b/.test(normalized) && /\\b(generate|create|make)\\b/.test(normalized) ? "video" :
+      /\\b(image|picture|photo|poster|artwork)\\b/.test(normalized) && /\\b(generate|create|make)\\b/.test(normalized) ? "image" :
+      /\\b(generate|create|make)\\b/.test(normalized) && /\\b(narration|voiceover|speech|music track|full song)\\b/.test(normalized) ? "audio" : null;
+    if (remoteKind) {
+      const available = engineAvailability?.engines?.[remoteKind];
+      if (!available?.configured) {
+        setAiReply("The " + remoteKind + " generation worker is not connected yet. I have not pretended to generate a file. " +
+          (remoteKind === "image" ? "You can still create editable poster and graphic layers in the Image/Text tools, or apply an image style to an imported picture." :
+          remoteKind === "video" ? "I can build an editable storyboard from your brief, use imported or licensed media, and render the current timeline with the browser renderer." :
+          "I can generate original short sound effects and music beds with the local NEXUS audio synthesiser; full narration or long-form music needs a connected audio worker."));
+        return;
+      }
+      setGenerationBusy(remoteKind + ":prompt");
+      setAiReply("Submitting your " + remoteKind + " generation request to the configured NEXUS worker…");
+      try {
+        const job = await submitEngineJob(remoteKind, aiBrief.trim(), { aspectRatio: aiFormat, style: aiStyle, projectName, source: "nexus-ai-tool-bridge" });
+        setGenerationJobs(old => [{ ...job, sceneTitle: aiBrief.trim().slice(0, 64) || "AI generated " + remoteKind }, ...old.filter(item => item.id !== job.id)]);
+        setAiReply("The " + remoteKind + " job was accepted by the configured worker. Its progress and output will appear in Generation Jobs; refresh the job to import a verified result into the project.");
+      } catch (error) {
+        setAiReply(error instanceof Error ? error.message : "The generation worker rejected this request. Your project is unchanged.");
+      } finally { setGenerationBusy(null); }
+      return;
+    }
+
     const creativeCommand = interpretCreativeCommand(request);
     if (creativeCommand === "duplicate-clip") {
       if (!selectedClip) { setAiReply("Select a clip first, then ask me to duplicate it."); return; }
