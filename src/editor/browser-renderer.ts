@@ -268,7 +268,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
               if (Math.abs(audio.element.currentTime - wanted) > .3) { try { audio.element.currentTime = wanted; } catch {} }
               audio.element.playbackRate = speed;
               if (audio.element.paused) void audio.element.play().catch(() => {});
-              const elapsed = Math.max(0, local), remaining = Math.max(0, (clip.sourceOut - clip.sourceIn) / speed - elapsed);
+              const elapsed = Math.max(0, local), remaining = Math.max(0, clipDuration(clip) - elapsed);
               const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
               const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
               const track = trackFor(clip);
