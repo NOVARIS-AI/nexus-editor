@@ -22,16 +22,17 @@ cd android
 ./gradlew assembleDebug
 ```
 
-## Important engine boundaries
-The Android shell does not magically turn browser rendering into a native Media3/MediaCodec pipeline. Timeline rendering, audio extraction and effects still use the shared WebView/browser engine at this stage, so codec support, memory use and long-export reliability remain device-dependent. The native picker and native file-save path remove two important browser-only workflow dependencies. Native Media3 rendering, background WorkManager exports and Android-native audio extraction are separate engine milestones and must be implemented and tested before claiming feature parity with a professional native editor.
+## Shared timeline renderer
+The shared browser renderer composites active video and image clips in track order, draws text overlays, applies supported clip filters, transforms, masks, chroma key, transitions, blend modes and keyframes, and mixes clip audio through the Web Audio graph. It records the rendered canvas stream with MediaRecorder (MP4 only when the browser actually supports that MIME type; otherwise WebM).
 
+Each clip's speed curve is now compiled once at export start into a source-time lookup table. This avoids repeating numerical integration and binary searches on every animation frame for every clip, reducing avoidable work on lower-memory Android devices. Export dimensions now honour quality labels correctly: 1080p landscape is 1920×1080 and 1080p portrait is 1080×1920. Device pixel limits are checked against those corrected dimensions before rendering.
 
 ## Native Android media engines
-
-The APK now bundles a Capacitor plugin backed by Android MediaExtractor/MediaMuxer, AndroidX Media3 Transformer and WorkManager.
+The APK bundles a Capacitor plugin backed by Android MediaExtractor/MediaMuxer, AndroidX Media3 Transformer and WorkManager.
 
 - **Native audio extraction:** extracts the audio track from a selected video segment without real-time playback capture. Codec/container compatibility depends on the source track and Android device.
-- **Native Media3 transcode:** converts a single source video clip to H.264/AAC MP4. This is a native clip transcode path, not a full timeline renderer; multi-track compositing, text, transitions and editor effects still use the shared browser renderer.
-- **Background media job:** WorkManager can copy/remux the source audio/video tracks in the background and report progress. It does not yet render a multi-layer project or apply timeline effects.
+- **Native Media3 transcode:** converts a single source video clip to H.264/AAC MP4. This is a native clip transcode path, not a full timeline renderer; multi-track compositing, text, transitions and editor effects are not passed to Media3.
+- **Background media job:** WorkManager can copy/remux the source audio/video tracks in the background and report progress. It does not render a multi-layer project or apply timeline effects.
+- **Browser timeline export:** remains the current complete project-render path, including its supported compositing and audio effects. It is not frame-accurate WebCodecs output, and long exports remain constrained by WebView/browser memory and codec support.
 
-Native engine calls require a source URI supplied by the Android file picker. Files imported through a browser or relinked from a web project use the browser-based path. These native paths require validation on physical Android devices before being considered production-ready.
+Native engine calls require a source URI supplied by the Android file picker. Files imported through a browser or relinked from a web project use the browser-based path. Native paths and the shared renderer still require physical-device validation before being considered production-ready. A successful CI APK build confirms compilation and packaging, not device-level playback/export quality.
