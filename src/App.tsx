@@ -245,7 +245,7 @@ export default function App() {
     const tout = previewClip?.transitionOut ? Math.max(0,Math.min(1,(length-local)/previewClip.transitionOut)) : 1;
     const transition = Math.min(tin,tout), style=previewClip?.transitionStyle||"fade";
     return { ...values, transitionAlpha:style==="fade"?transition:1, transitionBlur:style==="blur"?(1-transition)*12:0, wipe:style==="wipe"?transition:1, slide:style==="slide"?(1-tin)*16-(1-tout)*16:0, zoomBoost:style==="zoom"?(0.82+0.18*tin)*(0.82+0.18*tout):1 };
-  }
+  }, [previewClip, playhead]);
   useEffect(() => {
     const viewport = timelineScrollRef.current;
     if (!viewport) return;
