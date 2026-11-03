@@ -25,7 +25,7 @@ cd android
 ## Shared timeline renderer
 The shared browser renderer composites active video and image clips in track order, draws text overlays, applies supported clip filters, transforms, masks, chroma key, transitions, blend modes and keyframes, and mixes clip audio through the Web Audio graph. It records the rendered canvas stream with MediaRecorder (MP4 only when the browser actually supports that MIME type; otherwise WebM).
 
-Each clip's speed curve is now compiled once at export start into a source-time lookup table. This avoids repeating numerical integration and binary searches on every animation frame for every clip, reducing avoidable work on lower-memory Android devices. Export dimensions now honour quality labels correctly: 1080p landscape is 1920×1080 and 1080p portrait is 1080×1920. Device pixel limits are checked against those corrected dimensions before rendering.
+Each clip's speed curve is now compiled once at export start into a source-time lookup table. This avoids repeating numerical integration and binary searches on every animation frame for every clip, reducing avoidable work on lower-memory Android devices. Export dimensions now honour quality labels correctly: 1080p landscape is 1920×1080, 1080p portrait is 1080×1920, and square exports remain square. The renderer also rejects clip out-points that exceed the decoded source media duration instead of silently rendering an empty tail. Device pixel limits are checked against the selected dimensions before rendering.
 
 ## Native Android media engines
 The APK bundles a Capacitor plugin backed by Android MediaExtractor/MediaMuxer, AndroidX Media3 Transformer and WorkManager.

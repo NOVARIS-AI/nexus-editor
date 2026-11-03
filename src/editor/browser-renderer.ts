@@ -60,10 +60,16 @@ const seekMedia = async (media: HTMLMediaElement, time: number, signal?: AbortSi
 };
 
 function dimensions(ratio: string, quality: string) {
-  const base = quality === "720p" ? 720 : quality === "2K" ? 1440 : quality === "4K Ultra HD" ? 2160 : 1080;
+  // Quality labels describe the short edge: 1080p landscape is 1920×1080,
+  // while 1080p portrait is 1080×1920.
+  const shortEdge = quality === "720p" ? 720 : quality === "2K" ? 1440 : quality === "4K Ultra HD" ? 2160 : 1080;
   const parts = ratio.split(":").map(Number);
-  const w = parts[0] || 16, h = parts[1] || 9;
-  return w >= h ? { width: base, height: Math.round(base * h / w) } : { width: Math.round(base * w / h), height: base };
+  const w = Number.isFinite(parts[0]) && parts[0] > 0 ? parts[0] : 16;
+  const h = Number.isFinite(parts[1]) && parts[1] > 0 ? parts[1] : 9;
+  if (Math.abs(w - h) < 0.0001) return { width: shortEdge, height: shortEdge };
+  return w > h
+    ? { width: Math.round(shortEdge * w / h), height: shortEdge }
+    : { width: shortEdge, height: Math.round(shortEdge * h / w) };
 }
 
 export async function renderTimeline(input: RenderInput): Promise<Blob> {
@@ -145,6 +151,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         const video = document.createElement("video"); video.src = asset.objectUrl; video.muted = !audioContext; video.playsInline = true; video.preload = "auto";
         await waitForMedia(video, input.signal);
         throwIfAborted();
+        if (Number.isFinite(video.duration) && clip.sourceOut > video.duration + 0.12) {
+          throw new Error(`The out-point for "${clip.label}" is beyond the source video's duration. Trim the clip again before exporting.`);
+        }
         await seekMedia(video, clip.sourceIn, input.signal);
         throwIfAborted();
         if (audioContext && audioDestination) {
@@ -157,6 +166,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         const audio = document.createElement("audio"); audio.src = asset.objectUrl; audio.preload = "auto";
         await waitForMedia(audio, input.signal);
         throwIfAborted();
+        if (Number.isFinite(audio.duration) && clip.sourceOut > audio.duration + 0.12) {
+          throw new Error(`The out-point for "${clip.label}" is beyond the source audio duration. Trim the clip again before exporting.`);
+        }
         await seekMedia(audio, clip.sourceIn, input.signal);
         throwIfAborted();
         if (audioContext && audioDestination) {
