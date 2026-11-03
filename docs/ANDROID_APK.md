@@ -40,3 +40,12 @@ Native engine calls require a source URI supplied by the Android file picker. Fi
 
 ## Rendering boundaries
 The current browser renderer remains the project-level compositor. It composites overlapping video and image clips in track order, applies supported transforms, filters, masks, chroma key, transitions and timed text, and mixes timeline audio. The Android Media3 action is still a single-source transcode; WorkManager background jobs are media extraction/remux jobs, not a native multi-track project renderer. A full Android composition renderer and real-device QA remain open engineering milestones.
+
+
+## Built-in creative library
+- 100+ browser-rendered colour looks across cinematic, film, portrait, product, colour and creative categories. Added looks are CSS filter pipelines and remain editable on each clip; they are not third-party LUT files.
+- 25 one-tap effect combinations combine a filter with clip exposure, contrast, saturation, temperature and vignette controls. They apply to the selected visual clip and travel through the shared preview/export filter pipeline.
+- 30 editable starter templates across lifestyle, gaming, business, product, education, creator and event categories. Applying a template creates timed title, subtitle and footer layers, sets the canvas ratio and applies its look/transition starting points to existing clips. Templates are starting compositions, not bundled licensed stock footage or finished pre-rendered videos; users add their own media and replace placeholder text.
+- Expanded emoji and symbol sticker palette; imported image stickers remain supported through the overlay/media workflow.
+- Five editable transition styles (fade, zoom, wipe, slide and blur), plus motion/keyframe presets remain available in the editor.
+- Sound-effect names/categories are discovery labels, not an included library of downloadable copyrighted recordings. Imported or properly licensed sound files are required for timeline use.
