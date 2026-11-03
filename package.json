@@ -20,7 +20,8 @@
     "@capacitor/android": "^7.0.0",
     "@capacitor/filesystem": "^7.0.0",
     "@capacitor/share": "^7.0.0",
-    "@capawesome/capacitor-file-picker": "^7.0.0"
+    "@capawesome/capacitor-file-picker": "^7.0.0",
+    "@nexus/native-engine": "file:./native-engine-plugin"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",

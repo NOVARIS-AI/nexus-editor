@@ -24,3 +24,14 @@ cd android
 
 ## Important engine boundaries
 The Android shell does not magically turn browser rendering into a native Media3/MediaCodec pipeline. Timeline rendering, audio extraction and effects still use the shared WebView/browser engine at this stage, so codec support, memory use and long-export reliability remain device-dependent. The native picker and native file-save path remove two important browser-only workflow dependencies. Native Media3 rendering, background WorkManager exports and Android-native audio extraction are separate engine milestones and must be implemented and tested before claiming feature parity with a professional native editor.
+
+
+## Native Android media engines
+
+The APK now bundles a Capacitor plugin backed by Android MediaExtractor/MediaMuxer, AndroidX Media3 Transformer and WorkManager.
+
+- **Native audio extraction:** extracts the audio track from a selected video segment without real-time playback capture. Codec/container compatibility depends on the source track and Android device.
+- **Native Media3 transcode:** converts a single source video clip to H.264/AAC MP4. This is a native clip transcode path, not a full timeline renderer; multi-track compositing, text, transitions and editor effects still use the shared browser renderer.
+- **Background media job:** WorkManager can copy/remux the source audio/video tracks in the background and report progress. It does not yet render a multi-layer project or apply timeline effects.
+
+Native engine calls require a source URI supplied by the Android file picker. Files imported through a browser or relinked from a web project use the browser-based path. These native paths require validation on physical Android devices before being considered production-ready.

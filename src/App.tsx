@@ -29,7 +29,7 @@ import { getChromaSvgMatrix } from "./editor/video-engine";
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
-import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid } from "./editor/native-android";
+import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudioNative } from "./editor/native-android";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -402,11 +402,11 @@ export default function App() {
     const sourceEnd = Math.min(asset.duration || selectedClip.sourceOut, selectedClip.sourceOut);
     if (!(sourceEnd > sourceStart)) { setStatus("The selected video clip has no valid audio range to extract."); return; }
     setExtractingAudio(true);
-    setStatus("Extracting the selected video segment in real time. Keep this tab open until it finishes…");
+    setStatus(isNativeAndroid() ? "Extracting audio with Android MediaExtractor…" : "Extracting audio with browser media capture…");
     try {
-      const extracted = await extractAudioTrackFromVideo(asset.file, sourceStart, sourceEnd);
+      const extracted = isNativeAndroid() ? await extractAudioNative(asset.file, sourceStart, sourceEnd) : await extractAudioTrackFromVideo(asset.file, sourceStart, sourceEnd);
       const objectUrl = URL.createObjectURL(extracted);
-      const created: MediaAsset = { id: uid(), name: asset.name.replace(/\\.[^.]+$/, "") + "-audio-extract.webm", kind: "audio", duration: sourceEnd - sourceStart, mimeType: extracted.type || "audio/webm", file: extracted, objectUrl, source: { type: "personal", attribution: "Audio extracted from " + asset.name } };
+      const created: MediaAsset = { id: uid(), name: asset.name.replace(/\\.[^.]+$/, "") + (extracted.type === "audio/mp4" ? "-audio-extract.m4a" : "-audio-extract.webm"), kind: "audio", duration: sourceEnd - sourceStart, mimeType: extracted.type || "audio/webm", file: extracted, objectUrl, source: { type: "personal", attribution: "Audio extracted from " + asset.name } };
       setAssets(old => [...old, created]);
       const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
       const used = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
