@@ -30,6 +30,7 @@ import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFF
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
+import { detectReferenceWorkflow, buildReferenceContext } from "./editor/reference-workflow";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 
@@ -990,6 +991,40 @@ export default function App() {
     const selectedKind = asset?.kind;
     const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
     const normalized = request.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+
+    const referenceIntent = detectReferenceWorkflow(normalized);
+    if (referenceIntent.extractAudio) {
+      if (!selectedClip || !asset || asset.kind !== "video") {
+        const videoClip = clips.find(item => assets.find(media => media.id === item.assetId)?.kind === "video");
+        if (videoClip) {
+          setSelected(videoClip.id);
+          setAiReply("I found a video in your project. Select that video clip, then send “extract the audio” again so I can extract the correct segment.");
+        } else setAiReply("Import a video, add it to the timeline, select it, then ask me to extract its audio.");
+        return;
+      }
+      setAiReply("Extracting the selected video's audio and adding it to the timeline…");
+      await extractSelectedVideoAudio();
+      return;
+    }
+    if (referenceIntent.useReference && assets.length) {
+      setAiReply("Checking the uploaded reference and replacement media…");
+      try {
+        const referenceContext = buildReferenceContext(assets, mediaAnalyses);
+        const result = await askNexusDirector(normalized, {
+          mode: "reference-to-edit", projectName, aspectRatio, style: aiStyle,
+          selectedAsset: asset ? { name: asset.name, kind: asset.kind } : null,
+          referenceWorkflow: referenceContext, clipCount: clips.length,
+          hasPersonalReference: assets.some(item => item.source?.type === "personal")
+        });
+        setAiReply(result.plan.summary + "\n\n" +
+          result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
+          "\n\nThis is a reference-based editing plan. Uploaded media stays unchanged. Full frame-by-frame visual matching requires the visual-understanding worker.");
+        setEngineReport(["Reference workflow · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query)]);
+      } catch (error) {
+        setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
+      }
+      return;
+    }
 
     const requestedTemplate = CREATIVE_TEMPLATES.find(item => normalized.includes(item.name.toLowerCase()));
     if (requestedTemplate && /template|apply|use|make|create|start/.test(normalized)) {
