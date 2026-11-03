@@ -31,6 +31,7 @@ import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./edi
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext } from "./editor/reference-workflow";
+import { captureVisualSamples } from "./editor/visual-sampling";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 
@@ -1010,15 +1011,17 @@ export default function App() {
       setAiReply("Checking the uploaded reference and replacement media…");
       try {
         const referenceContext = buildReferenceContext(assets, mediaAnalyses);
+        setAiReply("Sampling your pictures and video frames for visual understanding…");
+        const visualSamples = await captureVisualSamples(assets, 8);
         const result = await askNexusDirector(normalized, {
           mode: "reference-to-edit", projectName, aspectRatio, style: aiStyle,
           selectedAsset: asset ? { name: asset.name, kind: asset.kind } : null,
-          referenceWorkflow: referenceContext, clipCount: clips.length,
+          referenceWorkflow: referenceContext, visualSamples, clipCount: clips.length,
           hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         setAiReply(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
-          "\n\nThis is a reference-based editing plan. Uploaded media stays unchanged. Full frame-by-frame visual matching requires the visual-understanding worker.");
+          "\n\nThis is a reference-based editing plan. Uploaded media stays unchanged. Visual samples were sent to the configured AI Brain when supported; the plan identifies which parts can be edited with the current timeline tools and which need generation workers.");
         setEngineReport(["Reference workflow · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query)]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
