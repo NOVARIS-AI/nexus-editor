@@ -657,3 +657,5 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
  .editor-timeline-scroll{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
  .editor-timeline-actions button{min-width:30px;min-height:30px}
 }
+
+.editor-audio-waveform{display:flex;align-items:center;gap:2px;height:22px;max-width:42%;overflow:hidden;opacity:.8}.editor-audio-waveform i{display:block;flex:1;min-width:2px;border-radius:2px;background:linear-gradient(180deg,#50d9ed,#8b72ff);pointer-events:none}.editor-clip{position:relative}.editor-clip .editor-clip-title{position:relative;z-index:1}.editor-audio-waveform{position:absolute;left:8px;right:8px;bottom:3px;z-index:0;pointer-events:none}

@@ -1,5 +1,6 @@
 import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from "../types";
 import { clipDuration, clipSourceAtTimeline, speedAtSourceProgress } from "../project";
+import { getNexusDeviceProfile } from "./device-profile";
 
 const FILTER_CSS: Record<string, string> = {"Original":"none","Cinematic":"contrast(1.16) saturate(1.18)","Vintage":"sepia(.42) contrast(1.04)","Warm":"sepia(.18) saturate(1.28)","Cool":"hue-rotate(12deg) saturate(.9)","B&W":"grayscale(1)","Noir":"grayscale(1) contrast(1.35)","Matte":"contrast(.88) saturate(.82) brightness(1.08)","Fade":"contrast(.88) saturate(.82) brightness(1.08)","Film Grain":"contrast(1.08) saturate(.88)","Golden":"sepia(.18) saturate(1.28)","Arctic":"hue-rotate(12deg) saturate(.9)","Dream":"brightness(1.08) saturate(1.12)","Vivid":"saturate(1.45) contrast(1.08)","Teal Orange":"contrast(1.16) saturate(1.18)","Soft Glow":"brightness(1.08) saturate(1.12)","Sepia":"sepia(.65)","Retro 70s":"sepia(.3) saturate(1.2)","Retro 90s":"sepia(.18) contrast(1.12)","Kodachrome":"sepia(.25) saturate(1.25) contrast(1.08)","Portra":"saturate(1.35) contrast(1.05)","Ektar":"saturate(1.5) contrast(1.1)","Fuji Film":"hue-rotate(-8deg) saturate(1.1)","Polaroid":"sepia(.25) saturate(1.3) brightness(1.05)","Bleach Bypass":"grayscale(1) contrast(1.2)","Cross Process":"hue-rotate(25deg) saturate(1.25)","Moody":"contrast(1.18) saturate(.85)","Dark Drama":"brightness(.86) contrast(1.25)","Bright Day":"brightness(1.12) saturate(1.08)","Pastel":"saturate(.75) brightness(1.06)","Rose":"sepia(.12) hue-rotate(-12deg) saturate(1.15)","Lavender":"hue-rotate(18deg) saturate(.9)","Mint":"hue-rotate(70deg) saturate(.8)","Ocean Blue":"hue-rotate(165deg) saturate(1.15)","Sunset":"sepia(.22) saturate(1.45)","Autumn":"sepia(.32) saturate(1.1)","Winter":"hue-rotate(190deg) saturate(.85)","Spring":"hue-rotate(-25deg) saturate(1.15)","Summer":"sepia(.12) saturate(1.25) brightness(1.08)","Neon":"saturate(1.5) hue-rotate(-8deg)","Cyberpunk":"hue-rotate(145deg) saturate(1.5) contrast(1.12)","Monochrome Blue":"hue-rotate(185deg) saturate(1.4) contrast(1.1)","Monochrome Red":"grayscale(1) sepia(.25)","High Contrast":"grayscale(1) sepia(.25) hue-rotate(300deg)","Low Contrast":"contrast(1.35) saturate(1.08)","Soft Portrait":"contrast(.92) brightness(1.04)","Skin Warmth":"contrast(.96) saturate(.9)","Desaturated":"sepia(.12) saturate(1.25)","Rich Color":"saturate(.65)","Night":"saturate(1.6) contrast(1.12)"};
 
@@ -14,6 +15,7 @@ export type RenderInput = {
   height: number;
   fps: number;
   duration: number;
+  masterGain?: number;
   onProgress?: (progress: number) => void;
   signal?: AbortSignal;
 };
@@ -73,9 +75,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (!input.clips.length || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one timeline clip before exporting.");
   if (!Number.isInteger(input.fps) || input.fps < 12 || input.fps > 60) throw new Error("Choose an export frame rate between 12 and 60 FPS.");
   if (!Number.isInteger(input.width) || !Number.isInteger(input.height) || input.width < 160 || input.height < 160) throw new Error("Choose a valid export resolution.");
-  const memoryGb = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
-  const lowMemory = memoryGb !== undefined && memoryGb <= 4;
-  const maxPixels = lowMemory ? 3_700_000 : 8_500_000;
+  const deviceProfile = getNexusDeviceProfile();
+  const lowMemory = deviceProfile.tier === "mobile-efficient";
+  const maxPixels = deviceProfile.maxRenderPixels;
   if (input.width * input.height > maxPixels) throw new Error("This resolution is too demanding for the available device memory. Choose 1080p or 720p for a more reliable export.");
   const assetMap = new Map(input.assets.map(asset => [asset.id, asset]));
   for (const clip of input.clips) {
@@ -112,7 +114,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (masterLimiter && masterOutput && audioDestination) {
     masterLimiter.threshold.value = -1.5; masterLimiter.knee.value = 0; masterLimiter.ratio.value = 20;
     masterLimiter.attack.value = 0.003; masterLimiter.release.value = 0.14;
-    masterOutput.gain.value = 0.9;
+    masterOutput.gain.value = Math.max(0, Math.min(1, Number.isFinite(input.masterGain) ? input.masterGain! : 0.9));
     masterLimiter.connect(masterOutput); masterOutput.connect(audioDestination);
   }
   const audioNodes = new Map<string, { element: HTMLMediaElement; highPass: BiquadFilterNode; lowPass: BiquadFilterNode; compressor: DynamicsCompressorNode; analyser: AnalyserNode; gateBuffer: Float32Array; gain: GainNode; panner?: StereoPannerNode }>();
