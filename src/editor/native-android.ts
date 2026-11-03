@@ -15,8 +15,8 @@ type NativeFile = File & { __nexusNativeUri?: string };
 export function isNativeAndroid():boolean{return Capacitor.isNativePlatform()&&Capacitor.getPlatform()==="android";}
 export async function pickNativeMediaFiles(types:string[]):Promise<File[]>{
  if(!isNativeAndroid())throw new Error("The native Android picker is only available inside the APK.");
- const result=await FilePicker.pickFiles({types,multiple:true,readData:false});const picked:File[]=[];
- for(const item of result.files){const source=item.webPath||item.path;if(!source)continue;const response=await fetch(source);if(!response.ok)throw new Error("Android could not open "+item.name+". Try choosing it again.");const blob=await response.blob();const file=new File([blob],item.name||"nexus-media",{type:item.mimeType||blob.type||"application/octet-stream",lastModified:Date.now()}) as NativeFile;file.__nexusNativeUri=item.path||item.webPath||undefined;picked.push(file);}
+ const result=await FilePicker.pickFiles({types,readData:false});const picked:File[]=[];
+ for(const item of result.files){const source=item.path;if(!source)continue;const response=await fetch(Capacitor.convertFileSrc(source));if(!response.ok)throw new Error("Android could not open "+item.name+". Try choosing it again.");const blob=await response.blob();const file=new File([blob],item.name||"nexus-media",{type:item.mimeType||blob.type||"application/octet-stream",lastModified:Date.now()}) as NativeFile;file.__nexusNativeUri=item.path;picked.push(file);}
  if(!picked.length&&result.files.length)throw new Error("Android selected the files but could not expose them to the editor. Please try another file location.");return picked;
 }
 function requireNativeUri(file:File):string{const uri=(file as NativeFile).__nexusNativeUri;if(!uri)throw new Error("Re-import this media through the APK's Android picker to use the native engine.");return uri;}
