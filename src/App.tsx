@@ -1030,6 +1030,7 @@ export default function App() {
       return;
     }
 
+    let generatedAudioForCommand = false;
     const namedAudio = NEXUS_AUDIO_PRESETS.find(item => normalized.includes(item.name.toLowerCase()));
     const audioIntent = /music|sound effect|sfx|whoosh|impact|riser|chime|audio bed|background audio|background sound/.test(normalized) && !/full song|voiceover|narration|speech/.test(normalized);
     if (namedAudio || audioIntent) {
@@ -1044,14 +1045,15 @@ export default function App() {
         NEXUS_AUDIO_PRESETS.find(item => item.name === "Ambient Pulse"));
       if (preset) {
         await addGeneratedAudio(preset);
+        generatedAudioForCommand = true;
         setAiReply("Generated the original NEXUS " + preset.name + " audio locally and added the WAV asset to the audio timeline. Preview it, adjust its volume, and extend music beds by duplicating them.");
-        return;
       }
     }
 
     const remoteKind = /\b(video|clip|footage)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "video" :
       /\b(image|picture|photo|poster|artwork)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "image" :
       /\b(generate|create|make)\b/.test(normalized) && /\b(narration|voiceover|speech|music track|full song)\b/.test(normalized) ? "audio" : null;
+    if (!remoteKind && generatedAudioForCommand) return;
     if (remoteKind) {
       const available = engineAvailability?.engines?.[remoteKind];
       if (!available?.configured) {
