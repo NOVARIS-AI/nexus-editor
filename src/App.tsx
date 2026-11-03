@@ -989,7 +989,7 @@ export default function App() {
     // Local tools edit the current project immediately; model-worker jobs are only submitted when configured.
     const selectedKind = asset?.kind;
     const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
-    const normalized = request.replace(/[’']/g, "'").replace(/\\s+/g, " ").trim();
+    const normalized = request.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
 
     const requestedTemplate = CREATIVE_TEMPLATES.find(item => normalized.includes(item.name.toLowerCase()));
     if (requestedTemplate && /template|apply|use|make|create|start/.test(normalized)) {
@@ -1031,7 +1031,7 @@ export default function App() {
     }
 
     const namedAudio = NEXUS_AUDIO_PRESETS.find(item => normalized.includes(item.name.toLowerCase()));
-    const audioIntent = /music|sound effect|sfx|whoosh|impact|riser|chime|audio bed|background audio|background sound/.test(normalized);
+    const audioIntent = /music|sound effect|sfx|whoosh|impact|riser|chime|audio bed|background audio|background sound/.test(normalized) && !/full song|voiceover|narration|speech/.test(normalized);
     if (namedAudio || audioIntent) {
       const preset = namedAudio || (/(afro|afrobeats|afrobeat)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Afro Groove Bed") :
         /(cinematic|trailer|epic)/.test(normalized) ? NEXUS_AUDIO_PRESETS.find(item => item.name === "Cinematic Build Bed") :
@@ -1049,9 +1049,9 @@ export default function App() {
       }
     }
 
-    const remoteKind = /\\b(video|clip|footage)\\b/.test(normalized) && /\\b(generate|create|make)\\b/.test(normalized) ? "video" :
-      /\\b(image|picture|photo|poster|artwork)\\b/.test(normalized) && /\\b(generate|create|make)\\b/.test(normalized) ? "image" :
-      /\\b(generate|create|make)\\b/.test(normalized) && /\\b(narration|voiceover|speech|music track|full song)\\b/.test(normalized) ? "audio" : null;
+    const remoteKind = /\b(video|clip|footage)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "video" :
+      /\b(image|picture|photo|poster|artwork)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "image" :
+      /\b(generate|create|make)\b/.test(normalized) && /\b(narration|voiceover|speech|music track|full song)\b/.test(normalized) ? "audio" : null;
     if (remoteKind) {
       const available = engineAvailability?.engines?.[remoteKind];
       if (!available?.configured) {
@@ -1096,7 +1096,7 @@ export default function App() {
     if (engineCommand.type === "analyze") { void analyzeAllMedia(); return; }
     if (engineCommand.type === "guide") { setAiReply(makeEditingGuidance(selectedClip, mediaAnalyses.find(item=>item.assetId===selectedClip?.assetId), playhead)); return; }
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
-    const requestedTool = Object.keys(toolNames).find(name => new RegExp("\\b" + name + "\\b").test(request));
+    const requestedTool = Object.keys(toolNames).find(name => new RegExp("\b" + name + "\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
       if (!selectedClip) { setAiReply("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
       setActiveTool("edit"); setActiveSubtool("select");
