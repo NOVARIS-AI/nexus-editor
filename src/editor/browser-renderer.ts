@@ -343,7 +343,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         }
         input.textLayers.filter(layer => {
           const track = tracks.get(layer.trackId);
-          return !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
+          return !track?.hidden && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration;
         }).forEach(layer => {
           ctx.save();
           const local = time - layer.start;
