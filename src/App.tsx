@@ -964,7 +964,7 @@ export default function App() {
     setAspectRatio(aiFormat);
     setActiveTool("media");
   }
-  function applyReferencePlanToTimeline(plan: { scenes: import("./editor/ai-director").DirectorScene[] }, context: ReturnType<typeof buildReferenceContext>) {
+  function applyReferencePlanToTimeline(plan: { scenes: { title: string; visual: string; narration: string; duration: number; searchTerms: string[]; assetMatches?: string[]; matchReason?: string; overlayText?: string; referenceStart?: number; referenceEnd?: number; transitionStyle?: "fade"|"zoom"|"wipe"|"slide"|"blur"|"none"; transitionDuration?: number; textX?: number; textY?: number; audioCueTime?: number; audioCueType?: string }[] }, context: ReturnType<typeof buildReferenceContext>) {
     const replacementAssets = assets.filter(item => {
       const role = context.find(entry => entry.id === item.id)?.role;
       return item.kind !== "audio" && role !== "reference video";
@@ -983,65 +983,59 @@ export default function App() {
     let sceneCount = 0;
     const sceneAssetUse = new Map<string, number>();
     const matchNotes: string[] = [];
-    const audioCues: number[] = [];
+    const sceneStarts: number[] = [];
+    const plannedAudioCues: { time: number; type: string }[] = [];
     for (const [index, scene] of plan.scenes.slice(0, 8).entries()) {
       const ranked = rankSceneAssets(scene, replacementAssets, context, sceneAssetUse);
       const bestMatch = ranked[0];
       const chosen = bestMatch?.asset;
       if (chosen) {
         sceneAssetUse.set(chosen.id, (sceneAssetUse.get(chosen.id) || 0) + 1);
-        matchNotes.push("Scene " + (index + 1) + " → " + chosen.name + " (" + (bestMatch?.confidence || "low") + " confidence): " + (scene.matchReason || bestMatch.reason));
+        matchNotes.push("Scene " + (index + 1) + " → " + chosen.name + " (" + (bestMatch?.confidence || "low") + " confidence)");
       }
       if (!chosen) continue;
       const referenceSpan = Number.isFinite(scene.referenceStart) && Number.isFinite(scene.referenceEnd) && (scene.referenceEnd as number) > (scene.referenceStart as number)
-        ? (scene.referenceEnd as number) - (scene.referenceStart as number) : 0;
+        ? Math.min(60, (scene.referenceEnd as number) - (scene.referenceStart as number)) : 0;
       const requestedLength = Math.max(1, Math.min(60, referenceSpan || Number(scene.duration) || 5));
       const availableLength = Math.max(0.5, Number(chosen.duration) || requestedLength);
       const sourceLength = chosen.kind === "image" ? requestedLength : Math.min(requestedLength, availableLength);
-      const transitionDuration = Math.max(0, Math.min(2, Number(scene.transitionDuration ?? 0.35) || 0));
-      const transitionStyle = scene.transitionStyle || "fade";
+      const transitionStyle = scene.transitionStyle === "none" ? undefined : scene.transitionStyle || "fade";
+      const transitionDuration = Math.min(1.5, Math.max(0, Number(scene.transitionDuration) || 0.35), sourceLength * 0.25);
+      sceneStarts.push(cursor);
       const clip: TimelineClip = {
         id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor,
         sourceIn: 0, sourceOut: sourceLength, label: scene.title || chosen.name,
-        transitionIn: index === 0 ? 0 : transitionDuration, transitionOut: transitionDuration,
-        transitionStyle: transitionStyle === "none" ? "fade" : transitionStyle,
+        transitionIn: index === 0 || !transitionStyle ? 0 : transitionDuration,
+        transitionOut: transitionStyle ? transitionDuration : 0, ...(transitionStyle ? { transitionStyle } : {}),
         fit: "cover", speed: 1,
         aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" }
       };
       additions.push(clip);
       const title = (scene.overlayText || scene.title || "").trim();
-      if (title) {
-        const placement = scene.textPlacement;
-        textAdditions.push({
-          id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceLength, Math.max(1, Math.min(8, sourceLength))),
-          text: title.slice(0, 180), color: "#ffffff", fontSize: 42, fontFamily: "Arial",
-          x: Number.isFinite(placement?.x) ? Math.max(0, Math.min(100, placement!.x)) : 50,
-          y: Number.isFinite(placement?.y) ? Math.max(0, Math.min(100, placement!.y)) : 78,
-          align: placement?.align || "center", shadow: true, animation: scene.textAnimation || "fade"
-        });
-      }
-      if (Number.isFinite(scene.audioCueTime)) audioCues.push(Math.max(0, scene.audioCueTime as number));
+      if (title) textAdditions.push({
+        id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceLength, 4),
+        text: title.slice(0, 180), color: "#ffffff", fontSize: 42, fontFamily: "Arial",
+        x: Math.max(5, Math.min(95, Number(scene.textX) || 50)), y: Math.max(5, Math.min(95, Number(scene.textY) || 78)),
+        align: "center", shadow: true, animation: "fade"
+      });
+      if (Number.isFinite(scene.audioCueTime)) plannedAudioCues.push({ time: Math.max(0, Number(scene.audioCueTime)), type: String(scene.audioCueType || "reference cue").slice(0, 48) });
       cursor += sourceLength;
       sceneCount++;
     }
+    if (!additions.length) return false;
     const audioAdditions: TimelineClip[] = [];
     for (const [index, source] of audioSources.slice(0, 3).entries()) {
       const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[audioAdditions.length % audioTrackIds.length];
       usedAudioTracks.add(trackId);
-      const sourceLength = Math.max(0.5, Number(source.duration) || 5);
-      const cueTime = audioCues[index] ?? audioCues[0] ?? 0;
-      const start = base + Math.min(Math.max(0, cueTime), Math.max(0, cursor - base - 0.25));
-      const sourceIn = Math.max(0, Math.min(sourceLength - 0.25, Number(plan.scenes[index]?.audioSourceIn) || 0));
-      const length = Math.max(0.25, sourceLength - sourceIn);
+      const length = Math.max(0.5, Number(source.duration) || 5);
+      const cue = plannedAudioCues[index];
+      const cueOffset = cue ? Math.min(Math.max(0, cursor - base - 0.5), cue.time) : 0;
       audioAdditions.push({
-        id: uid(), assetId: source.id, trackId, start, sourceIn,
-        sourceOut: sourceIn + length, label: source.name,
-        gain: Math.max(0, Math.min(1, Number(plan.scenes[index]?.audioGain ?? 0.75))),
-        muted: false, fadeIn: Math.max(0, Math.min(10, Number(plan.scenes[index]?.audioFadeIn ?? 0.4))),
-        fadeOut: Math.max(0, Math.min(10, Number(plan.scenes[index]?.audioFadeOut ?? 0.8))), speed: 1
+        id: uid(), assetId: source.id, trackId, start: base + cueOffset, sourceIn: 0,
+        sourceOut: length, label: source.name + (cue ? " · " + cue.type : ""), gain: 0.75, muted: false,
+        fadeIn: 0.4, fadeOut: 0.8, speed: 1
       });
     }
-    if (!additions.length) return false;
     applyClipChange([...clips, ...additions, ...audioAdditions], "AI reference edit assembled on the timeline.");
     setTextLayers(old => [...old, ...textAdditions]);
     setSelected(additions[0].id);
@@ -1050,10 +1044,10 @@ export default function App() {
     setPage("editor"); setEditorView("workspace");
     setActiveTool("edit"); setActiveSubtool("select");
     setAiWorkflowStage("editing");
-    setAiReply("I built an editable reference-inspired sequence with " + sceneCount + " visual scenes, " + textAdditions.length + " timed title layers and " + audioAdditions.length + " imported audio track(s). Scene lengths, transition choices, title placement and audio cue positions use the AI's estimates where provided. Sparse reference samples cannot guarantee exact cut timing, so review the draft before export.");
+    setEngineReport(old => [...old, ...matchNotes, ...plannedAudioCues.map(cue => "Suggested audio cue at " + cue.time.toFixed(2) + "s · " + cue.type), "Reference timing is approximate; sparse frame samples cannot confirm exact cuts."]);
+    setAiReply("I built an editable reference-inspired sequence with " + sceneCount + " visual scenes, " + textAdditions.length + " timed title layers and " + audioAdditions.length + " imported audio track(s). Scene durations, transition styles and title positions use the AI's approximate reference observations where available. Audio cue offsets are suggestions, not verified beat detection. Review the draft; it is not a finished export.");
     return true;
   }
-
   async function runAICommand() {
     const request = aiBrief.trim().toLowerCase();
     if (!request) return;
