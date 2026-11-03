@@ -928,7 +928,9 @@ export default function App() {
     setAiWorkflowStage("planning");
     setAiReply("NEXUS AI Director is planning your scenes…");
     try {
-      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal") });
+      const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
+      const referenceWorkflow = buildReferenceContext(assets, mediaAnalyses);
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, visualSamples, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal") });
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
@@ -974,8 +976,10 @@ export default function App() {
     if (aiMode === "ask") {
       setAiReply("NEXUS AI Director is reviewing your brief and current project…");
       try {
+        const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
         const result = await askNexusDirector(aiBrief.trim(), {
           projectName, assetCount: assets.length, assets: assets.map(item => ({ name: item.name, kind: item.kind, source: item.source?.type })),
+          referenceWorkflow: buildReferenceContext(assets, mediaAnalyses), visualSamples,
           clipCount: clips.length, selectedClip: selectedClip ? { label: selectedClip.label, start: selectedClip.start, duration: selectedClip.sourceOut - selectedClip.sourceIn } : null,
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
