@@ -5,7 +5,9 @@ on:
   push:
     branches: [main]
     paths:
-      - "src/**"\n      - "native-engine-plugin/**"\n      - "docs/ANDROID_APK.md"
+      - "src/**"
+      - "native-engine-plugin/**"
+      - "docs/ANDROID_APK.md"
       - "package.json"
       - "capacitor.config.ts"
       - "vite.config.ts"
