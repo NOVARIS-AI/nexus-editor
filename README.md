@@ -45,3 +45,8 @@ The URLs must point to NEXUS-controlled worker services, not browser-facing mode
 - Job states: `queued`, `running`, `succeeded`, `failed`, `cancelled`. Progress is a number from 0 to 100.
 
 The editor includes honest disabled-worker handling: if a worker URL/token is absent, it reports that generation is not configured and leaves the project unchanged. This repository does not contain model weights or a GPU runtime. A NEXUS-owned GPU host and licensed model/workflow must be provisioned before generation can run; Vercel Functions proxy jobs and should not run large diffusion/video models themselves.
+
+
+## Android APK target
+
+The project now includes a Capacitor Android shell. The Android APK uses the native Android document picker for media selection and native filesystem/share APIs for completed exports. See [docs/ANDROID_APK.md](docs/ANDROID_APK.md). The GitHub Actions workflow `NEXUS Android APK` creates an installable debug APK artifact. Browser-based timeline rendering remains shared with the web build; native Media3 rendering and background export are future native-engine work, not yet claimed as complete.
