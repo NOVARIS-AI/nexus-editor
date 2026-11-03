@@ -31,6 +31,7 @@ import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./edi
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext } from "./editor/reference-workflow";
+import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
@@ -963,7 +964,7 @@ export default function App() {
     setAspectRatio(aiFormat);
     setActiveTool("media");
   }
-  function applyReferencePlanToTimeline(plan: { scenes: { title: string; visual: string; narration: string; duration: number; searchTerms: string[]; overlayText?: string }[] }, context: ReturnType<typeof buildReferenceContext>) {
+  function applyReferencePlanToTimeline(plan: { scenes: { title: string; visual: string; narration: string; duration: number; searchTerms: string[]; assetMatches?: string[]; matchReason?: string; overlayText?: string }[] }, context: ReturnType<typeof buildReferenceContext>) {
     const replacementAssets = assets.filter(item => {
       const role = context.find(entry => entry.id === item.id)?.role;
       return item.kind !== "audio" && role !== "reference video";
@@ -980,14 +981,16 @@ export default function App() {
     const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
     const usedAudioTracks = new Set(clips.filter(clip => clip.trackId.startsWith("audio-")).map(clip => clip.trackId));
     let sceneCount = 0;
+    const sceneAssetUse = new Map<string, number>();
+    const matchNotes: string[] = [];
     for (const [index, scene] of plan.scenes.slice(0, 8).entries()) {
-      const words = (scene.searchTerms.join(" ") + " " + scene.visual + " " + scene.title).toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 2);
-      const ranked = replacementAssets.map(item => {
-        const name = item.name.toLowerCase();
-        const score = words.reduce((sum, word) => sum + (name.includes(word) ? 1 : 0), 0);
-        return { item, score };
-      }).sort((a,b) => b.score-a.score);
-      const chosen = ranked[index % Math.max(1, ranked.length)]?.item || replacementAssets[index % replacementAssets.length];
+      const ranked = rankSceneAssets(scene, replacementAssets, context, sceneAssetUse);
+      const bestMatch = ranked[0];
+      const chosen = bestMatch?.asset;
+      if (chosen) {
+        sceneAssetUse.set(chosen.id, (sceneAssetUse.get(chosen.id) || 0) + 1);
+        matchNotes.push("Scene " + (index + 1) + " → " + chosen.name + " (" + (bestMatch?.confidence || "low") + " confidence)");
+      }
       if (!chosen) continue;
       const requestedLength = Math.max(1, Math.min(60, Number(scene.duration) || 5));
       const availableLength = Math.max(0.5, Number(chosen.duration) || requestedLength);
@@ -1097,7 +1100,7 @@ export default function App() {
         if (!applied) setAiReply(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
           "\n\nThe reference plan is ready. Add replacement media to build the editable timeline.");
-        setEngineReport(["AI Director · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
+        setEngineReport(["AI Director · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...matchNotes, ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
       }
