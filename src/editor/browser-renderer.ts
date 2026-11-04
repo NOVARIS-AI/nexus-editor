@@ -301,13 +301,6 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        for (const clip of orderedVisualClips) {
-          const length = timingFor(clip).duration;
-          if (time < clip.start || time >= clip.start + length) continue;
-          const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
-          if (image) drawCover(chromaSource(image, image.naturalWidth, image.naturalHeight, clip), image.naturalWidth, image.naturalHeight, clip, time);
-          else if (video && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
-        }
         imageLayers.filter(layer => {
           const track = tracks.get(layer.trackId);
           return layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
@@ -326,6 +319,13 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           } else ctx.drawImage(image,-width/2,-height/2,width,height);
           ctx.restore();
         });
+        for (const clip of orderedVisualClips) {
+          const length = timingFor(clip).duration;
+          if (time < clip.start || time >= clip.start + length) continue;
+          const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
+          if (image) drawCover(chromaSource(image, image.naturalWidth, image.naturalHeight, clip), image.naturalWidth, image.naturalHeight, clip, time);
+          else if (video && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
+        }
         for (const clip of input.clips) {
           const local = time - clip.start;
           const active = local >= 0 && local < timingFor(clip).duration && !trackHidden(clip);
