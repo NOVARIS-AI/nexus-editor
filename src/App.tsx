@@ -926,10 +926,17 @@ export default function App() {
         setAiReply("Generated "+expectedKind+" imported and automatically replaced the placeholder for “"+sceneTitle+"”. The scene stays in its planned timeline position.");
       } else {
         const isBackground=job.sceneTitle.startsWith("Project background · ");
-        const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
-        applyClipChange([...clips,clip],isBackground?"Generated background asset imported at the playhead.":"Generated "+expectedKind+" added to the editable timeline.");
-        setSelected(clip.id);setPlayhead(clip.start);
-        setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
+        if(isBackground && expectedKind==="image") {
+          const background:TimelineImageLayer={id:uid(),assetId:created.id,trackId:"image-1",start:Math.max(0,playhead),duration:Math.max(5,selectedClip?selectedClip.start+clipDuration(selectedClip)-playhead:duration-playhead),x:50,y:50,scale:1,rotation:0,opacity:1,visible:true,locked:false,fit:"cover"};
+          setImageLayers(old=>[...old,background]);
+          setSelectedImageLayer(background.id);
+          setAiReply("Generated background imported as a full-frame image layer beneath your footage. It is editable on the Images & Stickers track.");
+        } else {
+          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+          applyClipChange([...clips,clip],isBackground?"Generated background clip imported at the playhead.":"Generated "+expectedKind+" added to the editable timeline.");
+          setSelected(clip.id);setPlayhead(clip.start);
+          setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
+        }
       }
       setPage("editor");
     } catch(error) {

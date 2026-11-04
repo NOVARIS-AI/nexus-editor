@@ -81,7 +81,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (!("MediaRecorder" in window) || !HTMLCanvasElement.prototype.captureStream) {
     throw new Error("This browser does not support browser video recording. Try an updated Chrome browser.");
   }
-  if (!input.clips.length || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one timeline clip before exporting.");
+  if ((!input.clips.length && !(input.imageLayers || []).some(layer => layer.visible)) || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one visible clip or image layer before exporting.");
   if (!Number.isInteger(input.fps) || input.fps < 12 || input.fps > 60) throw new Error("Choose an export frame rate between 12 and 60 FPS.");
   if (!Number.isInteger(input.width) || !Number.isInteger(input.height) || input.width < 160 || input.height < 160) throw new Error("Choose a valid export resolution.");
   const deviceProfile = getNexusDeviceProfile();
@@ -308,6 +308,24 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           if (image) drawCover(chromaSource(image, image.naturalWidth, image.naturalHeight, clip), image.naturalWidth, image.naturalHeight, clip, time);
           else if (video && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
         }
+        imageLayers.filter(layer => {
+          const track = tracks.get(layer.trackId);
+          return layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
+        }).forEach(layer => {
+          const image = imageLayerImages.get(layer.id); if (!image) return;
+          const track = tracks.get(layer.trackId);
+          const scale = Math.max(.05, Math.min(4, layer.scale));
+          const width = canvas.width * .5 * scale, height = width * image.naturalHeight / Math.max(1,image.naturalWidth);
+          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1)));
+          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
+          ctx.rotate(layer.rotation * Math.PI / 180);
+          if(layer.fit==="cover") {
+            const targetAspect=canvas.width/canvas.height, sourceAspect=image.naturalWidth/Math.max(1,image.naturalHeight);
+            if(sourceAspect>targetAspect) { const cropWidth=image.naturalHeight*targetAspect; ctx.drawImage(image,(image.naturalWidth-cropWidth)/2,0,cropWidth,image.naturalHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
+            else { const cropHeight=image.naturalWidth/targetAspect; ctx.drawImage(image,0,(image.naturalHeight-cropHeight)/2,image.naturalWidth,cropHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
+          } else ctx.drawImage(image,-width/2,-height/2,width,height);
+          ctx.restore();
+        });
         for (const clip of input.clips) {
           const local = time - clip.start;
           const active = local >= 0 && local < timingFor(clip).duration && !trackHidden(clip);
@@ -353,19 +371,6 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
         }
-        imageLayers.filter(layer => {
-          const track = tracks.get(layer.trackId);
-          return layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
-        }).forEach(layer => {
-          const image = imageLayerImages.get(layer.id); if (!image) return;
-          const track = tracks.get(layer.trackId);
-          const scale = Math.max(.05, Math.min(4, layer.scale));
-          const width = canvas.width * .5 * scale, height = width * image.naturalHeight / Math.max(1,image.naturalWidth);
-          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1)));
-          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
-          ctx.rotate(layer.rotation * Math.PI / 180);
-          ctx.drawImage(image,-width/2,-height/2,width,height); ctx.restore();
-        });
         input.textLayers.filter(layer => {
           const track = tracks.get(layer.trackId);
           return !track?.hidden && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration;
