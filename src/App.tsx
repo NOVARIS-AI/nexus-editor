@@ -1357,6 +1357,10 @@ export default function App() {
       if(/\b(background|full frame|fill the canvas)\b/.test(normalized)) { updateSelectedImageLayer({fit:"cover",x:50,y:50,scale:1,rotation:0}); setAiReply("Selected image layer set as a full-frame background. Background layers render below footage; sticker layers stay above it."); return; }
       if(/\b(send back|backward|behind)\b/.test(normalized)) { reorderSelectedImageLayer(-1); setAiReply("Selected image layer moved backward in the image-layer stack."); return; }
       if(/\b(bring forward|forward|front)\b/.test(normalized)) { reorderSelectedImageLayer(1); setAiReply("Selected image layer moved forward in the image-layer stack."); return; }
+      const moveLayerMatch = normalized.match(/\b(?:move|start|place)\s+(?:this\s+)?(?:image\s+)?layer\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds?)\b/i);
+      if(moveLayerMatch) { const nextStart=Math.max(0,Math.min(600,Number(moveLayerMatch[1]))); updateSelectedImageLayer({start:nextStart}); setAiReply("Selected image layer moved to "+nextStart+" seconds. Undo is available."); return; }
+      const durationLayerMatch = normalized.match(/\b(?:set\s+)?(?:this\s+)?(?:image\s+)?layer\s+duration\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds?)\b/i);
+      if(durationLayerMatch) { const nextDuration=Math.max(.1,Math.min(600,Number(durationLayerMatch[1]))); updateSelectedImageLayer({duration:nextDuration}); setAiReply("Selected image layer duration set to "+nextDuration+" seconds. Undo is available."); return; }
       if(/\b(delete|remove)\b/.test(normalized)) { recordProjectHistory(); setImageLayers(old=>old.filter(layer=>layer.id!==activeImageLayer.id)); setSelectedImageLayer(null); setAiReply("Selected image layer removed. Undo can restore it."); return; }
     }
 
