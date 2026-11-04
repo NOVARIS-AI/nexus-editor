@@ -20,8 +20,8 @@ export default async function handler(req,res) {
   if(useWorker){
    let parsedWorkerUrl; try { parsedWorkerUrl=new URL(workerUrl); } catch { return res.status(503).json({error:"NEXUS_WORKER_URL must be a valid HTTPS workers.dev URL."}); }
    if(parsedWorkerUrl.protocol!=="https:"||!parsedWorkerUrl.hostname.endsWith(".workers.dev")) return res.status(503).json({error:"NEXUS_WORKER_URL must use the secure workers.dev host."});
-   const workerPrompt=systemPrompt+" This configured text model receives text metadata only, not uploaded image pixels. Do not claim to inspect, see, identify or analyse any uploaded picture or video frame; use visualSampleNotes only as file metadata and ask the user for a description where visual understanding is necessary.\\n\\n"+userText;
-   const upstream=await fetch(parsedWorkerUrl.toString().replace(/\\/$/,"")+"/v1/generate",{method:"POST",headers:{"Authorization":"Bearer "+workerToken,"Content-Type":"application/json"},body:JSON.stringify({task:"text",prompt:workerPrompt}),signal:AbortSignal.timeout(60000)});
+   const workerPrompt=systemPrompt+" This configured text model receives text metadata only, not uploaded image pixels. Do not claim to inspect, see, identify or analyse any uploaded picture or video frame; use visualSampleNotes only as file metadata and ask the user for a description where visual understanding is necessary.\n\n"+userText;
+   const upstream=await fetch(parsedWorkerUrl.toString().replace(/\/$/,"")+"/v1/generate",{method:"POST",headers:{"Authorization":"Bearer "+workerToken,"Content-Type":"application/json"},body:JSON.stringify({task:"text",prompt:workerPrompt}),signal:AbortSignal.timeout(60000)});
    const data=await upstream.json().catch(()=>({}));
    if(!upstream.ok) return res.status(upstream.status>=500?502:upstream.status||502).json({error:data.error||"NEXUS Cloudflare Worker returned an error."});
    content=data.response;
