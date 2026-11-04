@@ -24,7 +24,7 @@ import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 import { getBrowserEngineHealth } from "./editor/engine-registry";
 import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/transcription-engines";
 import { askNexusDirector } from "./editor/ai-director";
-import { createApostleQuotePosterLayers, getImageStylePreset } from "./editor/image-engine";
+import { createApostleQuotePosterLayers, getImageStylePreset, generateNexusWorkerImage } from "./editor/image-engine";
 import { getChromaSvgMatrix } from "./editor/video-engine";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
@@ -531,16 +531,23 @@ export default function App() {
     if (layer.locked) { setAiReply("Unlock this image layer before replacing it."); return; }
     const source = assets.find(item => item.id === layer.assetId);
     const prompt = aiBrief.trim() || ("Create a fresh visual replacement for the project image layer " + (source?.name || "selected image") + ". Preserve its role and composition in " + projectName + ".");
-    const sceneTitle = "Project background · Replace " + layer.id + " · " + (source?.name || "image layer");
     setGenerationBusy("image:replace:" + layer.id);
-    setAiReply("Submitting a replacement image for the selected layer…");
+    setAiReply("Generating a replacement image… the existing layer will stay in place until the new image is ready.");
     try {
-      const job = await submitEngineJob("image", prompt, { sceneTitle, targetLayerId: layer.id, duration: layer.duration, aspectRatio, style: aiStyle, negativePrompt: "watermarks, captions, logos" });
-      setGenerationJobs(old => [{ ...job, sceneTitle }, ...old.filter(item => item.id !== job.id)]);
-      setAiReply("Replacement image job queued. The current layer remains untouched until a valid image is returned.");
+      const generated = await generateNexusWorkerImage(prompt);
+      const response = await fetch(generated.image);
+      const blob = await response.blob();
+      const extension = generated.mimeType.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
+      const file = new File([blob], "nexus-replacement-" + Date.now() + "." + extension, { type: generated.mimeType });
+      const objectUrl = URL.createObjectURL(file);
+      const created: MediaAsset = { id: uid(), name: (source?.name || "Image layer") + " · AI replacement", kind: "image", duration: 5, mimeType: file.type, file, objectUrl, source: { type: "generated", creator: "Cloudflare Workers AI" } };
+      recordProjectHistory();
+      setAssets(old => [...old, created]);
+      setImageLayers(old => old.map(item => item.id === layer.id ? { ...item, assetId: created.id, generationPrompt: prompt } : item));
+      setSelectedImageLayer(layer.id);
+      setAiReply("New image generated and imported. It has replaced the selected layer while preserving its timing, position, scale, opacity and stacking role.");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Image generation worker unavailable.";
-      setGenerationJobs(old => [{ id: "unavailable-" + Date.now(), engine: "image", state: "failed", progress: 0, message, sceneTitle, error: message }, ...old]);
       setAiReply(message + " The selected image layer was not changed.");
     } finally { setGenerationBusy(null); }
   }
@@ -915,11 +922,35 @@ export default function App() {
   }
   async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video") {
     const key=engine+":"+scene.title;
-    setGenerationBusy(key); setAiReply("Submitting "+engine+" generation for "+scene.title+"…");
+    setGenerationBusy(key); setAiReply("Preparing "+engine+" generation for "+scene.title+"…");
     try {
-      const job=await submitEngineJob(engine,scene.visual+"; "+scene.searchTerms.join(", "),{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
-      setGenerationJobs(old=>[{...job,sceneTitle:scene.title},...old.filter(item=>item.id!==job.id)]);
-      setAiReply("Generation job queued for "+scene.title+". Refresh its status to see real worker progress.");
+      const prompt=scene.visual+"; "+scene.searchTerms.join(", ")+". Create a polished, usable visual for this exact scene. No text, captions, logos or watermarks.";
+      if(engine==="image") {
+        const generated=await generateNexusWorkerImage(prompt);
+        const response=await fetch(generated.image);
+        const blob=await response.blob();
+        const extension=generated.mimeType.split("/")[1]?.replace(/[^a-z0-9]/gi,"")||"png";
+        const file=new File([blob],scene.title.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+extension,{type:generated.mimeType});
+        const created:MediaAsset={id:uid(),name:scene.title+" · AI generated",kind:"image",duration:Math.max(1,scene.duration||5),mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:"Cloudflare Workers AI"}};
+        setAssets(old=>[...old,created]);
+        const target=clips.find(item=>item.aiScene?.title===scene.title);
+        if(target) {
+          const replacement:TimelineClip={...target,assetId:created.id,sourceIn:0,sourceOut:Math.max(.5,clipDuration(target)),label:scene.title+" · AI generated",aiScene:{...target.aiScene!,sourceType:"generated"}};
+          applyClipChange(clips.map(item=>item.id===target.id?replacement:item),"Generated image replaced the storyboard placeholder.");
+          setSelected(target.id);setPlayhead(target.start);
+          setAiReply("Image generated, imported and placed over the matching storyboard placeholder. Its timeline position is preserved.");
+        } else {
+          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name};
+          applyClipChange([...clips,clip],"Generated image added to the editable timeline.");
+          setSelected(clip.id);setPlayhead(clip.start);
+          setAiReply("Image generated, imported and added to the editable timeline.");
+        }
+        setPage("editor");
+      } else {
+        const job=await submitEngineJob(engine,prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
+        setGenerationJobs(old=>[{...job,sceneTitle:scene.title},...old.filter(item=>item.id!==job.id)]);
+        setAiReply("Video generation job queued for "+scene.title+". Refresh its status to see real worker progress.");
+      }
     } catch(error) {
       const message=error instanceof Error?error.message:"Generation worker unavailable.";
       setAiReply(message+" Your storyboard and timeline have not been changed.");
