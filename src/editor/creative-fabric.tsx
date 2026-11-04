@@ -129,9 +129,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         const role=/hook|intro|opening|welcome|attention|stop scrolling/.test(words)||index===0?"Hook":/conclusion|closing|thank|follow|subscribe|call to action|cta/.test(words)||index===clips.length-1?"Closing":/proof|evidence|example|result|demonstrat/.test(words)?"Evidence":/context|background|problem|why|story/.test(words)?"Context":/quote|wisdom|message|lesson|teach|main point/.test(words)?"Core message":"Development";
         const seconds=Math.max(0,end-clip.start);
         const suggested=role==="Hook"?"Bold social":role==="Closing"?"Warm":role==="Core message"?"Cinematic":"Documentary";
+        const sceneSamples=visualSamples.filter(sample=>sample.assetId===clip.assetId);
         return <article className="nexus-fabric-scene" key={clip.id}>
           <div className="nexus-fabric-scene-top"><span>SCENE {String(index+1).padStart(2,"0")}</span><b>{role}</b><small>{seconds.toFixed(1)}s</small></div>
           <strong>{clip.aiScene?.title||clip.label||"Untitled scene"}</strong>
+          {sceneSamples.length>0&&<div className="nexus-fabric-scene-frames">{sceneSamples.map((sample,index)=><button key={sample.assetId+"-scene-"+index} onClick={()=>onSeekTo(clip.start+Math.max(0,(sample.timestamp||0)-clip.sourceIn)/(clip.speed||1))} title="Jump to sampled frame"><img src={sample.dataUrl} alt={"Frame from "+sample.assetName}/><small>{typeof sample.timestamp==="number"?sample.timestamp.toFixed(1)+"s":"Image"}</small></button>)}</div>}
           <p>{clip.aiScene?.visual||attachedText.map(layer=>layer.text).join(" · ")||"No scene description or overlapping text yet. Add a caption or scene note to improve the story map."}</p>
           <div className="nexus-fabric-scene-meta"><span>{attachedText.length} text layer(s)</span><span>{clip.aiScene?"Generated scene notes":"Timeline-based inference"}</span></div>
           <div className="nexus-fabric-scene-actions">
