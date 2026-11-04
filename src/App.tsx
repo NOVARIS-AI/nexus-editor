@@ -359,10 +359,28 @@ export default function App() {
       if (command && event.key.toLowerCase() === "y") {
         event.preventDefault(); redoEdit(); return;
       }
-      if ((event.key === "Delete" || event.key === "Backspace") && page === "editor" && selected) {
-        event.preventDefault();
-        applyClipChange(clips.filter(clip => clip.id !== selected), "Selected clip deleted. Use Undo to restore it.");
-        setSelected(null);
+      if ((event.key === "Delete" || event.key === "Backspace") && page === "editor") {
+        if (selectedImageLayer) {
+          event.preventDefault();
+          recordProjectHistory();
+          setImageLayers(old => old.filter(layer => layer.id !== selectedImageLayer));
+          setSelectedImageLayer(null);
+          setStatus("Selected image layer deleted. Use Undo to restore it.");
+          return;
+        }
+        if (selectedTextLayer) {
+          event.preventDefault();
+          recordProjectHistory();
+          setTextLayers(old => old.filter(layer => layer.id !== selectedTextLayer));
+          setSelectedTextLayer(null);
+          setStatus("Selected text layer deleted. Use Undo to restore it.");
+          return;
+        }
+        if (selected) {
+          event.preventDefault();
+          applyClipChange(clips.filter(clip => clip.id !== selected), "Selected clip deleted. Use Undo to restore it.");
+          setSelected(null);
+        }
       }
     };
     window.addEventListener("keydown", onEditorShortcut);
@@ -523,6 +541,9 @@ export default function App() {
   }
   function updateSelectedImageLayer(patch: Partial<TimelineImageLayer>) {
     if (!selectedImageLayer) return;
+    // Position/scale/rotation/opacity sliders update continuously; discrete layer
+    // operations must always create a history entry so Undo restores visibility,
+    // lock state, fit mode, timing and track changes as well.
     if (Object.keys(patch).some(key => !["x","y","scale","rotation","opacity"].includes(key))) recordProjectHistory();
     setImageLayers(old => old.map(layer => layer.id === selectedImageLayer ? { ...layer, ...patch } : layer));
   }
