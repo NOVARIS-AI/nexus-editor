@@ -40,7 +40,7 @@ export default {
     if (!validPrompt(prompt)) return reply({ error: "Provide a prompt of up to 12,000 characters." }, 400);
     const model = task === "image"
       ? (env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell")
-      : (env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct");
+      : (env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.2-1b-instruct");
     try {
       let result;
       if (task === "image") {
