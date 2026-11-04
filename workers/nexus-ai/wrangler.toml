@@ -4,7 +4,7 @@ compatibility_date = "2026-11-04"
 workers_dev = true
 
 [vars]
-NEXUS_CF_TEXT_MODEL = "@cf/meta/llama-3.1-8b-instruct"
+NEXUS_CF_TEXT_MODEL = "@cf/meta/llama-3.2-1b-instruct"
 NEXUS_CF_IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"
 
 [ai]
