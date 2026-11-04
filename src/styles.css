@@ -713,3 +713,17 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-scene-actions button:active{border-color:var(--accent-c);background:color-mix(in srgb,var(--accent-c) 12%,var(--panel))}
 .nexus-fabric-scene-note{font-size:9px;line-height:1.5;color:var(--muted)}
 @media(max-width:420px){.nexus-fabric-scene-actions{grid-template-columns:1fr}}
+
+
+/* Local visual contact sheet for Creative Fabric */
+.nexus-fabric-visual-scan{display:grid;gap:9px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.nexus-fabric-visual-scan>div:first-child{display:grid;gap:3px}
+.nexus-fabric-visual-scan>div:first-child b{font-size:11px}
+.nexus-fabric-visual-scan small,.nexus-fabric-visual-scan>p{font-size:9px;color:var(--muted);margin:0;line-height:1.45}
+.nexus-fabric-visual-scan>button,.nexus-fabric-sample-grid article>button{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel2);color:var(--text);font-size:10px}
+.nexus-fabric-visual-scan>button:disabled{opacity:.55}
+.nexus-fabric-sample-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.nexus-fabric-sample-grid article{display:grid;align-content:start;gap:5px;min-width:0}
+.nexus-fabric-sample-grid img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;background:#080c16}
+.nexus-fabric-sample-grid article>b{font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nexus-fabric-sample-grid article>small{font-size:8px}
