@@ -1037,8 +1037,9 @@ export default function App() {
       setAiReply("The AI image was generated and imported. This browser could not render a separate video file (" + (error instanceof Error ? error.message : "recording unavailable") + "), so I added it as an editable animated still with motion keyframes instead. It is not model-generated video.");
       return;
     }
+    if (!generatedVideo) throw new Error("The browser did not create an animated scene video.");
     const target = clips.find(item => item.aiScene?.title === scene.title);
-    setAssets(old => [...old, imageAsset, generatedVideo!]);
+    setAssets(old => [...old, imageAsset, generatedVideo]);
     const generatedClip: TimelineClip = {
       id: target?.id || uid(), assetId: generatedVideo.id, trackId: target?.trackId || "video-1",
       start: target?.start ?? timelineDuration(clips), sourceIn: 0, sourceOut: generatedVideo.duration,
