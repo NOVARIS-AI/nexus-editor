@@ -39,12 +39,17 @@ export default async function handler(req, res) {
   const origin = req.headers.origin;
   const allowedOrigin = process.env.NEXUS_APP_ORIGIN;
   if (origin && allowedOrigin && origin !== allowedOrigin) return json(res, 403, { error: "This app origin is not allowed." });
-  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
-  const clientKey = forwarded || String(req.headers["x-real-ip"] || "unknown");
-  if (!allowRequest(clientKey, task)) return json(res, 429, { error: task === "image" ? "Image generation is limited to 3 requests per 10 minutes for this network." : "Text generation is limited to 12 requests per 10 minutes for this network." });
+
+  // Validate the task before applying task-specific rate limits.
+  // The previous order referenced task before declaration and threw a ReferenceError.
   const { task = "text", prompt } = req.body || {};
   if (!["text", "image"].includes(task)) return json(res, 400, { error: "Task must be text or image." });
   if (!cleanPrompt(prompt)) return json(res, 400, { error: "Provide a prompt of up to 12,000 characters." });
+
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const clientKey = forwarded || String(req.headers["x-real-ip"] || "unknown");
+  if (!allowRequest(clientKey, task)) return json(res, 429, { error: task === "image" ? "Image generation is limited to 3 requests per 10 minutes for this network." : "Text generation is limited to 12 requests per 10 minutes for this network." });
+
   try {
     const upstream = await fetch(base + "/v1/generate", {
       method: "POST",
