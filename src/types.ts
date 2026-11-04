@@ -24,6 +24,7 @@ export interface TimelineImageLayer {
   id: string; assetId: string; trackId: string; start: number; duration: number;
   x: number; y: number; scale: number; rotation: number; opacity: number;
   visible: boolean; locked: boolean; fit?: "contain" | "cover";
+  generationPrompt?: string; generationJobId?: string;
 }
 export interface NexusProject {
   format: "nexusproj"; schemaVersion: 1; name: string; createdAt: string; updatedAt: string;
