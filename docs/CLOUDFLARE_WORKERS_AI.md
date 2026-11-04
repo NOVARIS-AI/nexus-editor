@@ -29,3 +29,16 @@ Important: this image endpoint is synchronous. It is not yet wired into the edit
 - Add per-user rate limits before enabling this proxy for public use.
 - Model identifiers and input fields vary by model. Override defaults only with model IDs and input schemas supported by the account.
 - Free allocation and model availability can change. A successful code build does not prove a live request will work.
+
+## Secure app connection (Worker deployment is separate from app configuration)
+
+The deployed Worker URL and its bearer token must remain server-side. Never add `NEXUS_WORKER_TOKEN` to a `VITE_*` variable or browser storage.
+
+Configure these server environment variables when the app backend is next deployed:
+- `NEXUS_WORKER_URL=https://nexus-studio-ai.schoolershubit5.workers.dev`
+- `NEXUS_WORKER_TOKEN=<the same private token configured as the Worker secret>`
+- Optional `NEXUS_APP_ORIGIN=<the exact production app origin>`
+
+The new `/api/nexus-worker` server route proxies text/image requests to the Worker, validates image data, and applies a best-effort per-instance request limit. The AI Director can use the Worker as its text fallback when these server variables exist. The browser image helper is `generateNexusWorkerImage()`; it calls the same-origin proxy and never receives the Worker secret.
+
+**Important:** GitHub Actions secrets do not automatically become runtime variables on the app host. Vercel has intentionally not been changed. Until the server variables are configured there and a real request is tested, the app UI must not be described as connected to live generation. The Worker deployment itself is complete; automatic image import into timeline placeholders/layers remains a separate editor integration and test.
