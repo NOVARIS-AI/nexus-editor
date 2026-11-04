@@ -544,7 +544,7 @@ export default function App() {
       setAiReply(message + " The selected image layer was not changed.");
     } finally { setGenerationBusy(null); }
   }
-  function addGraphicLayer(value: string, color = "#ffffff", backgroundColor = "transparent") { const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: value, color, fontSize: 64, fontFamily: "Arial", x: 50, y: 50, backgroundColor, padding: 12, align: "center", shadow: true }; setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setOverlayText(value); setTextColor(color); setTextSize(64); setActiveTool("text"); setStatus("Graphic or sticker layer added to the timeline."); }
+  function addGraphicLayer(value: string, color = "#ffffff", backgroundColor = "transparent") { const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: value, color, fontSize: 64, fontFamily: "Arial", x: 50, y: 50, backgroundColor, padding: 12, align: "center", shadow: true }; recordProjectHistory(); setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setOverlayText(value); setTextColor(color); setTextSize(64); setActiveTool("text"); setStatus("Graphic or sticker layer added to the timeline."); }
   function addApostleQuotePoster() {
     const quote = compositionBody.trim();
     if (!quote) { setStatus("Enter the quote text before creating the poster."); return; }
@@ -570,11 +570,13 @@ export default function App() {
   function addTextLayer(preset: "standard" | "title" | "lower-third" | "subtitle" = "standard") {
     const styles = { standard: {fontSize:textSize,color:textColor,fontFamily:textFont,x:50,y:50,align:"center" as const,backgroundColor:"transparent",padding:8,shadow:true,animation:"fade" as const}, title:{fontSize:76,color:"#ffffff",fontFamily:"Arial",x:50,y:38,align:"center" as const,backgroundColor:"transparent",padding:12,shadow:true,animation:"pop" as const}, "lower-third":{fontSize:38,color:"#ffffff",fontFamily:"Arial",x:50,y:78,align:"left" as const,backgroundColor:"#111827",padding:18,shadow:true,animation:"fade" as const}, subtitle:{fontSize:34,color:"#ffffff",fontFamily:"Arial",x:50,y:84,align:"center" as const,backgroundColor:"#111827",padding:10,shadow:true,animation:"fade" as const} };
     const style=styles[preset]; const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || (preset==="title"?"Your title":preset==="subtitle"?"Your subtitle":"Your text"), ...style };
+    recordProjectHistory();
     setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus(preset+" text layer added to the timeline.");
   }
   function duplicateSelectedText() { const source=textLayers.find(layer=>layer.id===selectedTextLayer); if(!source)return; const copy={...source,id:uid(),start:source.start+source.duration}; recordProjectHistory(); setTextLayers(old=>[...old,copy]);setSelectedTextLayer(copy.id);setStatus("Text layer duplicated."); }
   function reorderSelectedText(direction: -1 | 1) {
     if (!selectedTextLayer) return;
+    recordProjectHistory();
     setTextLayers(old => {
       const index = old.findIndex(layer => layer.id === selectedTextLayer);
       const target = index + direction;
@@ -593,11 +595,14 @@ export default function App() {
     const source = textLayers.find(layer => layer.id === selectedTextLayer);
     if (!source) return;
     const copy = { ...source, id: uid(), start: source.start + .25, locked: false };
+    recordProjectHistory();
     setTextLayers(old => [...old, copy]); setSelectedTextLayer(copy.id);
     setStatus("Text layer duplicated.");
   }
   function updateSelectedText(patch: Partial<TimelineTextLayer>) {
-    if (!selectedTextLayer) return; setTextLayers(old => old.map(layer => layer.id === selectedTextLayer ? { ...layer, ...patch } : layer));
+    if (!selectedTextLayer) return;
+    if (Object.keys(patch).some(key => !["x","y","fontSize","opacity","rotation"].includes(key))) recordProjectHistory();
+    setTextLayers(old => old.map(layer => layer.id === selectedTextLayer ? { ...layer, ...patch } : layer));
   }
   function updateSelectedClip(patch: Partial<TimelineClip>) {
     if (!selectedClip) return; applyClipChange(clips.map(clip => clip.id === selectedClip.id ? { ...clip, ...patch } : clip), "Clip settings updated.");
