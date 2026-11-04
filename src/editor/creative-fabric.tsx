@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowRight, Check, GitBranch, Lightbulb, Sparkles, WandSparkles, X } from "lucide-react";
 import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } from "../types";
 import { captureVisualSamples, type VisualSample } from "./visual-sampling";
+import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
 
 export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
@@ -74,12 +75,22 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [universe, setUniverse] = useState("Cinematic");
   const [approved, setApproved] = useState(false);
   const [visualSamples, setVisualSamples] = useState<VisualSample[]>([]);
+  const [visualAnalyses, setVisualAnalyses] = useState<MediaAnalysis[]>([]);
   const [visualScanBusy, setVisualScanBusy] = useState(false);
   const [visualScanMessage, setVisualScanMessage] = useState("");
   const scanProjectVisuals = async () => {
     if (visualScanBusy) return;
     setVisualScanBusy(true); setVisualScanMessage("Reading local image and video frames…");
-    try { const samples = await captureVisualSamples(assets, 12); setVisualSamples(samples); setVisualScanMessage(samples.length ? `Captured ${samples.length} visual sample(s). Samples stay on this device.` : "No readable image/video files found. Re-import the original media if needed."); }
+    try {
+      const samples = await captureVisualSamples(assets, 12);
+      setVisualSamples(samples);
+      const visualAssets = assets.filter(asset => asset.kind === "image" || asset.kind === "video").slice(0, 6);
+      const analyses: MediaAnalysis[] = [];
+      for (const asset of visualAssets) { try { analyses.push(await analyzeMediaAsset(asset)); } catch { /* keep the contact sheet if one source fails */ } }
+      setVisualAnalyses(analyses);
+      const changes = analyses.reduce((sum, item) => sum + (item.visual?.sceneChanges.length || 0), 0);
+      setVisualScanMessage(samples.length ? "Captured " + samples.length + " frame(s) and measured " + analyses.length + " source(s) locally. " + changes + " possible visual-change point(s) detected. No upload or API key used." : "No readable image/video files found. Re-import the original media if needed.");
+    }
     catch (error) { setVisualScanMessage(error instanceof Error ? error.message : "Visual scan could not complete."); }
     finally { setVisualScanBusy(false); }
   };
@@ -135,6 +146,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
           <strong>{clip.aiScene?.title||clip.label||"Untitled scene"}</strong>
           {sceneSamples.length>0&&<div className="nexus-fabric-scene-frames">{sceneSamples.map((sample,index)=><button key={sample.assetId+"-scene-"+index} onClick={()=>onSeekTo(clip.start+Math.max(0,(sample.timestamp||0)-clip.sourceIn)/(clip.speed||1))} title="Jump to sampled frame"><img src={sample.dataUrl} alt={"Frame from "+sample.assetName}/><small>{typeof sample.timestamp==="number"?sample.timestamp.toFixed(1)+"s":"Image"}</small></button>)}</div>}
           <p>{clip.aiScene?.visual||attachedText.map(layer=>layer.text).join(" · ")||"No scene description or overlapping text yet. Add a caption or scene note to improve the story map."}</p>
+          {visualAnalyses.filter(item=>item.assetId===clip.assetId&&item.visual).map(item=><div className="nexus-fabric-scene-analysis" key={item.assetId}>
+            <span>{item.visual!.averageLuminance<0.28?"Low-light source":item.visual!.averageLuminance>0.76?"Bright source":"Balanced average brightness"}</span>
+            <span>{item.visual!.sampledFrames} frame samples</span>
+            {item.visual!.sceneChanges.length>0&&<span>{item.visual!.sceneChanges.length} possible visual change(s)</span>}
+          </div>)}
           <div className="nexus-fabric-scene-meta"><span>{attachedText.length} text layer(s)</span><span>{clip.aiScene?"Generated scene notes":"Timeline-based inference"}</span></div>
           <div className="nexus-fabric-scene-actions">
             <button onClick={()=>onApplyPlan([{kind:"apply-look",filter:suggested==="Warm"?"Warm":suggested==="Documentary"?"Matte":suggested==="Bold social"?"Vivid":"Cinematic",clipId:clip.id}])}>Apply {suggested} look</button>
