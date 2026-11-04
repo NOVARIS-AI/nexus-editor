@@ -913,11 +913,22 @@ export default function App() {
       }
       if(expectedKind!=="image"&&mediaDuration<=0) throw new Error("Generated media has no usable duration.");
       const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind:expectedKind,duration:expectedKind==="image"?5:mediaDuration,mimeType:file.type,file,objectUrl,source:{type:"generated",pageUrl:url,creator:"NEXUS managed model worker"}};
-      const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
       setAssets(old=>[...old,created]);
-      applyClipChange([...clips,clip],"Generated "+expectedKind+" added to the editable timeline.");
-      setSelected(clip.id);setPage("editor");
-      setAiReply("Generated "+expectedKind+" imported with its real media duration and added to the correct timeline track. You can now edit it.");
+      const sceneTitle=job.sceneTitle.startsWith("Scene · ")?job.sceneTitle.slice(8):"";
+      const sceneFallback=sceneTitle?clips.find(item=>item.aiScene?.title===sceneTitle):undefined;
+      if(sceneFallback){
+        const replacement:TimelineClip={...sceneFallback,assetId:created.id,sourceIn:0,sourceOut:expectedKind==="image"?Math.max(.5,clipDuration(sceneFallback)):created.duration,label:sceneTitle+" · AI generated",aiScene:{...sceneFallback.aiScene!,sourceType:"generated"}};
+        applyClipChange(clips.map(item=>item.id===sceneFallback.id?replacement:item),"Generated scene media replaced its editable placeholder.");
+        setSelected(sceneFallback.id);setPlayhead(sceneFallback.start);
+        setAiReply("Generated "+expectedKind+" imported and automatically replaced the placeholder for “"+sceneTitle+"”. The scene stays in its planned timeline position.");
+      } else {
+        const isBackground=job.sceneTitle.startsWith("Project background · ");
+        const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+        applyClipChange([...clips,clip],isBackground?"Generated background asset imported at the playhead.":"Generated "+expectedKind+" added to the editable timeline.");
+        setSelected(clip.id);setPlayhead(clip.start);
+        setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
+      }
+      setPage("editor");
     } catch(error) {
       if(reservedObjectUrl) URL.revokeObjectURL(reservedObjectUrl);
       if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
@@ -932,6 +943,7 @@ export default function App() {
     const newClips: TimelineClip[] = [];
     const newTextLayers: TimelineTextLayer[] = [];
     let cursor = timelineDuration(clips);
+    let queuedGenerationCount = 0;
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
@@ -963,6 +975,22 @@ export default function App() {
       const sourceDuration = chosen.kind === "image" ? sceneLength : Math.min(sceneLength, Math.max(0.5, chosen.duration || sceneLength));
       newClips.push({ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } });
       newTextLayers.push({ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 });
+      if (chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
+        const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
+        if (engine) {
+          try {
+            const job = await submitEngineJob(engine, scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", {
+              sceneTitle: scene.title, projectName: aiPlan.title, duration: sourceDuration, aspectRatio, style: aiStyle,
+              target: "replace-ai-scene-placeholder", sceneIndex: index, source: "nexus-project-aware-brain",
+              negativePrompt: "watermarks, captions, logos, unreadable text, distorted anatomy"
+            });
+            setGenerationJobs(old => [{ ...job, sceneTitle: "Scene · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
+            queuedGenerationCount += 1;
+          } catch (error) {
+            setEngineReport(old => [...old, "Generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
+          }
+        }
+      }
       cursor += sourceDuration;
     }
     setAssets(old => [...old, ...additions]);
@@ -971,7 +999,7 @@ export default function App() {
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
-    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes use native NEXUS title-card assets. You can select, reorder, split or replace the clips. No finished video has been rendered.");
+    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes have native placeholders"+ (queuedGenerationCount ? " and " + queuedGenerationCount + " AI generation job(s) were queued. Finished outputs will automatically replace their matching placeholders." : ". Connect an image or video worker in the server environment to generate missing visuals automatically.") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
   async function createAIProjectPlan(briefOverride?: string) {
     const brief = (briefOverride ?? aiBrief).trim();
@@ -1228,7 +1256,9 @@ export default function App() {
       }
     }
 
-    const remoteKind = /\b(video|clip|footage)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "video" :
+    const missingVisualRequest = /\b(background|backdrop|texture|overlay|footage|b.?roll|clip|scene|picture|photo|image)\b/.test(normalized) && /\b(need|missing|add|create|make|generate|put|place|find|use)\b/.test(normalized);
+    const remoteKind = missingVisualRequest ? (/\b(video|clip|footage|b.?roll|scene)\b/.test(normalized) ? "video" : "image") :
+      /\b(video|clip|footage)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "video" :
       /\b(image|picture|photo|poster|artwork)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "image" :
       /\b(generate|create|make)\b/.test(normalized) && /\b(narration|voiceover|speech|music track|full song)\b/.test(normalized) ? "audio" : null;
     if (!remoteKind && generatedAudioForCommand) return;
@@ -1244,9 +1274,10 @@ export default function App() {
       setGenerationBusy(remoteKind + ":prompt");
       setAiReply("Submitting your " + remoteKind + " generation request to the configured NEXUS worker…");
       try {
-        const job = await submitEngineJob(remoteKind, aiBrief.trim(), { aspectRatio: aiFormat, style: aiStyle, projectName, source: "nexus-ai-tool-bridge" });
-        setGenerationJobs(old => [{ ...job, sceneTitle: aiBrief.trim().slice(0, 64) || "AI generated " + remoteKind }, ...old.filter(item => item.id !== job.id)]);
-        setAiReply("The " + remoteKind + " job was accepted by the configured worker. Its progress and output will appear in Generation Jobs; refresh the job to import a verified result into the project.");
+        const job = await submitEngineJob(remoteKind, normalized, { aspectRatio: aiFormat, style: aiStyle, projectName, source: "nexus-ai-project-brain", projectContext: { assetCount: assets.length, clipCount: clips.length, playhead, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, start: selectedClip.start, duration: clipDuration(selectedClip) } : null, assetNames: assets.slice(0, 30).map(item => item.name) } });
+        const sceneTitle = missingVisualRequest && /background|backdrop/i.test(normalized) ? "Project background · " + normalized.slice(0, 52) : normalized.slice(0, 64) || "AI generated " + remoteKind;
+        setGenerationJobs(old => [{ ...job, sceneTitle }, ...old.filter(item => item.id !== job.id)]);
+        setAiReply("The " + remoteKind + " job was accepted with your current project context. Its verified output will be downloaded, imported into the media library and added at the playhead or project timeline automatically when the worker finishes.");
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "The generation worker rejected this request. Your project is unchanged.");
       } finally { setGenerationBusy(null); }
