@@ -22,7 +22,7 @@ export function downloadProject(project: NexusProject, assets: MediaAsset[]) {
   const blob = new Blob([JSON.stringify(serialiseProject(project, assets), null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob); const a = document.createElement("a");
   a.href = url; a.download = `${project.name.replace(/[^a-z0-9-_]+/gi, "-")}.nexusproj`;
-  a.click(); URL.revokeObjectURL(url);
+  a.click(); window.setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 export function parseProject(text: string): NexusProject {
   const value = JSON.parse(text) as NexusProject;

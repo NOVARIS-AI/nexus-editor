@@ -34,7 +34,7 @@ import { detectReferenceWorkflow, buildReferenceContext } from "./editor/referen
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
-import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
+import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -786,6 +786,21 @@ export default function App() {
     setExportFps(profile.fps);
     setStatus("Export preset applied: " + preset + ". You can still customise quality and frame rate.");
   }
+  async function saveCurrentProject() {
+    try {
+      if (isNativeAndroid()) {
+        const blob = new Blob([JSON.stringify(project, null, 2)], { type: "application/json" });
+        const filename = (projectName || "nexus-project").replace(/[^a-z0-9-_]+/gi, "-") + ".nexusproj";
+        await saveProjectOnAndroid(blob, filename);
+        setStatus("Project backup saved in Documents/NEXUS Projects. Re-import the original media files when reopening it.");
+      } else {
+        downloadProject(project, assets);
+        setStatus("Project backup downloaded. Keep the original media files so you can relink them when reopening.");
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not save the project backup.");
+    }
+  }
   async function startVideoExport() {
     if (exportBusy) return;
     if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
@@ -1466,7 +1481,7 @@ export default function App() {
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
-          <button className={"editor-top-icon ai-editor-trigger"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Toggle NEXUS AI guidance"><Sparkles size={18}/><span>AI</span></button><button className="editor-top-icon" onClick={()=>downloadProject(project,assets)} title="Save project"><Check size={18}/></button>
+          <button className={"editor-top-icon ai-editor-trigger"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Toggle NEXUS AI guidance"><Sparkles size={18}/><span>AI</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
         <input ref={mediaInput} hidden type="file" accept="image/*,video/*" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
