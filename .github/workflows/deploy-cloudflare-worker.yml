@@ -1,0 +1,40 @@
+name: NEXUS Cloudflare AI Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/nexus-ai/**"
+      - ".github/workflows/deploy-cloudflare-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && secrets.NEXUS_WORKER_TOKEN != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Wrangler
+        run: npm install --global wrangler
+      - name: Deploy Worker
+        working-directory: workers/nexus-ai
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: wrangler deploy
+      - name: Set private Worker access token
+        working-directory: workers/nexus-ai
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEXUS_WORKER_TOKEN: ${{ secrets.NEXUS_WORKER_TOKEN }}
+        run: |
+          printf '%s' "$NEXUS_WORKER_TOKEN" | wrangler secret put NEXUS_WORKER_TOKEN
+          unset NEXUS_WORKER_TOKEN
