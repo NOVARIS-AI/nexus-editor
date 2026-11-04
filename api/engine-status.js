@@ -5,8 +5,8 @@ export default function handler(_req, res) {
   const workerConfigured = env("NEXUS_WORKER_URL") && env("NEXUS_WORKER_TOKEN");
   const cloudflareAvailable = cloudflareConfigured || workerConfigured;
   res.status(200).json({
-    providers: { cloudflareWorkersAI: { configured: cloudflareAvailable, connection: workerConfigured ? "secure-worker-proxy" : cloudflareConfigured ? "direct-api" : "not-configured", textModel: process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct", imageModel: process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell", capabilities: ["text", "image-proxy"], note: workerConfigured ? "Cloudflare Worker is connected through the server-side proxy. Image requests are available at /api/nexus-worker; automatic scene/layer importing is the remaining editor-side integration." : "The image proxy is synchronous and is not yet wired into the editor generation-job importer." } },
-    workerProtocol: "nexus-jobs-v1",
+    providers: { cloudflareWorkersAI: { configured: cloudflareAvailable, connection: workerConfigured ? "secure-worker-proxy" : cloudflareConfigured ? "direct-api" : "not-configured", textModel: process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct", imageModel: process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell", capabilities: ["text", "image-proxy"], note: workerConfigured ? "Cloudflare Worker is connected through the server-side proxy. Storyboard scene images and selected image-layer replacements can be generated and imported by the editor." : "Set NEXUS_WORKER_URL and NEXUS_WORKER_TOKEN in the app server runtime to connect the deployed Worker." } },
+    workerProtocol: "nexus-ai-v1",
     security: { workerEndpointsRequireHttps: true, jobOutputsRequireHttps: true },
     brain: {
       configured: (env("NEXUS_AI_API_KEY") && env("NEXUS_AI_BASE_URL") && env("NEXUS_AI_MODEL")) || cloudflareAvailable,
