@@ -1256,7 +1256,7 @@ export default function App() {
       }
     }
 
-    const missingVisualRequest = /\b(background|backdrop|texture|overlay|footage|b.?roll|clip|scene|picture|photo|image)\b/.test(normalized) && /\b(need|missing|add|create|make|generate|put|place|find|use)\b/.test(normalized);
+    const missingVisualRequest = /\b(background|backdrop|texture|overlay|footage|b.?roll|clip|scene|picture|photo|image)\b/.test(normalized) && /\b(need|needs|needed|missing|add|create|make|generate|put|place|find|use|requires?)\b/.test(normalized);
     const remoteKind = missingVisualRequest ? (/\b(video|clip|footage|b.?roll|scene)\b/.test(normalized) ? "video" : "image") :
       /\b(video|clip|footage)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "video" :
       /\b(image|picture|photo|poster|artwork)\b/.test(normalized) && /\b(generate|create|make)\b/.test(normalized) ? "image" :
