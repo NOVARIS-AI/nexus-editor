@@ -1122,7 +1122,7 @@ export default function App() {
         if (!applied) setAiReply(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
           "\n\nThe reference plan is ready. Add replacement media to build the editable timeline.");
-        setEngineReport(["AI Director · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...matchNotes, ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
+        setEngineReport(["AI Director · " + result.model, ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
       } catch (error) {
         setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
       }

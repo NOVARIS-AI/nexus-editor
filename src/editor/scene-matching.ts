@@ -22,6 +22,6 @@ export function rankSceneAssets(scene: SceneLike, assets: MediaAsset[], context:
     const repetitionPenalty = (usage.get(asset.id)||0)*0.32;
     const score = (exact?1.2:partial?0.72:0) + semantic*0.58 + (asset.kind==="image"?0.04:0) + (role==="replacement image"||role==="replacement video"?0.05:0) - repetitionPenalty;
     const reason = exact ? "AI Director selected this exact uploaded filename." : partial ? "AI Director suggested a matching filename." : semantic>0.05 ? "Filename shares topic words with the scene description." : "No strong filename or AI filename match; verify this choice.";
-    return {asset,score,confidence:exact||partial||semantic>=0.34?"high":semantic>=0.12?"medium":"low",reason};
+    return {asset,score,confidence:(exact||partial||semantic>=0.34?"high":semantic>=0.12?"medium":"low") as "high" | "medium" | "low",reason};
   }).sort((a,b)=>b.score-a.score);
 }
