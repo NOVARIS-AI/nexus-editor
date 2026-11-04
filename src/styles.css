@@ -696,3 +696,20 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 
 
 .nexus-fabric-edges{display:flex;flex-direction:column;gap:6px}.nexus-fabric-edges>div{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);font-size:9px}.nexus-fabric-edges b{font-size:9px;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nexus-fabric-edges span,.nexus-fabric-edges small{color:var(--muted)}.nexus-fabric-operation-list{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line)}.nexus-fabric-operation-list b{font-size:11px}.nexus-fabric-operation-list span{padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:10px;color:var(--text);background:var(--panel)}
+
+
+/* Creative Fabric scene intelligence */
+.nexus-fabric-scene{display:grid;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.nexus-fabric-scene-top{display:flex;align-items:center;gap:8px}
+.nexus-fabric-scene-top span{font-size:8px;letter-spacing:.1em;color:var(--muted);font-weight:800}
+.nexus-fabric-scene-top b{padding:4px 7px;border-radius:20px;background:color-mix(in srgb,var(--accent-c) 15%,transparent);color:var(--accent-c);font-size:9px}
+.nexus-fabric-scene-top small{margin-left:auto;color:var(--muted);font-size:9px}
+.nexus-fabric-scene>strong{font-size:12px}
+.nexus-fabric-scene>p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}
+.nexus-fabric-scene-meta{display:flex;flex-wrap:wrap;gap:6px}
+.nexus-fabric-scene-meta span{padding:4px 6px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:8px}
+.nexus-fabric-scene-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.nexus-fabric-scene-actions button{padding:8px 6px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);font-size:9px}
+.nexus-fabric-scene-actions button:active{border-color:var(--accent-c);background:color-mix(in srgb,var(--accent-c) 12%,var(--panel))}
+.nexus-fabric-scene-note{font-size:9px;line-height:1.5;color:var(--muted)}
+@media(max-width:420px){.nexus-fabric-scene-actions{grid-template-columns:1fr}}
