@@ -1,10 +1,11 @@
-import type { TimelineClip, TimelineTextLayer, TimelineTrack } from "../types";
+import type { TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "../types";
 
 export type LocalDraft = {
   version: 3;
   projectName: string;
   clips: TimelineClip[];
   textLayers: TimelineTextLayer[];
+  imageLayers: TimelineImageLayer[];
   tracks: TimelineTrack[];
   aspectRatio: string;
   savedAt: number;
@@ -31,6 +32,13 @@ function validTextLayer(value: unknown): value is TimelineTextLayer {
     Number(value.duration) > 0 && Number.isFinite(value.fontSize);
 }
 
+function validImageLayer(value: unknown): value is TimelineImageLayer {
+  if (!isRecord(value)) return false;
+  return typeof value.id === "string" && typeof value.assetId === "string" && typeof value.trackId === "string" &&
+    Number.isFinite(value.start) && Number(value.start) >= 0 && Number.isFinite(value.duration) && Number(value.duration) > 0 &&
+    ["x","y","scale","rotation","opacity"].every(key => Number.isFinite(value[key]));
+}
+
 function validTrack(value: unknown): value is TimelineTrack {
   return isRecord(value) && typeof value.id === "string" &&
     typeof value.name === "string" &&
@@ -48,8 +56,8 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
       (value.tracks !== undefined && !Array.isArray(value.tracks)) ||
       typeof value.aspectRatio !== "string" ||
       !Number.isFinite(value.savedAt)) return null;
-    if (value.clips.length > 5000 || value.textLayers.length > 2000) return null;
-    if (!value.clips.every(validClip) || !value.textLayers.every(validTextLayer)) return null;
+    if (value.clips.length > 5000 || value.textLayers.length > 2000 || (value.imageLayers !== undefined && (!Array.isArray(value.imageLayers) || value.imageLayers.length > 2000))) return null;
+    if (!value.clips.every(validClip) || !value.textLayers.every(validTextLayer) || !(value.imageLayers || []).every(validImageLayer)) return null;
     const tracks = (value.tracks || []).filter(validTrack) as TimelineTrack[];
     if (new Set(tracks.map(track => track.id)).size !== tracks.length) return null;
     return {
@@ -57,6 +65,7 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
       projectName: value.projectName.slice(0, 180),
       clips: value.clips as TimelineClip[],
       textLayers: value.textLayers as TimelineTextLayer[],
+      imageLayers: (value.imageLayers || []) as TimelineImageLayer[],
       tracks,
       aspectRatio: value.aspectRatio,
       savedAt: Number(value.savedAt)

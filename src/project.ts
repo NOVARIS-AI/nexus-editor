@@ -2,6 +2,7 @@ import type { MediaAsset, NexusProject, TimelineClip, TimelineTrack } from "./ty
 export const defaultTracks: TimelineTrack[] = [
   { id: "video-1", name: "Video 1", kind: "video", muted: false, hidden: false },
   { id: "overlay-1", name: "Video 2", kind: "overlay", muted: false, hidden: false },
+  { id: "image-1", name: "Images & Stickers", kind: "overlay", muted: false, hidden: false },
   { id: "text-1", name: "Text 1", kind: "overlay", muted: false, hidden: false },
   { id: "audio-1", name: "Audio 1 · Main", kind: "audio", muted: false, hidden: false },
   { id: "audio-2", name: "Audio 2 · Music", kind: "audio", muted: false, hidden: false },
@@ -11,7 +12,7 @@ export const defaultTracks: TimelineTrack[] = [
 export function makeProject(name = "Untitled Project"): NexusProject {
   const now = new Date().toISOString();
   return { format: "nexusproj", schemaVersion: 1, name, createdAt: now, updatedAt: now,
-    frameRate: 30, width: 1920, height: 1080, assets: [], tracks: defaultTracks, clips: [], textLayers: [] };
+    frameRate: 30, width: 1920, height: 1080, assets: [], tracks: defaultTracks, clips: [], textLayers: [], imageLayers: [] };
 }
 export function serialiseProject(project: NexusProject, assets: MediaAsset[]): NexusProject {
   return { ...project, updatedAt: new Date().toISOString(),
@@ -33,7 +34,7 @@ export function parseProject(text: string): NexusProject {
     throw new Error("This project contains a clip with missing media or invalid timing. The original file has not been changed.");
   if (value.tracks.some(track => !track || typeof track.id !== "string" || typeof track.name !== "string"))
     throw new Error("This project contains an invalid timeline track.");
-  return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [] };
+  return { ...value, textLayers: Array.isArray(value.textLayers) ? value.textLayers : [], imageLayers: Array.isArray(value.imageLayers) ? value.imageLayers : [] };
 }
 
 export function speedAtSourceProgress(clip: TimelineClip, progress: number) {

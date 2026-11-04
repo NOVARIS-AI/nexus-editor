@@ -20,8 +20,13 @@ export interface TimelineTextLayer {
   blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
   color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; visible?: boolean; locked?: boolean; animation?: "none" | "fade" | "pop";
 }
+export interface TimelineImageLayer {
+  id: string; assetId: string; trackId: string; start: number; duration: number;
+  x: number; y: number; scale: number; rotation: number; opacity: number;
+  visible: boolean; locked: boolean; fit?: "contain" | "cover";
+}
 export interface NexusProject {
   format: "nexusproj"; schemaVersion: 1; name: string; createdAt: string; updatedAt: string;
   frameRate: number; width: number; height: number;
-  assets: Omit<MediaAsset, "file" | "objectUrl">[]; tracks: TimelineTrack[]; clips: TimelineClip[]; textLayers?: TimelineTextLayer[];
+  assets: Omit<MediaAsset, "file" | "objectUrl">[]; tracks: TimelineTrack[]; clips: TimelineClip[]; textLayers?: TimelineTextLayer[]; imageLayers?: TimelineImageLayer[];
 }

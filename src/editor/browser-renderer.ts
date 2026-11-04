@@ -1,4 +1,4 @@
-import type { MediaAsset, TimelineClip, TimelineTextLayer, TimelineTrack } from "../types";
+import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "../types";
 import { compileClipTiming } from "./render-timing";
 import { getNexusDeviceProfile } from "./device-profile";
 import { CREATIVE_FILTER_CSS } from "./creative-library";
@@ -12,6 +12,7 @@ export type RenderInput = {
   assets: MediaAsset[];
   clips: TimelineClip[];
   textLayers: TimelineTextLayer[];
+  imageLayers?: TimelineImageLayer[];
   tracks?: TimelineTrack[];
   width: number;
   height: number;
@@ -114,6 +115,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     const audioSolo = (input.tracks || []).some(item => item.kind === "audio" && item.solo);
     return track?.muted === true || track?.hidden === true || (!!audioSolo && !track?.solo);
   };
+  const imageLayers = input.imageLayers || [];
+  const imageLayerImages = new Map<string, HTMLImageElement>();
   const mediaByClip = new Map<string, HTMLVideoElement>();
   const imageByClip = new Map<string, HTMLImageElement>();
   const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -140,6 +143,15 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   };
   try {
     if (needsAudio && (!audioContext || !audioDestination)) throw new Error("Audio export is unavailable in this browser. Use an updated Chrome browser with Web Audio support.");
+    for (const layer of imageLayers) {
+      throwIfAborted();
+      const asset = assets.get(layer.assetId);
+      if (!asset || asset.kind !== "image" || !asset.objectUrl) throw new Error("An image layer is missing its original image. Re-import the image before exporting.");
+      if (!Number.isFinite(layer.start) || !Number.isFinite(layer.duration) || layer.start < 0 || layer.duration <= 0) throw new Error("An image layer has invalid timeline timing.");
+      const image = new Image(); image.src = asset.objectUrl;
+      await new Promise<void>((resolve,reject)=>{ image.onload=()=>resolve(); image.onerror=()=>reject(new Error("Image layer could not be loaded: "+asset.name)); });
+      imageLayerImages.set(layer.id,image);
+    }
     for (const clip of input.clips) {
       throwIfAborted();
       const asset = assets.get(clip.assetId);
@@ -341,6 +353,19 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             } else { audio.element.pause(); audio.gain.gain.value = 0; }
           }
         }
+        imageLayers.filter(layer => {
+          const track = tracks.get(layer.trackId);
+          return layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
+        }).forEach(layer => {
+          const image = imageLayerImages.get(layer.id); if (!image) return;
+          const track = tracks.get(layer.trackId);
+          const scale = Math.max(.05, Math.min(4, layer.scale));
+          const width = canvas.width * .5 * scale, height = width * image.naturalHeight / Math.max(1,image.naturalWidth);
+          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1)));
+          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
+          ctx.rotate(layer.rotation * Math.PI / 180);
+          ctx.drawImage(image,-width/2,-height/2,width,height); ctx.restore();
+        });
         input.textLayers.filter(layer => {
           const track = tracks.get(layer.trackId);
           return !track?.hidden && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration;
