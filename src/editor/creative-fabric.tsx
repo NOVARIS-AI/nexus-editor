@@ -23,7 +23,11 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
   const edges: {from:string;to:string;label:string}[] = [];
   for (const clip of clips) { if (assets.some(a=>a.id===clip.assetId)) edges.push({from:clip.assetId,to:clip.id,label:"uses media"}); }
   for (const layer of images) { if (assets.some(a=>a.id===layer.assetId)) edges.push({from:layer.assetId,to:layer.id,label:"overlay source"}); }
-  for (const clip of clips) { for (const layer of texts) if (layer.trackId===clip.trackId && layer.start < clip.start + (clip.sourceOut-clip.sourceIn)/(clip.speed||1) && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"shares time and track"}); }
+  for (const clip of clips) {
+    const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);
+    for (const layer of texts) if (layer.start < end && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"overlaps in time"});
+    for (const layer of images) if (layer.start < end && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"shares scene window"});
+  }
   const issues: string[] = [];
   if (!assets.length) issues.push("No source media yet. Add a visual or audio asset to give the project a starting point.");
   if (assets.length && !clips.length) issues.push("Media is imported but no story beats are on the timeline.");
@@ -66,7 +70,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const operations = useMemo<FabricOperation[]>(()=>{
     if(!intent.trim()) return [];
     const q=intent.toLowerCase(); const result:FabricOperation[]=[];
-    if(/title|headline|quote|caption|text|opening|intro/.test(q)) result.push({kind:"add-title",text:(dna.purpose||projectName).slice(0,90)});
+    if(/title|headline|quote|caption|text|opening|intro/.test(q)) { const explicit=intent.match(/(?:title|quote|caption)\s*:\s*["“]?([^"”\n]{3,90})/i)?.[1]?.trim(); result.push({kind:"add-title",text:explicit||"Your title"}); }
     if(/cinematic|film|movie|dramatic/.test(q)) result.push({kind:"apply-look",filter:"Cinematic"});
     else if(/warm|golden|sunset/.test(q)) result.push({kind:"apply-look",filter:"Warm"});
     else if(/black.?and.?white|monochrome|noir/.test(q)) result.push({kind:"apply-look",filter:"B&W"});
