@@ -33,7 +33,7 @@ import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext } from "./editor/reference-workflow";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
-import { getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob } from "./editor/engine-jobs";
+import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -141,6 +141,7 @@ export default function App() {
   const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>(() => loadSavedGenerationJobs());
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
   const [engineAvailability, setEngineAvailability] = useState<{brain:{configured:boolean;model?:string};engines:Record<string,{configured:boolean;provider:string;fallback:string}>} | null>(null);
+  const [workerHealth, setWorkerHealth] = useState<NexusWorkerHealth | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
   function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
@@ -177,7 +178,7 @@ export default function App() {
     } catch { setAiContextStatus("Background helper unavailable · editor remains usable"); }
     return () => { aiWorker.current?.terminate(); aiWorker.current = null; };
   }, []);
-  useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); return () => controller.abort(); }, []);
+  useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); checkNexusWorker(controller.signal).then(setWorkerHealth).catch(error => setWorkerHealth({ ok:false, status:"unavailable", message:error instanceof Error ? error.message : "Worker health check failed.", checkedAt:Date.now() })); return () => controller.abort(); }, []);
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1822,9 +1823,11 @@ export default function App() {
 
       {page === "settings" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">MAKE IT YOURS</div><h1>Settings</h1><p>Manage your workspace preferences.</p></div></div><div className="settings-layout"><div className="settings-nav"><b>Preferences</b><span>Appearance</span><span>Workspace</span><span>About</span></div><div className="settings-content"><h2>NEXUS engine status</h2><p>Live configuration check from the secure server. Unconfigured engines use the fallback listed here.</p>
           <div className="engine-status-grid">
+            <div className="setting-row"><span><b>Cloudflare Worker connection</b><small>{workerHealth?.message || "Checking the deployed Worker health endpoint…"}</small></span><span className="setting-value">{workerHealth ? (workerHealth.ok ? "Online" : "Not connected") : "Checking…"}</span></div>
             <div className="setting-row"><span><b>AI Director brain</b><small>{engineAvailability?.brain.model || "Model not configured"}</small></span><span className="setting-value">{engineAvailability ? (engineAvailability.brain.configured ? "Connected" : "Key needed") : "Checking…"}</span></div>
             {Object.entries(engineAvailability?.engines || {}).map(([name,engine])=><div className="setting-row" key={name}><span><b>{name.toUpperCase()} engine</b><small>{engine.configured ? engine.provider : engine.fallback}</small></span><span className="setting-value">{engine.configured ? "Connected" : "Fallback"}</span></div>)}
           </div>
+            <div className="setting-row"><span><b>Worker diagnostics</b><small>{workerHealth?.checkedAt ? "Last checked " + new Date(workerHealth.checkedAt).toLocaleTimeString() : "Run a fresh connection check before generating."}</small></span><button className="outline-button" onClick={() => { setWorkerHealth(null); checkNexusWorker().then(setWorkerHealth).catch(error => setWorkerHealth({ ok:false, status:"unavailable", message:error instanceof Error ? error.message : "Worker health check failed.", checkedAt:Date.now() })); }}>Check connection</button></div>
           <h2>Speech transcription engines</h2><p>Choose a local engine for privacy or the online provider for cloud transcription.</p>
           <div className="setting-row"><span><b>Engine</b><small>Whisper and Vosk run in your browser after their models are available.</small></span><select value={transcriptionEngine} onChange={e=>setTranscriptionEngine(e.target.value as "whisper"|"vosk"|"groq")}><option value="whisper">Offline Whisper · Tiny</option><option value="vosk">Offline Vosk</option><option value="groq">Online API · Groq</option></select></div>
           <div className="setting-row"><span><b>Selected media</b><small>{asset?.name || "No selected audio/video clip"}</small></span><button onClick={()=>setPage("editor")}>Open editor</button></div>
