@@ -1,5 +1,5 @@
 const json = (res, status, body) => res.status(status).json(body);
-const models = { text: () => process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct", image: () => process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell" };
+const models = { text: () => process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.2-1b-instruct", image: () => process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell" };
 const configured = () => Boolean(process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN);
 const cleanPrompt = (value) => typeof value === "string" && value.trim() && value.length <= 12000;
 
