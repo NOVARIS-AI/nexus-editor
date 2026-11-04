@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowRight, Check, GitBranch, Lightbulb, Sparkles, WandSparkles, X } from "lucide-react";
 import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } from "../types";
 
-export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur" };
+export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
@@ -63,7 +63,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 }
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onClose }: Props) {
-  const [tab, setTab] = useState<"map"|"dna"|"intent"|"whatif">("map");
+  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
     try { return { ...blankDNA, ...JSON.parse(localStorage.getItem("nexus-fabric-dna:"+projectName)||"{}") }; } catch { return blankDNA; }
@@ -87,7 +87,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
     <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","dna","intent","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",dna:"Project DNA",intent:"Intent",whatif:"What-if"})[k]}</button>)}</nav>
+    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",whatif:"What-if"})[k]}</button>)}</nav>
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
@@ -95,6 +95,30 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,12).map((edge,i)=><div key={i}><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b></div>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
       <div className="nexus-fabric-section-title"><b>Continuity Guardian</b><small><Activity size={12}/> Local structural checks</small></div>
       <div className="nexus-fabric-issues">{graph.issues.map((issue,i)=><div key={i}><Lightbulb size={15}/><span>{issue}</span></div>)}</div>
+    </div>}
+    {tab==="scenes" && <div className="nexus-fabric-body">
+      <p className="nexus-fabric-copy">Scene Intelligence reads your timeline structure, clip labels, generated-scene notes and timed text. It does not claim to visually understand footage; all analysis runs locally.</p>
+      {!clips.length && <div className="nexus-fabric-empty">Add clips to the timeline and Scene Intelligence will map the story beats here.</div>}
+      {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
+        const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);
+        const attachedText=textLayers.filter(layer=>layer.start<end&&layer.start+layer.duration>clip.start);
+        const note=[clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration,clip.label,...attachedText.map(layer=>layer.text)].filter(Boolean).join(" ");
+        const words=note.toLowerCase();
+        const role=/hook|intro|opening|welcome|attention|stop scrolling/.test(words)||index===0?"Hook":/conclusion|closing|thank|follow|subscribe|call to action|cta/.test(words)||index===clips.length-1?"Closing":/proof|evidence|example|result|demonstrat/.test(words)?"Evidence":/context|background|problem|why|story/.test(words)?"Context":/quote|wisdom|message|lesson|teach|main point/.test(words)?"Core message":"Development";
+        const seconds=Math.max(0,end-clip.start);
+        const suggested=role==="Hook"?"Bold social":role==="Closing"?"Warm":role==="Core message"?"Cinematic":"Documentary";
+        return <article className="nexus-fabric-scene" key={clip.id}>
+          <div className="nexus-fabric-scene-top"><span>SCENE {String(index+1).padStart(2,"0")}</span><b>{role}</b><small>{seconds.toFixed(1)}s</small></div>
+          <strong>{clip.aiScene?.title||clip.label||"Untitled scene"}</strong>
+          <p>{clip.aiScene?.visual||attachedText.map(layer=>layer.text).join(" · ")||"No scene description or overlapping text yet. Add a caption or scene note to improve the story map."}</p>
+          <div className="nexus-fabric-scene-meta"><span>{attachedText.length} text layer(s)</span><span>{clip.aiScene?"Generated scene notes":"Timeline-based inference"}</span></div>
+          <div className="nexus-fabric-scene-actions">
+            <button onClick={()=>onApplyPlan([{kind:"apply-look",filter:suggested==="Warm"?"Warm":suggested==="Documentary"?"Matte":suggested==="Bold social"?"Vivid":"Cinematic",clipId:clip.id}])}>Apply {suggested} look</button>
+            <button onClick={()=>onApplyPlan([{kind:"apply-transition",transition:role==="Hook"?"zoom":role==="Closing"?"fade":"slide",clipId:clip.id}])}>Apply scene transition</button>
+          </div>
+        </article>;
+      })}
+      <small className="nexus-fabric-scene-note">Scene roles are heuristic suggestions based on order and available text metadata. Review each scene before applying a treatment.</small>
     </div>}
     {tab==="dna" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Project DNA is the creative contract for this project. It stays on this device and guides suggestions; it does not silently alter clips.</p>
       <label>What is this project about?<textarea value={dna.purpose} onChange={e=>setDna({...dna,purpose:e.target.value})} placeholder="A short film, product story, quote poster, tutorial…"/></label>
