@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Activity, ArrowRight, Check, GitBranch, Lightbulb, Sparkles, WandSparkles, X } from "lucide-react";
 import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } from "../types";
+import { captureVisualSamples, type VisualSample } from "./visual-sampling";
 
 export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
+  onSeekTo: (time: number) => void;
   onClose: () => void;
 };
 type DNA = { purpose: string; audience: string; style: string; palette: string; rules: string };
@@ -62,7 +64,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
@@ -71,6 +73,16 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [saved, setSaved] = useState(false);
   const [universe, setUniverse] = useState("Cinematic");
   const [approved, setApproved] = useState(false);
+  const [visualSamples, setVisualSamples] = useState<VisualSample[]>([]);
+  const [visualScanBusy, setVisualScanBusy] = useState(false);
+  const [visualScanMessage, setVisualScanMessage] = useState("");
+  const scanProjectVisuals = async () => {
+    if (visualScanBusy) return;
+    setVisualScanBusy(true); setVisualScanMessage("Reading local image and video frames…");
+    try { const samples = await captureVisualSamples(assets, 12); setVisualSamples(samples); setVisualScanMessage(samples.length ? `Captured ${samples.length} visual sample(s). Samples stay on this device.` : "No readable image/video files found. Re-import the original media if needed."); }
+    catch (error) { setVisualScanMessage(error instanceof Error ? error.message : "Visual scan could not complete."); }
+    finally { setVisualScanBusy(false); }
+  };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
   const operations = useMemo<FabricOperation[]>(()=>{
@@ -99,6 +111,16 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     {tab==="scenes" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Scene Intelligence reads your timeline structure, clip labels, generated-scene notes and timed text. It does not claim to visually understand footage; all analysis runs locally.</p>
       {!clips.length && <div className="nexus-fabric-empty">Add clips to the timeline and Scene Intelligence will map the story beats here.</div>}
+      <div className="nexus-fabric-visual-scan">
+        <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key</small></div>
+        <button onClick={()=>void scanProjectVisuals()} disabled={visualScanBusy}>{visualScanBusy?"Scanning…":"Scan project frames"}</button>
+        {visualScanMessage && <p>{visualScanMessage}</p>}
+        {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
+          <img src={sample.dataUrl} alt={sample.assetName+" visual sample"} loading="lazy"/>
+          <b>{sample.assetName}</b><small>{sample.role}{typeof sample.timestamp==="number"?" · "+sample.timestamp.toFixed(1)+"s":""}</small>
+          <button onClick={()=>{const clip=clips.find(item=>item.assetId===sample.assetId);if(clip)onSeekTo(clip.start);}}>Go to scene</button>
+        </article>)}</div>}
+      </div>
       {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
         const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);
         const attachedText=textLayers.filter(layer=>layer.start<end&&layer.start+layer.duration>clip.start);
