@@ -874,7 +874,10 @@ export default function App() {
     } finally { setGenerationBusy(null); }
   }
   const importedGenerationOutputs = useRef<Set<string>>(new Set());
+  const generationRefreshInFlight = useRef<Set<string>>(new Set());
   async function refreshGenerationJob(job:NexusEngineJob & {sceneTitle:string}) {
+    if (generationRefreshInFlight.current.has(job.id)) return;
+    generationRefreshInFlight.current.add(job.id);
     let reservedUrl = "";
     let reservedObjectUrl = "";
     try {
@@ -932,7 +935,11 @@ export default function App() {
     } catch(error) {
       if(reservedObjectUrl) URL.revokeObjectURL(reservedObjectUrl);
       if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
-      setAiReply(error instanceof Error?error.message:"Could not refresh this generation job.");
+      const message = error instanceof Error ? error.message : "Could not refresh this generation job.";
+      setGenerationJobs(old => old.map(item => item.id === job.id ? { ...item, state: "failed", error: message, message } : item));
+      setAiReply(message);
+    } finally {
+      generationRefreshInFlight.current.delete(job.id);
     }
   }
   async function buildAIProjectTimeline() {
