@@ -14,7 +14,7 @@ export default function handler(_req, res) {
       model: process.env.NEXUS_AI_MODEL || (cloudflareAvailable ? process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.1-8b-instruct" : null)
     },
     engines: {
-      image: { configured: env("NEXUS_IMAGE_ENGINE_URL") && env("NEXUS_IMAGE_ENGINE_TOKEN"), provider: "NEXUS-managed image worker", fallback: "Editable SVG/Canvas graphics and licensed sourced images" },
+      image: { configured: workerConfigured || (env("NEXUS_IMAGE_ENGINE_URL") && env("NEXUS_IMAGE_ENGINE_TOKEN")), provider: "NEXUS-managed image worker", fallback: "Editable SVG/Canvas graphics and licensed sourced images" },
       video: { configured: env("NEXUS_VIDEO_ENGINE_URL") && env("NEXUS_VIDEO_ENGINE_TOKEN"), provider: "NEXUS-managed video worker", fallback: "Licensed sourced footage and native animated timeline scenes" },
       audio: { configured: env("NEXUS_AUDIO_ENGINE_URL") && env("NEXUS_AUDIO_ENGINE_TOKEN"), provider: "NEXUS-managed audio worker", fallback: "Web Audio API and native audio playback" },
       render: { configured: env("NEXUS_RENDER_ENGINE_URL") && env("NEXUS_RENDER_ENGINE_TOKEN"), provider: "NEXUS-managed render worker", fallback: "Browser MediaRecorder WebM where supported" }
