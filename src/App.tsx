@@ -1092,6 +1092,7 @@ export default function App() {
     const newTextLayers: TimelineTextLayer[] = [];
     let cursor = timelineDuration(clips);
     let queuedGenerationCount = 0;
+    let generatedImageCount = 0;
     const pendingWorkerImages: { scene: any; clipId: string; duration: number }[] = [];
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const sceneLength = scene.duration || defaultSceneLength;
@@ -1152,15 +1153,16 @@ export default function App() {
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
     for (const pending of pendingWorkerImages) {
       setGenerationBusy("image:storyboard:" + pending.scene.title);
-      setAiReply("Generating scene image " + (queuedGenerationCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
+      setAiReply("Generating scene image " + (generatedImageCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
       try {
         await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
         queuedGenerationCount += 1;
+        generatedImageCount += 1;
       } catch (error) {
         setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
       } finally { setGenerationBusy(null); }
     }
-    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + queuedGenerationCount + " AI generation request(s) were queued or generated. Generated images are imported and replace their matching scene placeholders automatically. You can select, reorder, split or replace the clips. No finished video has been rendered.");
+    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + generatedImageCount + " missing scene image(s) were generated and imported" + (pendingWorkerImages.length > generatedImageCount ? "; some image requests could not complete and their editable placeholders remain." : "") + (queuedGenerationCount > generatedImageCount ? " " + (queuedGenerationCount - generatedImageCount) + " additional video job(s) were queued." : "") + (pendingWorkerImages.length === 0 ? " Missing visuals remain as editable native placeholders because no image worker was configured." : "") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
   async function createAIProjectPlan(briefOverride?: string) {
     const brief = (briefOverride ?? aiBrief).trim();
