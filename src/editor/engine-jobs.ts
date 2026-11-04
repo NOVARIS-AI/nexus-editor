@@ -1,5 +1,12 @@
 export type NexusJobState = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 export type NexusEngineJob = { id:string; engine:"image"|"video"|"audio"|"render"; state:NexusJobState; progress:number; message:string; output?:{url?:string;mimeType?:string;assetId?:string}; error?:string };
+export type NexusWorkerHealth = { ok:boolean; status:"online"|"unavailable"; message:string; provider?:string; checkedAt:number };
+export async function checkNexusWorker(signal?:AbortSignal):Promise<NexusWorkerHealth>{
+ const response=await fetch("/api/nexus-worker",{method:"GET",signal,headers:{Accept:"application/json", "Cache-Control":"no-cache"}});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok || data.ok!==true) return {ok:false,status:"unavailable",message:String(data.error||"The Cloudflare Worker health check failed."),provider:data.provider,checkedAt:Date.now()};
+ return {ok:true,status:"online",message:"Cloudflare Worker is reachable and its health endpoint is responding.",provider:data.provider||"cloudflare-workers-ai",checkedAt:Date.now()};
+}
 export async function getEngineStatus(signal?:AbortSignal) {
  const response = await fetch("/api/engine-status",{signal,headers:{Accept:"application/json"}});
  if(!response.ok) throw new Error("NEXUS engine status is unavailable ("+response.status+").");
