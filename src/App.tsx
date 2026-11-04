@@ -38,6 +38,7 @@ import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProject
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
+type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
 const readLocalDraft = readRecoverableDraft;
 const themes = [
@@ -73,8 +74,8 @@ export default function App() {
   const [selectedImageAssetId, setSelectedImageAssetId] = useState("");
   const activeTrackStates = useMemo(() => trackStates.filter(track => track.id === "video-1" || clips.some(clip => clip.trackId === track.id) || (track.id === "text-1" && textLayers.length > 0) || (track.id === "image-1" && imageLayers.length > 0)), [trackStates, clips, textLayers.length, imageLayers.length]);
   const [selectedTextLayer, setSelectedTextLayer] = useState<string | null>(null);
-  const [undoStack, setUndoStack] = useState<TimelineClip[][]>([]);
-  const [redoStack, setRedoStack] = useState<TimelineClip[][]>([]);
+  const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [playhead, setPlayhead] = useState(0);
   const [timelineZoom, setTimelineZoom] = useState(60);
@@ -307,29 +308,42 @@ export default function App() {
     const nearest = candidates.reduce((best, point) => Math.abs(point - frameTime) < Math.abs(best - frameTime) ? point : best, frameTime);
     return Math.max(0, Math.abs(nearest - frameTime) <= 0.12 ? nearest : frameTime);
   }
-  function applyClipChange(next: TimelineClip[], message: string) {
-    setUndoStack(old => [...old.slice(-49), clips]);
+  function captureProjectSnapshot(): EditorHistorySnapshot {
+    return { clips: [...clips], imageLayers: [...imageLayers], textLayers: [...textLayers], tracks: [...trackStates] };
+  }
+  function recordProjectHistory() {
+    setUndoStack(old => [...old.slice(-49), captureProjectSnapshot()]);
     setRedoStack([]);
+  }
+  function applyClipChange(next: TimelineClip[], message: string) {
+    recordProjectHistory();
     setClips(next);
     setStatus(message);
+  }
+  function restoreProjectSnapshot(snapshot: EditorHistorySnapshot) {
+    setClips(snapshot.clips);
+    setImageLayers(snapshot.imageLayers);
+    setTextLayers(snapshot.textLayers);
+    setTrackStates(snapshot.tracks);
+    setSelected(snapshot.clips.some(c => c.id === selected) ? selected : snapshot.clips[snapshot.clips.length - 1]?.id || null);
+    setSelectedImageLayer(snapshot.imageLayers.some(layer => layer.id === selectedImageLayer) ? selectedImageLayer : null);
+    setSelectedTextLayer(snapshot.textLayers.some(layer => layer.id === selectedTextLayer) ? selectedTextLayer : null);
   }
   function undoEdit() {
     if (!undoStack.length) { setStatus("Nothing to undo yet."); return; }
     const previous = undoStack[undoStack.length - 1];
-    setRedoStack(old => [...old, clips]);
+    setRedoStack(old => [...old, captureProjectSnapshot()]);
     setUndoStack(old => old.slice(0, -1));
-    setClips(previous);
-    setSelected(previous.some(c => c.id === selected) ? selected : previous[previous.length - 1]?.id || null);
-    setStatus("Undo complete");
+    restoreProjectSnapshot(previous);
+    setStatus("Undo complete · project layers restored");
   }
   function redoEdit() {
     if (!redoStack.length) { setStatus("Nothing to redo yet."); return; }
     const next = redoStack[redoStack.length - 1];
-    setUndoStack(old => [...old, clips]);
+    setUndoStack(old => [...old, captureProjectSnapshot()]);
     setRedoStack(old => old.slice(0, -1));
-    setClips(next);
-    setSelected(next.some(c => c.id === selected) ? selected : next[next.length - 1]?.id || null);
-    setStatus("Redo complete");
+    restoreProjectSnapshot(next);
+    setStatus("Redo complete · project layers restored");
   }
   useEffect(() => {
     const onEditorShortcut = (event: KeyboardEvent) => {
@@ -497,22 +511,45 @@ export default function App() {
   function addImageLayer() {
     const source = assets.find(item => item.id === selectedImageAssetId && item.kind === "image");
     if (!source) { setStatus("Choose an imported image first."); return; }
+    recordProjectHistory();
     const layer: TimelineImageLayer = { id: uid(), assetId: source.id, trackId: "image-1", start: playhead, duration: 5, x: 50, y: 50, scale: 1, rotation: 0, opacity: 1, visible: true, locked: false, fit: "contain" };
     setImageLayers(old => [...old, layer]); setSelectedImageLayer(layer.id); setStatus(source.name + " added as an independent image/sticker layer.");
   }
   function reorderSelectedImageLayer(direction: -1 | 1) {
     if (!selectedImageLayer) return;
+    recordProjectHistory();
     setImageLayers(old => { const index=old.findIndex(layer=>layer.id===selectedImageLayer), target=index+direction; if(index<0||target<0||target>=old.length)return old; const next=[...old]; [next[index],next[target]]=[next[target],next[index]]; return next; });
   }
   function updateSelectedImageLayer(patch: Partial<TimelineImageLayer>) {
     if (!selectedImageLayer) return;
+    if (Object.keys(patch).some(key => !["x","y","scale","rotation","opacity"].includes(key))) recordProjectHistory();
     setImageLayers(old => old.map(layer => layer.id === selectedImageLayer ? { ...layer, ...patch } : layer));
+  }
+  async function regenerateSelectedImageLayer() {
+    const layer = imageLayers.find(item => item.id === selectedImageLayer);
+    if (!layer) { setAiReply("Select an image or background layer first."); return; }
+    if (layer.locked) { setAiReply("Unlock this image layer before replacing it."); return; }
+    const source = assets.find(item => item.id === layer.assetId);
+    const prompt = aiBrief.trim() || ("Create a fresh visual replacement for the project image layer " + (source?.name || "selected image") + ". Preserve its role and composition in " + projectName + ".");
+    const sceneTitle = "Project background · Replace " + layer.id + " · " + (source?.name || "image layer");
+    setGenerationBusy("image:replace:" + layer.id);
+    setAiReply("Submitting a replacement image for the selected layer…");
+    try {
+      const job = await submitEngineJob("image", prompt, { sceneTitle, targetLayerId: layer.id, duration: layer.duration, aspectRatio, style: aiStyle, negativePrompt: "watermarks, captions, logos" });
+      setGenerationJobs(old => [{ ...job, sceneTitle }, ...old.filter(item => item.id !== job.id)]);
+      setAiReply("Replacement image job queued. The current layer remains untouched until a valid image is returned.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Image generation worker unavailable.";
+      setGenerationJobs(old => [{ id: "unavailable-" + Date.now(), engine: "image", state: "failed", progress: 0, message, sceneTitle, error: message }, ...old]);
+      setAiReply(message + " The selected image layer was not changed.");
+    } finally { setGenerationBusy(null); }
   }
   function addGraphicLayer(value: string, color = "#ffffff", backgroundColor = "transparent") { const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: value, color, fontSize: 64, fontFamily: "Arial", x: 50, y: 50, backgroundColor, padding: 12, align: "center", shadow: true }; setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setOverlayText(value); setTextColor(color); setTextSize(64); setActiveTool("text"); setStatus("Graphic or sticker layer added to the timeline."); }
   function addApostleQuotePoster() {
     const quote = compositionBody.trim();
     if (!quote) { setStatus("Enter the quote text before creating the poster."); return; }
     const layers = createApostleQuotePosterLayers({ quote, attribution: compositionFooter.trim() || "Apostle Richman Daniel", start: playhead, duration: compositionDuration, makeId: uid });
+    recordProjectHistory();
     setTextLayers(old => [...old, ...layers]);
     const main = layers.find(layer => layer.text === quote.slice(0, 700)) || layers[0];
     setSelectedTextLayer(main.id); setActiveTool("text"); setActiveSubtool("quote-poster");
@@ -523,6 +560,7 @@ export default function App() {
     if (!bodyText) { setStatus("Enter the main text before creating a composition."); return; }
     const layers = buildTextCompositionLayers({ heading: compositionHeading, body: bodyText, footer: compositionFooter, start: playhead, duration: compositionDuration, makeId: uid });
     const body = layers.find(layer => layer.text === bodyText.slice(0, 700)) || layers[0];
+    recordProjectHistory();
     setTextLayers(old => [...old, ...layers]);
     setSelectedTextLayer(body.id);
     setActiveTool("text");
@@ -534,7 +572,7 @@ export default function App() {
     const style=styles[preset]; const layer: TimelineTextLayer = { id: uid(), trackId: "text-1", start: playhead, duration: 5, text: overlayText || (preset==="title"?"Your title":preset==="subtitle"?"Your subtitle":"Your text"), ...style };
     setTextLayers(old => [...old, layer]); setSelectedTextLayer(layer.id); setActiveTool("text"); setStatus(preset+" text layer added to the timeline.");
   }
-  function duplicateSelectedText() { const source=textLayers.find(layer=>layer.id===selectedTextLayer); if(!source)return; const copy={...source,id:uid(),start:source.start+source.duration}; setTextLayers(old=>[...old,copy]);setSelectedTextLayer(copy.id);setStatus("Text layer duplicated."); }
+  function duplicateSelectedText() { const source=textLayers.find(layer=>layer.id===selectedTextLayer); if(!source)return; const copy={...source,id:uid(),start:source.start+source.duration}; recordProjectHistory(); setTextLayers(old=>[...old,copy]);setSelectedTextLayer(copy.id);setStatus("Text layer duplicated."); }
   function reorderSelectedText(direction: -1 | 1) {
     if (!selectedTextLayer) return;
     setTextLayers(old => {
@@ -857,7 +895,17 @@ export default function App() {
   function runProjectVerification() {
     const result=verifyProject(assets,clips); const render=getRenderCapabilities();
     const health=getBrowserEngineHealth();
-    const lines=[result.ok?"Project structure check passed.":"Project structure check found issues.",...result.issues,render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
+    const imageIssues=imageLayers.flatMap(layer=>[
+      !assets.some(item=>item.id===layer.assetId&&item.kind==="image")?"Image layer "+layer.id+" has no imported image asset.":null,
+      !Number.isFinite(layer.start)||!Number.isFinite(layer.duration)||layer.duration<=0?"Image layer "+layer.id+" has invalid timing.":null,
+      !Number.isFinite(layer.opacity)||layer.opacity<0||layer.opacity>1?"Image layer "+layer.id+" has invalid opacity.":null
+    ].filter(Boolean) as string[]);
+    const textIssues=textLayers.flatMap(layer=>[
+      !Number.isFinite(layer.start)||!Number.isFinite(layer.duration)||layer.duration<=0?"Text layer "+layer.id+" has invalid timing.":null,
+      !layer.text.trim()?"Text layer "+layer.id+" is empty.":null
+    ].filter(Boolean) as string[]);
+    const layerIssues=[...imageIssues,...textIssues];
+    const lines=[result.ok&&!layerIssues.length?"Project and layer structure check passed.":"Project structure check found issues.",...result.issues,...layerIssues,"Timeline layers: "+clips.length+" clips · "+imageLayers.length+" image layers · "+textLayers.length+" text layers",hasExportableContent?"Renderable content is present.":"No exportable visual content is present.",render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
     setEngineReport(lines);setAiReply(lines.join(" "));
   }
   async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video") {
@@ -926,8 +974,17 @@ export default function App() {
         setAiReply("Generated "+expectedKind+" imported and automatically replaced the placeholder for “"+sceneTitle+"”. The scene stays in its planned timeline position.");
       } else {
         const isBackground=job.sceneTitle.startsWith("Project background · ");
-        if(isBackground && expectedKind==="image") {
-          const background:TimelineImageLayer={id:uid(),assetId:created.id,trackId:"image-1",start:Math.max(0,playhead),duration:Math.max(5,selectedClip?selectedClip.start+clipDuration(selectedClip)-playhead:duration-playhead),x:50,y:50,scale:1,rotation:0,opacity:1,visible:true,locked:false,fit:"cover"};
+        const replaceMatch=job.sceneTitle.match(/^Project background · Replace ([a-zA-Z0-9-]+) · /);
+        const replaceLayerId=replaceMatch?.[1];
+        const existingTarget=replaceLayerId?imageLayers.find(layer=>layer.id===replaceLayerId):undefined;
+        if(replaceLayerId && existingTarget && expectedKind==="image") {
+          recordProjectHistory();
+          setImageLayers(old=>old.map(layer=>layer.id===replaceLayerId?{...layer,assetId:created.id,generationPrompt:job.sceneTitle,generationJobId:job.id}:layer));
+          setSelectedImageLayer(replaceLayerId);
+          setAiReply("Replacement image imported and swapped into the selected layer. Its timing, position, scale, opacity and stacking role were preserved.");
+        } else if(isBackground && expectedKind==="image") {
+          recordProjectHistory();
+          const background:TimelineImageLayer={id:uid(),assetId:created.id,trackId:"image-1",start:Math.max(0,playhead),duration:Math.max(5,selectedClip?selectedClip.start+clipDuration(selectedClip)-playhead:duration-playhead),x:50,y:50,scale:1,rotation:0,opacity:1,visible:true,locked:false,fit:"cover",generationPrompt:job.sceneTitle,generationJobId:job.id};
           setImageLayers(old=>[...old,background]);
           setSelectedImageLayer(background.id);
           setAiReply("Generated background imported as a full-frame image layer beneath your footage. It is editable on the Images & Stickers track.");
@@ -1157,7 +1214,10 @@ export default function App() {
         const result = await askNexusDirector(aiBrief.trim(), {
           projectName, assetCount: assets.length, assets: assets.map(item => ({ name: item.name, kind: item.kind, source: item.source?.type })),
           referenceWorkflow: buildReferenceContext(assets, mediaAnalyses), visualSamples,
-          clipCount: clips.length, selectedClip: selectedClip ? { label: selectedClip.label, start: selectedClip.start, duration: selectedClip.sourceOut - selectedClip.sourceIn } : null,
+          clipCount: clips.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, duration: clipDuration(selectedClip), filter: selectedClip.filter, fit: selectedClip.fit, aiScene: selectedClip.aiScene?.title || null } : null,
+          selectedImageLayer: (() => { const layer=imageLayers.find(item=>item.id===selectedImageLayer); const media=layer?assets.find(item=>item.id===layer.assetId):undefined; return layer?{id:layer.id,assetName:media?.name||"Missing image asset",role:layer.fit==="cover"?"background":"overlay or sticker",start:layer.start,duration:layer.duration,x:layer.x,y:layer.y,scale:layer.scale,opacity:layer.opacity,visible:layer.visible,locked:layer.locked}:null; })(),
+          selectedTextLayer: (() => { const layer=textLayers.find(item=>item.id===selectedTextLayer); return layer?{id:layer.id,text:layer.text.slice(0,180),start:layer.start,duration:layer.duration,x:layer.x,y:layer.y,visible:layer.visible,locked:layer.locked}:null; })(),
+          timelineSummary: { imageLayers:imageLayers.length, textLayers:textLayers.length, duration },
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
@@ -1173,6 +1233,18 @@ export default function App() {
     const selectedKind = asset?.kind;
     const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
     const normalized = request.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+    const activeImageLayer=imageLayers.find(layer=>layer.id===selectedImageLayer);
+    if(activeImageLayer) {
+      if(/\b(regenerate|replace|make another|new version)\b/.test(normalized)) { await regenerateSelectedImageLayer(); return; }
+      if(/\b(hide|turn off)\b/.test(normalized)) { updateSelectedImageLayer({visible:false}); setAiReply("Selected image layer hidden. Undo can restore the previous project state."); return; }
+      if(/\b(show|turn on)\b/.test(normalized)) { updateSelectedImageLayer({visible:true}); setAiReply("Selected image layer is visible again."); return; }
+      if(/\block\b/.test(normalized)) { updateSelectedImageLayer({locked:true}); setAiReply("Selected image layer locked."); return; }
+      if(/\bunlock\b/.test(normalized)) { updateSelectedImageLayer({locked:false}); setAiReply("Selected image layer unlocked."); return; }
+      if(/\b(background|full frame|fill the canvas)\b/.test(normalized)) { updateSelectedImageLayer({fit:"cover",x:50,y:50,scale:1,rotation:0}); setAiReply("Selected image layer set as a full-frame background. Background layers render below footage; sticker layers stay above it."); return; }
+      if(/\b(send back|backward|behind)\b/.test(normalized)) { reorderSelectedImageLayer(-1); setAiReply("Selected image layer moved backward in the image-layer stack."); return; }
+      if(/\b(bring forward|forward|front)\b/.test(normalized)) { reorderSelectedImageLayer(1); setAiReply("Selected image layer moved forward in the image-layer stack."); return; }
+      if(/\b(delete|remove)\b/.test(normalized)) { recordProjectHistory(); setImageLayers(old=>old.filter(layer=>layer.id!==activeImageLayer.id)); setSelectedImageLayer(null); setAiReply("Selected image layer removed. Undo can restore it."); return; }
+    }
 
     const referenceIntent = detectReferenceWorkflow(normalized);
     if (referenceIntent.extractAudio) {
@@ -1562,7 +1634,7 @@ export default function App() {
               {imageLayers.filter(layer=>layer.visible && playhead>=layer.start && playhead<layer.start+layer.duration && !trackStates.find(track=>track.id===layer.trackId)?.hidden).map(layer=>{const image=assets.find(item=>item.id===layer.assetId);if(!image?.objectUrl)return null;return <img key={layer.id} src={image.objectUrl} alt="" aria-hidden="true" onClick={()=>setSelectedImageLayer(layer.id)} style={{position:"absolute",left:layer.fit==="cover"?"0":layer.x+"%",top:layer.fit==="cover"?"0":layer.y+"%",width:layer.fit==="cover"?"100%":(50*layer.scale)+"%",height:layer.fit==="cover"?"100%":"auto",maxHeight:layer.fit==="cover"?"none":"90%",objectFit:layer.fit||"contain",opacity:layer.opacity,transform:layer.fit==="cover"?"none":`translate(-50%,-50%) rotate(${layer.rotation}deg)`,pointerEvents:"auto",outline:selectedImageLayer===layer.id?"1px solid #38bdf8":"none",zIndex:layer.fit==="cover"?0:8}}/>;})}{visibleTextLayers.map((layer,index)=><div key={layer.id} className="nexus-text-overlay" style={{...getGraphicsFallbackStyle(layer.text,layer.color,layer.fontSize,layer.fontFamily),opacity:layer.opacity??1,left:(layer.x??50)+"%",top:(layer.y??50)+"%",transform:`translate(-50%, -50%) rotate(${layer.rotation||0}deg)`,textAlign:layer.align||"center",background:layer.backgroundColor||"transparent",padding:(layer.padding||0)+"px",mixBlendMode:(layer.blendMode||"normal") as CSSProperties["mixBlendMode"],textShadow:layer.shadow===false?"none":undefined,zIndex:10+index}}>{layer.text}</div>)}{!visibleTextLayers.length && activeTool==="text" && !textLayers.length && <div className="nexus-text-overlay" style={getGraphicsFallbackStyle(overlayText,textColor,textSize,textFont)}>{overlayText||"Type your text"}</div>}
               {previewAsset?.kind==="audio" && previewAsset.objectUrl && <audio ref={audioPreview} src={previewAsset.objectUrl} controls muted={muteClip || !!previewClip?.muted} style={{width:"90%",maxWidth:420}}/>}
             </div>
-            {selectedImageLayer && (()=>{const layer=imageLayers.find(item=>item.id===selectedImageLayer);return layer?<div className="editor-transport image-layer-controls"><span>IMAGE LAYER</span><label>X <input type="range" min="0" max="100" value={layer.x} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({x:Number(e.target.value)})}/></label><label>Y <input type="range" min="0" max="100" value={layer.y} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({y:Number(e.target.value)})}/></label><label>Scale <input type="range" min="0.1" max="2.5" step="0.05" value={layer.scale} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({scale:Number(e.target.value)})}/></label><label>Rotation <input type="range" min="-180" max="180" value={layer.rotation} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({rotation:Number(e.target.value)})}/></label><label>Opacity <input type="range" min="0" max="1" step="0.05" value={layer.opacity} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({opacity:Number(e.target.value)})}/></label><button onClick={()=>reorderSelectedImageLayer(-1)}>Back</button><button onClick={()=>reorderSelectedImageLayer(1)}>Forward</button><button onClick={()=>updateSelectedImageLayer({visible:!layer.visible})}>{layer.visible?"Hide":"Show"}</button><button onClick={()=>updateSelectedImageLayer({locked:!layer.locked})}>{layer.locked?"Unlock":"Lock"}</button><button disabled={layer.locked} onClick={()=>{setImageLayers(old=>old.filter(item=>item.id!==layer.id));setSelectedImageLayer(null);}}>Delete</button></div>:null;})()}<div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
+            {selectedImageLayer && (()=>{const layer=imageLayers.find(item=>item.id===selectedImageLayer);return layer?<div className="editor-transport image-layer-controls"><span>IMAGE LAYER</span><label>X <input type="range" min="0" max="100" value={layer.x} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({x:Number(e.target.value)})}/></label><label>Y <input type="range" min="0" max="100" value={layer.y} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({y:Number(e.target.value)})}/></label><label>Scale <input type="range" min="0.1" max="2.5" step="0.05" value={layer.scale} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({scale:Number(e.target.value)})}/></label><label>Rotation <input type="range" min="-180" max="180" value={layer.rotation} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({rotation:Number(e.target.value)})}/></label><label>Opacity <input type="range" min="0" max="1" step="0.05" value={layer.opacity} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({opacity:Number(e.target.value)})}/></label><button onClick={()=>reorderSelectedImageLayer(-1)}>Back</button><button onClick={()=>reorderSelectedImageLayer(1)}>Forward</button><button onClick={()=>updateSelectedImageLayer({visible:!layer.visible})}>{layer.visible?"Hide":"Show"}</button><button onClick={()=>updateSelectedImageLayer({locked:!layer.locked})}>{layer.locked?"Unlock":"Lock"}</button><button disabled={layer.locked||generationBusy!==null} onClick={regenerateSelectedImageLayer}>Regenerate / replace</button><button disabled={layer.locked} onClick={()=>{recordProjectHistory();setImageLayers(old=>old.filter(item=>item.id!==layer.id));setSelectedImageLayer(null);}}>Delete</button></div>:null;})()}<div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
           <div className="editor-timeline-zone">
             <div className="editor-timeline-head"><div><b>Timeline</b><small>{clips.length} clips · {clock(duration)} · Drag clips to move · Tap lanes to seek</small></div><div className="editor-timeline-actions"><button onClick={()=>setTimelineZoom(v=>Math.max(24,v-12))} title="Zoom out">−</button><button onClick={()=>setTimelineZoom(v=>Math.min(140,v+12))} title="Zoom in">＋</button><button onClick={()=>{const viewport=timelineScrollRef.current;if(viewport){setTimelineZoom(Math.max(24,Math.min(140,(viewport.clientWidth-65)/Math.max(duration,10))));viewport.scrollTo({left:0,behavior:"smooth"});}}} title="Fit full timeline">Fit</button><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
