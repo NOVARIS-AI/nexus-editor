@@ -70,5 +70,7 @@ jobs:
           test "$UNAUTH_STATUS" = "401"
           AUTH_STATUS=$(curl --silent --output /dev/null --write-out '%{http_code}' -X POST "$BASE/v1/generate" -H "Authorization: Bearer $NEXUS_WORKER_TOKEN" -H 'Content-Type: application/json' --data '{"task":"text"}')
           test "$AUTH_STATUS" = "400"
+          curl --fail --silent --show-error -X POST "$BASE/v1/generate" -H "Authorization: Bearer $NEXUS_WORKER_TOKEN" -H 'Content-Type: application/json' --data '{"task":"text","prompt":"Reply with the single word READY."}' -o /tmp/nexus-text.json
+          node -e "const r=require('/tmp/nexus-text.json'); if(typeof r.response!=='string' || !r.response.trim()) process.exit(1)"
           unset NEXUS_WORKER_TOKEN
-          echo "Worker health, bearer-token gate and authenticated request validation passed."
+          echo "Worker health, bearer-token gate, request validation and live text inference passed."
