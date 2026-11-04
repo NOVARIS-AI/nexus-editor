@@ -11,7 +11,7 @@ import {
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Settings,
   SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X,
-  Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines
+  Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines, GitBranch
 } from "lucide-react";
 import type { ClipKeyframe, MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "./types";
 import { AudioAssetBrowser } from "./editor/AudioAssetBrowser";
