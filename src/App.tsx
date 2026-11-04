@@ -525,7 +525,7 @@ export default function App() {
     if (Object.keys(patch).some(key => !["x","y","scale","rotation","opacity"].includes(key))) recordProjectHistory();
     setImageLayers(old => old.map(layer => layer.id === selectedImageLayer ? { ...layer, ...patch } : layer));
   }
-  async function generateImageIntoProject(prompt: string, sceneTitle: string, targetLayerId?: string) {
+  async function generateImageIntoProject(prompt: string, sceneTitle: string, targetLayerId?: string, targetClipId?: string, historyClips?: TimelineClip[]) {
     const targetLayer = targetLayerId ? imageLayers.find(layer => layer.id === targetLayerId) : undefined;
     if (targetLayerId && (!targetLayer || targetLayer.locked)) throw new Error("The selected image layer is missing or locked.");
     const generated = await generateNexusWorkerImage(prompt);
@@ -545,6 +545,15 @@ export default function App() {
       setImageLayers(old => old.map(layer => layer.id === targetLayer.id ? { ...layer, assetId: created.id, generationPrompt: prompt, generationJobId: "cloudflare-sync" } : layer));
       setSelectedImageLayer(targetLayer.id);
       setAiReply("Generated image imported and replaced the selected layer. Its timing, position, scale, opacity and stacking settings were preserved.");
+      return created;
+    }
+    if (targetClipId) {
+      setUndoStack(old => [...old.slice(-49), { ...captureProjectSnapshot(), clips: historyClips || clips }]);
+      setRedoStack([]);
+      setAssets(old => [...old, created]);
+      setClips(old => old.map(clip => clip.id === targetClipId ? { ...clip, assetId: created.id, sourceIn: 0, sourceOut: Math.max(0.5, clip.sourceOut), label: sceneTitle + " · AI generated", aiScene: clip.aiScene ? { ...clip.aiScene, sourceType: "generated" } : undefined } : clip));
+      setSelected(targetClipId);
+      setAiReply("Generated image imported and automatically replaced its matching storyboard placeholder.");
       return created;
     }
     setAssets(old => [...old, created]);
@@ -1083,6 +1092,7 @@ export default function App() {
     const newTextLayers: TimelineTextLayer[] = [];
     let cursor = timelineDuration(clips);
     let queuedGenerationCount = 0;
+    const pendingWorkerImages: { scene: any; clipId: string; duration: number }[] = [];
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
@@ -1116,9 +1126,11 @@ export default function App() {
       newTextLayers.push({ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 });
       if (chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
         const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
-        if (engine) {
+        if (engine === "image") {
+          pendingWorkerImages.push({ scene, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
+        } else if (engine === "video") {
           try {
-            const job = await submitEngineJob(engine, scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", {
+            const job = await submitEngineJob("video", scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", {
               sceneTitle: scene.title, projectName: aiPlan.title, duration: sourceDuration, aspectRatio, style: aiStyle,
               target: "replace-ai-scene-placeholder", sceneIndex: index, source: "nexus-project-aware-brain",
               negativePrompt: "watermarks, captions, logos, unreadable text, distorted anatomy"
@@ -1126,7 +1138,7 @@ export default function App() {
             setGenerationJobs(old => [{ ...job, sceneTitle: "Scene · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
             queuedGenerationCount += 1;
           } catch (error) {
-            setEngineReport(old => [...old, "Generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
+            setEngineReport(old => [...old, "Video generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
           }
         }
       }
@@ -1138,7 +1150,17 @@ export default function App() {
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor");
-    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; missing scenes have native placeholders"+ (queuedGenerationCount ? " and " + queuedGenerationCount + " AI generation job(s) were queued. Finished outputs will automatically replace their matching placeholders." : ". Connect an image or video worker in the server environment to generate missing visuals automatically.") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
+    for (const pending of pendingWorkerImages) {
+      setGenerationBusy("image:storyboard:" + pending.scene.title);
+      setAiReply("Generating scene image " + (queuedGenerationCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
+      try {
+        await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
+        queuedGenerationCount += 1;
+      } catch (error) {
+        setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
+      } finally { setGenerationBusy(null); }
+    }
+    setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + queuedGenerationCount + " AI generation request(s) were queued or generated. Generated images are imported and replace their matching scene placeholders automatically. You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
   async function createAIProjectPlan(briefOverride?: string) {
     const brief = (briefOverride ?? aiBrief).trim();
