@@ -385,7 +385,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onEditorShortcut);
     return () => window.removeEventListener("keydown", onEditorShortcut);
-  }, [page, selected, clips, undoStack, redoStack]);
+  }, [page, selected, selectedImageLayer, selectedTextLayer, clips, imageLayers, textLayers, undoStack, redoStack]);
   async function openNativeMediaPicker(types: string[], fallback: { current: HTMLInputElement | null }) {
     if (!isNativeAndroid()) { fallback.current?.click(); return; }
     try {
