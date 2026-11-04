@@ -38,6 +38,9 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
   }
   if (assets.some(a=>a.kind==="audio") && !clips.some(c=>assets.find(a=>a.id===c.assetId)?.kind==="audio")) issues.push("Audio is in the media library but not yet connected to a timeline clip.");
   if (texts.some(t=>t.text.length>110)) issues.push("At least one text layer is long. Check its reading time on a phone-sized preview.");
+  for (const layer of texts) { const words=layer.text.trim().split(/\s+/).filter(Boolean).length; const readingSeconds=words/2.7; if(words>=7 && layer.duration<readingSeconds) { issues.push("“"+layer.text.slice(0,28)+"” may disappear before viewers can comfortably read it."); break; } }
+  if(clips.length>0){const total=clips.reduce((sum,clip)=>sum+Math.max(0,(clip.sourceOut-clip.sourceIn)/(clip.speed||1)),0);if(total>0&&total<8)issues.push("The current cut is under 8 seconds. Check whether the story has enough time to land.");}
+
   if (!issues.length) issues.push("No obvious structural issues found by the local checks. Review the actual preview and audio before export.");
   return { nodes, edges, issues };
 }
@@ -51,6 +54,9 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   if (/short|reel|tiktok|shorts|status/.test(q)) steps.push("Prioritise the first two seconds, keep the main subject inside the safe centre and check text legibility at 9:16.");
   if (/clean|professional|business|product/.test(q)) steps.push("Reduce competing effects, keep typography consistent and make the product or central message the visual priority.");
   if (/colour|color|style|look|brand/.test(q)) steps.push("Use Project DNA as the visual contract: "+(dna.palette||"choose one restrained palette")+", with "+(dna.style||"a consistent visual treatment")+".");
+  if(dna.purpose.trim()) steps.push("Project purpose: "+dna.purpose.trim()+". Keep every scene serving this purpose.");
+  if(dna.audience.trim()) steps.push("Audience: "+dna.audience.trim()+". Match pacing and language to this audience.");
+  if(dna.rules.trim()) steps.push("Preserve these project rules: "+dna.rules.trim()+".");
   if (!steps.length) steps.push("Break the request into an opening, a central message and a closing beat. Keep each proposed change reversible.");
   steps.push("Review "+graph.nodes.length+" connected project elements before applying changes. Nothing is changed automatically.");
   return steps;
