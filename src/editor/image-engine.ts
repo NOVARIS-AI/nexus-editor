@@ -30,3 +30,20 @@ export function getImageStylePreset(preset: ImageStylePreset): Partial<import(".
   };
   return { ...presets[preset] };
 }
+
+
+export type NexusGeneratedImage = { image: string; mimeType: string; model?: string; provider: string };
+/** Requests an image through the same-origin server proxy; the Worker bearer token never enters browser code. */
+export async function generateNexusWorkerImage(prompt: string, signal?: AbortSignal): Promise<NexusGeneratedImage> {
+  if (!prompt.trim() || prompt.length > 12000) throw new Error("Describe the image in 1–12,000 characters.");
+  const response = await fetch("/api/nexus-worker", {
+    method: "POST",
+    signal,
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ task: "image", prompt: prompt.trim() })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "NEXUS image generation is unavailable (" + response.status + ").");
+  if (typeof data.image !== "string" || !/^data:image\/(png|jpeg|webp);base64,/i.test(data.image)) throw new Error("The image worker returned an invalid image payload.");
+  return { image: data.image, mimeType: typeof data.mimeType === "string" ? data.mimeType : "image/png", model: data.model, provider: data.provider || "cloudflare-workers-ai" };
+}
