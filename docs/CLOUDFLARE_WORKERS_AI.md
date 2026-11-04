@@ -8,7 +8,7 @@ Set these only in a trusted server environment, never in Vite variables, browser
 
 - `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID.
 - `CLOUDFLARE_API_TOKEN` — account API token with Workers AI permission.
-- `NEXUS_CF_TEXT_MODEL` — optional; defaults to `@cf/meta/llama-3.1-8b-instruct`.
+- `NEXUS_CF_TEXT_MODEL` — optional; defaults to `@cf/meta/llama-3.2-1b-instruct`.
 - `NEXUS_CF_IMAGE_MODEL` — optional; defaults to `@cf/black-forest-labs/flux-1-schnell`.
 
 An adult account holder should manage account creation, access and billing controls. Do not enable paid services or add a payment method for this $0 setup. Check the account dashboard for current free allocation before running jobs.
