@@ -2,9 +2,12 @@ import { useMemo, useState } from "react";
 import { Activity, ArrowRight, Check, GitBranch, Lightbulb, Sparkles, WandSparkles, X } from "lucide-react";
 import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } from "../types";
 
+export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur" };
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
+  selectedClipId?: string | null;
+  onApplyPlan: (operations: FabricOperation[]) => void;
   onClose: () => void;
 };
 type DNA = { purpose: string; audience: string; style: string; palette: string; rules: string };
@@ -17,6 +20,10 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
     ...texts.map(t => ({ id: t.id, name: t.text.slice(0, 42), kind: "text", role: /quote|wisdom|inspire|motivat/i.test(t.text) ? "Message anchor" : "Typography layer" })),
     ...images.map(i => ({ id: i.id, name: "Image overlay", kind: "image layer", role: "Visual overlay" }))
   ];
+  const edges: {from:string;to:string;label:string}[] = [];
+  for (const clip of clips) { if (assets.some(a=>a.id===clip.assetId)) edges.push({from:clip.assetId,to:clip.id,label:"uses media"}); }
+  for (const layer of images) { if (assets.some(a=>a.id===layer.assetId)) edges.push({from:layer.assetId,to:layer.id,label:"overlay source"}); }
+  for (const clip of clips) { for (const layer of texts) if (layer.trackId===clip.trackId && layer.start < clip.start + (clip.sourceOut-clip.sourceIn)/(clip.speed||1) && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"shares time and track"}); }
   const issues: string[] = [];
   if (!assets.length) issues.push("No source media yet. Add a visual or audio asset to give the project a starting point.");
   if (assets.length && !clips.length) issues.push("Media is imported but no story beats are on the timeline.");
@@ -28,7 +35,7 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
   if (assets.some(a=>a.kind==="audio") && !clips.some(c=>assets.find(a=>a.id===c.assetId)?.kind==="audio")) issues.push("Audio is in the media library but not yet connected to a timeline clip.");
   if (texts.some(t=>t.text.length>110)) issues.push("At least one text layer is long. Check its reading time on a phone-sized preview.");
   if (!issues.length) issues.push("No obvious structural issues found by the local checks. Review the actual preview and audio before export.");
-  return { nodes, issues };
+  return { nodes, edges, issues };
 }
 
 function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFabric>) {
@@ -45,7 +52,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"dna"|"intent"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
@@ -53,8 +60,19 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   });
   const [saved, setSaved] = useState(false);
   const [universe, setUniverse] = useState("Cinematic");
+  const [approved, setApproved] = useState(false);
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
+  const operations = useMemo<FabricOperation[]>(()=>{
+    if(!intent.trim()) return [];
+    const q=intent.toLowerCase(); const result:FabricOperation[]=[];
+    if(/title|headline|quote|caption|text|opening|intro/.test(q)) result.push({kind:"add-title",text:(dna.purpose||projectName).slice(0,90)});
+    if(/cinematic|film|movie|dramatic/.test(q)) result.push({kind:"apply-look",filter:"Cinematic"});
+    else if(/warm|golden|sunset/.test(q)) result.push({kind:"apply-look",filter:"Warm"});
+    else if(/black.?and.?white|monochrome|noir/.test(q)) result.push({kind:"apply-look",filter:"B&W"});
+    if(/transition|smooth|fade/.test(q)) result.push({kind:"apply-transition",transition:"fade"});
+    return result;
+  },[intent,dna.purpose,projectName]);
   const saveDNA = () => { try { localStorage.setItem("nexus-fabric-dna:"+projectName,JSON.stringify(dna)); setSaved(true); } catch { setSaved(false); } };
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
@@ -64,6 +82,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
       <div className="nexus-fabric-node-list">{graph.nodes.slice(0,18).map((n,i)=><div className="nexus-fabric-node" key={n.id}><span className="nexus-fabric-node-dot">{n.kind==="text"?"T":n.kind==="audio"?"♫":n.kind==="image"||n.kind==="image layer"?"▧":"▶"}</span><span><b>{n.name||"Untitled element"}</b><small>{n.role} · {n.kind}</small></span><small>#{String(i+1).padStart(2,"0")}</small></div>)}{graph.nodes.length>18&&<small>+ {graph.nodes.length-18} more connected elements</small>}{!graph.nodes.length&&<div className="nexus-fabric-empty">Import media to begin building your creative world.</div>}</div>
+      <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,12).map((edge,i)=><div key={i}><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b></div>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
       <div className="nexus-fabric-section-title"><b>Continuity Guardian</b><small><Activity size={12}/> Local structural checks</small></div>
       <div className="nexus-fabric-issues">{graph.issues.map((issue,i)=><div key={i}><Lightbulb size={15}/><span>{issue}</span></div>)}</div>
     </div>}
@@ -75,7 +94,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <label>Rules to preserve<textarea value={dna.rules} onChange={e=>setDna({...dna,rules:e.target.value})} placeholder="Keep quote wording exact; avoid fast cuts; use the same title style…"/></label>
       <button className="nexus-fabric-primary" onClick={saveDNA}><Check size={15}/> {saved?"DNA saved on this device":"Save project DNA"}</button>
     </div>}
-    {tab==="intent" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Describe the result you want. Fabric turns it into a transparent, reviewable plan using the tools already in NEXUS.</p><textarea className="nexus-fabric-intent" value={intent} onChange={e=>setIntent(e.target.value)} placeholder="Make this a powerful 30-second wisdom quote video with a cinematic opening, readable message and calm ending…"/>{plan.length>0&&<div className="nexus-fabric-plan"><b>Proposed creative direction</b>{plan.map((s,i)=><div key={i}><span>{i+1}</span>{s}</div>)}<small>Plan only — no timeline changes have been applied.</small></div>}</div>}
+    {tab==="intent" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Describe the result you want. Fabric turns it into a transparent, reviewable plan using the tools already in NEXUS.</p><textarea className="nexus-fabric-intent" value={intent} onChange={e=>setIntent(e.target.value)} placeholder="Make this a powerful 30-second wisdom quote video with a cinematic opening, readable message and calm ending…"/>{plan.length>0&&<div className="nexus-fabric-plan"><b>Proposed creative direction</b>{plan.map((s,i)=><div key={i}><span>{i+1}</span>{s}</div>)}<small>Target: {selectedClipId?"selected clip":"all eligible clips"} · Nothing changes until you approve.</small>{operations.length>0?<><div className="nexus-fabric-operation-list"><b>Ready-to-apply operations</b>{operations.map((op,i)=><span key={i}>{op.kind==="add-title"?"Add editable title: "+op.text:op.kind==="apply-look"?"Apply "+op.filter+" look":"Apply "+op.transition+" transitions"}</span>)}</div><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan(operations);setApproved(true);}}><Check size={15}/> {approved?"Apply again":"Approve & apply to timeline"}</button></>:<small>This request currently produces guidance only. Ask for a title, cinematic look or transition to create supported actions.</small>}</div>}</div>}
     {tab==="whatif" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Explore different creative directions without replacing your current edit.</p><div className="nexus-fabric-universes">{["Cinematic","Documentary","Bold social","Minimal"].map(v=><button key={v} className={universe===v?"active":""} onClick={()=>setUniverse(v)}>{v}</button>)}</div><div className="nexus-fabric-universe-card"><WandSparkles size={22}/><b>{universe} universe</b><p>{({Cinematic:"Use contrast, deliberate pacing and a strong visual payoff. Preserve the core story and quote wording.",Documentary:"Prioritise natural footage, clear context, restrained transitions and an honest visual tone.","Bold social":"Prioritise an immediate hook, strong type hierarchy, short beats and high mobile readability.",Minimal:"Reduce effects and competing layers; let one image and one clear message carry the scene."})[universe]}</p><small>This is a direction preview, not a generated duplicate or a change to your timeline.</small></div></div>}
     <footer className="nexus-fabric-footer"><span>Existing tools remain in control</span><button onClick={onClose}>Return to editor <ArrowRight size={14}/></button></footer>
   </aside>;
