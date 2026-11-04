@@ -525,27 +525,59 @@ export default function App() {
     if (Object.keys(patch).some(key => !["x","y","scale","rotation","opacity"].includes(key))) recordProjectHistory();
     setImageLayers(old => old.map(layer => layer.id === selectedImageLayer ? { ...layer, ...patch } : layer));
   }
+  async function generateImageIntoProject(prompt: string, sceneTitle: string, targetLayerId?: string) {
+    const targetLayer = targetLayerId ? imageLayers.find(layer => layer.id === targetLayerId) : undefined;
+    if (targetLayerId && (!targetLayer || targetLayer.locked)) throw new Error("The selected image layer is missing or locked.");
+    const generated = await generateNexusWorkerImage(prompt);
+    const response = await fetch(generated.image);
+    const blob = await response.blob();
+    if (!blob.type.startsWith("image/") || blob.size > 10 * 1024 * 1024) throw new Error("The generated image is invalid or larger than the editor's 10 MB import limit.");
+    const extension = blob.type.includes("webp") ? "webp" : blob.type.includes("jpeg") ? "jpg" : "png";
+    const file = new File([blob], (sceneTitle || "NEXUS generated image").replace(/[^a-z0-9-_ ]/gi, "").slice(0, 70) + "." + extension, { type: blob.type });
+    const objectUrl = URL.createObjectURL(file);
+    const created: MediaAsset = {
+      id: uid(), name: file.name, kind: "image", duration: 5, mimeType: file.type, file, objectUrl,
+      source: { type: "generated", pageUrl: "nexus-worker:" + generated.model + ":" + Date.now(), creator: "NEXUS Cloudflare Workers AI" }
+    };
+    if (targetLayer) {
+      recordProjectHistory();
+      setAssets(old => [...old, created]);
+      setImageLayers(old => old.map(layer => layer.id === targetLayer.id ? { ...layer, assetId: created.id, generationPrompt: prompt, generationJobId: "cloudflare-sync" } : layer));
+      setSelectedImageLayer(targetLayer.id);
+      setAiReply("Generated image imported and replaced the selected layer. Its timing, position, scale, opacity and stacking settings were preserved.");
+      return created;
+    }
+    setAssets(old => [...old, created]);
+    const isBackground = /background|backdrop|wallpaper/i.test(sceneTitle + " " + prompt);
+    if (isBackground) {
+      recordProjectHistory();
+      const background: TimelineImageLayer = {
+        id: uid(), assetId: created.id, trackId: "image-1", start: Math.max(0, playhead),
+        duration: Math.max(5, selectedClip ? selectedClip.start + clipDuration(selectedClip) - playhead : duration - playhead),
+        x: 50, y: 50, scale: 1, rotation: 0, opacity: 1, visible: true, locked: false, fit: "cover",
+        generationPrompt: prompt, generationJobId: "cloudflare-sync"
+      };
+      setImageLayers(old => [...old, background]);
+      setSelectedImageLayer(background.id);
+      setAiReply("Generated background imported into the media library and added as a full-frame image layer. You can adjust it on the Images & Stickers track.");
+    } else {
+      const clip: TimelineClip = { id: uid(), assetId: created.id, trackId: "video-1", start: Math.max(0, playhead), sourceIn: 0, sourceOut: 5, label: created.name, gain: 1, muted: false };
+      applyClipChange([...clips, clip], "Generated image imported and added to the timeline.");
+      setSelected(clip.id); setPlayhead(clip.start);
+      setAiReply("Generated image imported into your media library and added to the timeline.");
+    }
+    return created;
+  }
   async function regenerateSelectedImageLayer() {
     const layer = imageLayers.find(item => item.id === selectedImageLayer);
     if (!layer) { setAiReply("Select an image or background layer first."); return; }
     if (layer.locked) { setAiReply("Unlock this image layer before replacing it."); return; }
     const source = assets.find(item => item.id === layer.assetId);
-    const prompt = aiBrief.trim() || ("Create a fresh visual replacement for the project image layer " + (source?.name || "selected image") + ". Preserve its role and composition in " + projectName + ".");
+    const prompt = aiBrief.trim() || ("Create a fresh visual replacement for the project image layer " + (source?.name || "selected image") + ". Preserve its role and composition in " + projectName + ". No text, captions, logos or watermarks.");
     setGenerationBusy("image:replace:" + layer.id);
-    setAiReply("Generating a replacement image… the existing layer will stay in place until the new image is ready.");
+    setAiReply("Generating a replacement image with the connected NEXUS image model…");
     try {
-      const generated = await generateNexusWorkerImage(prompt);
-      const response = await fetch(generated.image);
-      const blob = await response.blob();
-      const extension = generated.mimeType.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
-      const file = new File([blob], "nexus-replacement-" + Date.now() + "." + extension, { type: generated.mimeType });
-      const objectUrl = URL.createObjectURL(file);
-      const created: MediaAsset = { id: uid(), name: (source?.name || "Image layer") + " · AI replacement", kind: "image", duration: 5, mimeType: file.type, file, objectUrl, source: { type: "generated", creator: "Cloudflare Workers AI" } };
-      recordProjectHistory();
-      setAssets(old => [...old, created]);
-      setImageLayers(old => old.map(item => item.id === layer.id ? { ...item, assetId: created.id, generationPrompt: prompt } : item));
-      setSelectedImageLayer(layer.id);
-      setAiReply("New image generated and imported. It has replaced the selected layer while preserving its timing, position, scale, opacity and stacking role.");
+      await generateImageIntoProject(prompt, "Project background · Replace " + layer.id, layer.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Image generation worker unavailable.";
       setAiReply(message + " The selected image layer was not changed.");
@@ -1385,11 +1417,21 @@ export default function App() {
       /\b(generate|create|make)\b/.test(normalized) && /\b(narration|voiceover|speech|music track|full song)\b/.test(normalized) ? "audio" : null;
     if (!remoteKind && generatedAudioForCommand) return;
     if (remoteKind) {
+      if (remoteKind === "image") {
+        setGenerationBusy("image:prompt");
+        const sceneTitle = /background|backdrop/i.test(normalized) ? "Project background · " + normalized.slice(0, 52) : normalized.slice(0, 64) || "NEXUS generated image";
+        setAiReply("Sending your image request through the secure NEXUS server connection…");
+        try {
+          await generateImageIntoProject(normalized, sceneTitle);
+        } catch (error) {
+          setAiReply((error instanceof Error ? error.message : "NEXUS image generation is unavailable.") + " Your project has not been changed.");
+        } finally { setGenerationBusy(null); }
+        return;
+      }
       const available = engineAvailability?.engines?.[remoteKind];
       if (!available?.configured) {
         setAiReply("The " + remoteKind + " generation worker is not connected yet. I have not pretended to generate a file. " +
-          (remoteKind === "image" ? "You can still create editable poster and graphic layers in the Image/Text tools, or apply an image style to an imported picture." :
-          remoteKind === "video" ? "I can build an editable storyboard from your brief, use imported or licensed media, and render the current timeline with the browser renderer." :
+          (remoteKind === "video" ? "I can build an editable storyboard from your brief, use imported or licensed media, and render the current timeline with the browser renderer." :
           "I can generate original short sound effects and music beds with the local NEXUS audio synthesiser; full narration or long-form music needs a connected audio worker."));
         return;
       }
