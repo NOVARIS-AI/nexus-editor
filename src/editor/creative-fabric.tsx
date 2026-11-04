@@ -150,6 +150,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
             <span>{item.visual!.averageLuminance<0.28?"Low-light source":item.visual!.averageLuminance>0.76?"Bright source":"Balanced average brightness"}</span>
             <span>{item.visual!.sampledFrames} frame samples</span>
             {item.visual!.sceneChanges.length>0&&<span>{item.visual!.sceneChanges.length} possible visual change(s)</span>}
+            {item.visual!.sceneChanges.slice(0,4).map((point,index)=><button key={index} onClick={()=>onSeekTo(clip.start+Math.max(0,point-clip.sourceIn)/(clip.speed||1))}>Review change {index+1} · {point.toFixed(1)}s</button>)}
           </div>)}
           <div className="nexus-fabric-scene-meta"><span>{attachedText.length} text layer(s)</span><span>{clip.aiScene?"Generated scene notes":"Timeline-based inference"}</span></div>
           <div className="nexus-fabric-scene-actions">
