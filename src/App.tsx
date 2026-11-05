@@ -967,7 +967,9 @@ export default function App() {
         duration: Math.max(0.1, duration), signal: controller.signal,
         onProgress: value => { setExportProgress(value); setStatus("Rendering video · " + value + "%"); }
       });
-      const verified=validateExportBlob(blob);\n      const extension=verified.extension;\n      const filename=makeExportFilename(projectName,extension);
+      const verified=validateExportBlob(blob);
+      const extension=verified.extension;
+      const filename=makeExportFilename(projectName,extension);
       if (isNativeAndroid()) {
         await saveExportOnAndroid(blob, filename);
         setStatus("Export complete · " + filename + " saved in Documents/NEXUS Exports. The Android share sheet is ready.");
@@ -980,7 +982,8 @@ export default function App() {
         setStatus("Export complete · " + extension.toUpperCase() + " video saved to your device.");
       }
     } catch (error) {
-      const failure=classifyExportFailure(error);\n      setStatus(failure.message);
+      const failure=classifyExportFailure(error);
+      setStatus(failure.message);
     } finally { if (exportAbortController.current === controller) exportAbortController.current = null; setExportBusy(false); }
   }
   async function startNativeClipTranscode() {
