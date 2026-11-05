@@ -1979,7 +1979,7 @@ export default function App() {
       {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
-      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onOpenSaved={() => setPage("saved")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
