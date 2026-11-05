@@ -8,6 +8,7 @@ import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
 import { isSupabaseConfigured } from "../lib/supabase";
 import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, reportCommunityPost, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
+import { inferPostCategory, rankNexusFeed } from "./nexus-pulse-algorithm";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
@@ -48,6 +49,9 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [reportFor,setReportFor] = useState<string|null>(null);
   const [notice,setNotice] = useState("Preview mode · sample posts only");
   const [menuFor,setMenuFor] = useState<string|null>(null);
+  const [notInterested,setNotInterested] = useState<string[]>([]);
+  const [mutedCreators,setMutedCreators] = useState<string[]>([]);
+  const [preferredCategories,setPreferredCategories] = useState<string[]>([]);
   const touchStartY = useRef<number|null>(null);
 
   useEffect(() => {
@@ -89,11 +93,14 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   }, [commentsFor, livePosts]);
 
   const sourcePosts = livePosts.length ? livePosts : activeTab === "Following" ? [] : DEMO_POSTS;
-  const filtered = useMemo(() => sourcePosts.filter(post =>
-    (category === "All" || post.category === category) &&
-    (activeTab !== "Following" || followed.includes(post.handle)) &&
-    (post.caption+" "+post.title+" "+post.tags.join(" ")+" "+post.creator).toLowerCase().includes(query.toLowerCase())
-  ),[sourcePosts,category,activeTab,followed,query]);
+  const filtered = useMemo(() => {
+    const candidates = sourcePosts.filter(post =>
+      (category === "All" || inferPostCategory(post) === category) &&
+      (activeTab !== "Following" || followed.includes(post.handle)) &&
+      (post.caption+" "+post.title+" "+post.tags.join(" ")+" "+post.creator).toLowerCase().includes(query.toLowerCase())
+    );
+    return rankNexusFeed(candidates, { likedPostIds: liked, savedPostIds: saved, followedHandles: followed, hiddenPostIds: notInterested, hiddenHandles: mutedCreators, preferredCategories }, activeTab === "Following" ? "following" : "for-you");
+  },[sourcePosts,category,activeTab,followed,query,liked,saved,notInterested,mutedCreators,preferredCategories]);
 
   const requireAction = (label:string) => {
     setNotice(label+" is a preview interaction. Live community actions are only available on published posts.");
@@ -148,12 +155,12 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
 
     <div className="nfy-tabs" role="tablist" aria-label="Feed type">
       {["For You","Following","Discover"].map(tab=><button key={tab} className={activeTab===tab?"active":""} onClick={()=>{setActiveTab(tab);setActiveIndex(0);}}>{tab}</button>)}
-      <span className="nfy-preview-tag"><Sparkles size={12}/> {livePosts.length ? "LIVE FEED" : "PREVIEW"}</span>
+      <span className="nfy-preview-tag"><Sparkles size={12}/> {livePosts.length ? "NEXUS PULSE" : "PULSE PREVIEW"}</span>
     </div>
 
     {activeTab==="Discover" && <div className="nfy-discover">
       <div><span className="nfy-kicker">FIND YOUR NEXT IDEA</span><h2>Explore the creative universe.</h2><p>Search by topic or browse a category to find inspiration.</p></div>
-      <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);}}>{item}</button>)}</div>
+      <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);if(item!=="All")setPreferredCategories(old=>old.includes(item)?old:[...old,item]);}}>{item}</button>)}</div>
     </div>}
 
     <div className="nfy-stage">
@@ -181,7 +188,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
           <button aria-label="Open comments" onClick={()=>setCommentsFor(current.id)}><span><MessageCircle size={22}/></span><small>{formatCount(current.comments+(localComments[current.id]?.length||0))}</small></button>
           <button aria-label={saved.includes(current.id)?"Remove saved post":"Save post"} onClick={()=>toggleLocal(saved,setSaved,current.id,"Save")} className={saved.includes(current.id)?"is-saved":""}><span><Bookmark size={21} fill={saved.includes(current.id)?"currentColor":"none"}/></span><small>{saved.includes(current.id)?"Saved":"Save"}</small></button>
           <button aria-label="More post actions" onClick={()=>{setMenuFor(menuFor===current.id?null:current.id);}}><span><MoreHorizontal size={22}/></span><small>More</small></button>
-          {menuFor===current.id&&<div className="nfy-more-menu"><button onClick={()=>{setReportFor(current.id);setMenuFor(null);}}><Flag size={14}/> Report preview</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
+          {menuFor===current.id&&<div className="nfy-more-menu"><button onClick={()=>{setNotInterested(old=>old.includes(current.id)?old:[...old,current.id]);setMenuFor(null);setActiveIndex(0);setNotice("NEXUS Pulse will show you less like this post.");}}><Sparkles size={14}/> Not interested</button><button onClick={()=>{setMutedCreators(old=>old.includes(current.handle)?old:[...old,current.handle]);setMenuFor(null);setActiveIndex(0);setNotice("This creator is hidden from your feed on this device.");}}><X size={14}/> Hide creator</button><button onClick={()=>{setReportFor(current.id);setMenuFor(null);}}><Flag size={14}/> Report post</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
         </aside>
       </article> : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
       <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span>{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
