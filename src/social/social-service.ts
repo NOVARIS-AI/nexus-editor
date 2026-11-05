@@ -325,3 +325,45 @@ export async function loadCommunityPlaybackUrl(postId: string): Promise<string> 
   if (!response.ok || !result.playerUrl) throw new Error(result.error || "This community video could not be opened.");
   return result.playerUrl;
 }
+
+export type EditableCreatorProfile = { id:string; username:string; displayName:string; avatarUrl:string; bio:string; isPrivate:boolean; creatorTopics:string[] };
+export async function loadMyCreatorProfile(): Promise<EditableCreatorProfile|null> {
+  if (!supabase) return null;
+  const {data:auth}=await supabase.auth.getUser(); if(!auth.user)return null;
+  const {data,error}=await supabase.from("profiles").select("id,username,display_name,avatar_url,bio,is_private,creator_topics").eq("id",auth.user.id).maybeSingle(); fail(error);
+  return data?{id:data.id,username:data.username||"",displayName:data.display_name||"",avatarUrl:data.avatar_url||"",bio:data.bio||"",isPrivate:Boolean(data.is_private),creatorTopics:data.creator_topics||[]}:null;
+}
+export async function updateMyCreatorProfile(p:Omit<EditableCreatorProfile,"id">) {
+  if(!supabase)throw new Error("Supabase is not configured in this build.");
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw new Error("Sign in to edit your creator profile.");
+  const username=p.username.trim().toLowerCase();
+  if(!/^[a-zA-Z0-9_]{3,24}$/.test(username))throw new Error("Username must be 3–24 letters, numbers or underscores.");
+  if(!p.displayName.trim()||p.displayName.trim().length>60)throw new Error("Display name must be 1–60 characters.");
+  if(p.bio.length>160)throw new Error("Bio must be 160 characters or fewer.");
+  const topics=[...new Set(p.creatorTopics.map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,12);
+  const {error}=await supabase.from("profiles").update({username,display_name:p.displayName.trim(),avatar_url:p.avatarUrl.trim()||null,bio:p.bio.trim(),is_private:p.isPrivate,creator_topics:topics}).eq("id",auth.user.id);fail(error);
+  return {...p,username,displayName:p.displayName.trim(),bio:p.bio.trim(),creatorTopics:topics};
+}
+export type CreatorConnection={id:string;username:string;displayName:string;avatarUrl:string|null;bio:string;createdAt:string};
+export type CreatorConnections={followers:CreatorConnection[];following:CreatorConnection[];requests:CreatorConnection[]};
+export async function loadMyCreatorConnections():Promise<CreatorConnections>{
+  if(!supabase)return{followers:[],following:[],requests:[]};
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)return{followers:[],following:[],requests:[]};
+  const [a,b,c]=await Promise.all([
+    supabase.from("follows").select("follower_id,created_at").eq("followed_id",auth.user.id).eq("status","accepted").order("created_at",{ascending:false}),
+    supabase.from("follows").select("followed_id,created_at").eq("follower_id",auth.user.id).eq("status","accepted").order("created_at",{ascending:false}),
+    supabase.from("follows").select("follower_id,created_at").eq("followed_id",auth.user.id).eq("status","pending").order("created_at",{ascending:false})
+  ]);fail(a.error);fail(b.error);fail(c.error);
+  const followers=a.data||[],following=b.data||[],requests=c.data||[];
+  const ids=[...new Set([...followers.map(x=>x.follower_id),...following.map(x=>x.followed_id),...requests.map(x=>x.follower_id)])];
+  if(!ids.length)return{followers:[],following:[],requests:[]};
+  const {data:profiles,error}=await supabase.from("profiles").select("id,username,display_name,avatar_url,bio").in("id",ids);fail(error);
+  const map=new Map((profiles||[]).map(p=>[p.id,p]));
+  const make=(id:string,createdAt:string):CreatorConnection|null=>{const p=map.get(id);return p?{id,username:p.username||"creator",displayName:p.display_name||"NEXUS Creator",avatarUrl:p.avatar_url,bio:p.bio||"",createdAt}:null;};
+  return{followers:followers.map(x=>make(x.follower_id,x.created_at)).filter((x):x is CreatorConnection=>!!x),following:following.map(x=>make(x.followed_id,x.created_at)).filter((x):x is CreatorConnection=>!!x),requests:requests.map(x=>make(x.follower_id,x.created_at)).filter((x):x is CreatorConnection=>!!x)};
+}
+export async function respondToFollowRequest(followerId:string,accept:boolean){
+  if(!supabase)throw new Error("Supabase is not configured in this build.");
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw new Error("Sign in to manage follow requests.");
+  const result=accept?await supabase.from("follows").update({status:"accepted"}).eq("follower_id",followerId).eq("followed_id",auth.user.id).eq("status","pending"):await supabase.from("follows").delete().eq("follower_id",followerId).eq("followed_id",auth.user.id).eq("status","pending");fail(result.error);
+}
