@@ -398,3 +398,97 @@ export async function markNexusNotificationRead(notificationId?:string) {
   const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw new Error("Sign in to manage notifications.");
   const {error}=await supabase.rpc("mark_nexus_notification_read",{p_notification_id:notificationId||null});fail(error);
 }
+
+
+export type SavedLibraryPost = {
+  id:string; authorId:string; creator:string; handle:string; caption:string;
+  visibility:"public"|"followers"|"private"; savedAt:string; mediaAssetId:string|null;
+};
+export type SavedCollection = { id:string; name:string; description:string; createdAt:string; postIds:string[] };
+
+async function requireSocialUser() {
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
+  const {data,error}=await supabase.auth.getUser();
+  fail(error);
+  if(!data.user) throw new Error("Sign in to use your saved library.");
+  return data.user;
+}
+
+export async function loadSavedLibrary():Promise<SavedLibraryPost[]> {
+  const user=await requireSocialUser();
+  const {data:saves,error}=await supabase!.from("post_saves").select("post_id,created_at")
+    .eq("user_id",user.id).order("created_at",{ascending:false}).limit(300);
+  fail(error);
+  const rows=saves||[];
+  if(!rows.length) return [];
+  const ids=rows.map(row=>row.post_id);
+  const {data:posts,error:postsError}=await supabase!.from("posts")
+    .select("id,author_id,caption,visibility,media_asset_id").in("id",ids);
+  fail(postsError);
+  const visible=posts||[];
+  if(!visible.length) return [];
+  const authorIds=[...new Set(visible.map(post=>post.author_id))];
+  const {data:profiles,error:profilesError}=await supabase!.from("profiles")
+    .select("id,username,display_name").in("id",authorIds);
+  fail(profilesError);
+  const profileMap=new Map((profiles||[]).map(profile=>[profile.id,profile]));
+  const postMap=new Map(visible.map(post=>[post.id,post]));
+  return rows.flatMap(row=>{
+    const post=postMap.get(row.post_id);
+    if(!post) return [];
+    const profile=profileMap.get(post.author_id);
+    return [{
+      id:post.id,authorId:post.author_id,creator:profile?.display_name||"NEXUS Creator",
+      handle:profile?.username||"creator",caption:post.caption||"",
+      visibility:post.visibility as SavedLibraryPost["visibility"],
+      savedAt:row.created_at,mediaAssetId:post.media_asset_id||null
+    }];
+  });
+}
+
+export async function loadSavedCollections():Promise<SavedCollection[]> {
+  const user=await requireSocialUser();
+  const {data:collections,error}=await supabase!.from("saved_collections")
+    .select("id,name,description,created_at").eq("owner_id",user.id).order("created_at",{ascending:false});
+  fail(error);
+  const rows=collections||[];
+  if(!rows.length) return [];
+  const {data:items,error:itemsError}=await supabase!.from("saved_collection_posts")
+    .select("collection_id,post_id").in("collection_id",rows.map(row=>row.id));
+  fail(itemsError);
+  const grouped=new Map<string,string[]>();
+  for(const item of items||[]) grouped.set(item.collection_id,[...(grouped.get(item.collection_id)||[]),item.post_id]);
+  return rows.map(row=>({id:row.id,name:row.name,description:row.description||"",createdAt:row.created_at,postIds:grouped.get(row.id)||[]}));
+}
+
+export async function createSavedCollection(name:string,description="") {
+  const user=await requireSocialUser();
+  const cleanName=name.trim().slice(0,48);
+  if(!cleanName) throw new Error("Give your collection a name.");
+  const {data,error}=await supabase!.from("saved_collections")
+    .insert({owner_id:user.id,name:cleanName,description:description.trim().slice(0,180)})
+    .select("id,name,description,created_at").single();
+  fail(error);
+  return {id:data.id,name:data.name,description:data.description||"",createdAt:data.created_at,postIds:[]} as SavedCollection;
+}
+
+export async function deleteSavedCollection(collectionId:string) {
+  const user=await requireSocialUser();
+  const {error}=await supabase!.from("saved_collections").delete()
+    .eq("id",collectionId).eq("owner_id",user.id);
+  fail(error);
+}
+
+export async function addSavedPostToCollection(collectionId:string,postId:string) {
+  await requireSocialUser();
+  const {error}=await supabase!.from("saved_collection_posts")
+    .insert({collection_id:collectionId,post_id:postId});
+  fail(error);
+}
+
+export async function removeSavedPostFromCollection(collectionId:string,postId:string) {
+  await requireSocialUser();
+  const {error}=await supabase!.from("saved_collection_posts")
+    .delete().eq("collection_id",collectionId).eq("post_id",postId);
+  fail(error);
+}
