@@ -14,26 +14,41 @@ export function buildTextCompositionLayers(input:TextCompositionInput):TimelineT
  if(footer)layers.push({...common,id:input.makeId(),text:footer,color:"#8ce6ef",fontSize:27,fontFamily:"Georgia",x:50,y:82,align:"center",backgroundColor:"transparent",padding:0});
  return layers;
 }
-export type MediaAnalysis = { assetId:string; name:string; kind:MediaAsset["kind"]; duration:number; width?:number; height?:number; aspect?:string; fileSize:number; audio?:{peak:number;rms:number;silenceRatio:number;beatCandidates:number[];waveform?:number[]}; visual?:{sampledFrames:number;sceneChanges:number[];averageLuminance:number;composition?:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number}}; notes:string[] };
+export type MediaAnalysis = { assetId:string; name:string; kind:MediaAsset["kind"]; duration:number; width?:number; height?:number; aspect?:string; fileSize:number; audio?:{peak:number;rms:number;silenceRatio:number;beatCandidates:number[];waveform?:number[]}; visual?:{sampledFrames:number;sceneChanges:number[];averageLuminance:number;composition?:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number;quietZone:string;quietZoneBusyness:number}}; notes:string[] };
+const QUIET_ZONES=["top-left","top-centre","top-right","middle-left","centre","middle-right","bottom-left","bottom-centre","bottom-right"];
 function measureComposition(data:Uint8ClampedArray,width:number,height:number){
  const luminance=(x:number,y:number)=>{const i=(y*width+x)*4;return .2126*data[i]+.7152*data[i+1]+.0722*data[i+2];};
  let total=0,weightedX=0,weightedY=0,left=0,right=0,top=0,bottom=0;
+ const zoneStats=QUIET_ZONES.map(()=>({sum:0,sumSq:0,edges:0,count:0}));
  for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){
+  const lum=luminance(x,y);
   const gx=Math.abs(luminance(x+1,y)-luminance(x-1,y));
   const gy=Math.abs(luminance(x,y+1)-luminance(x,y-1));
   const weight=Math.hypot(gx,gy);
   total+=weight;weightedX+=x*weight;weightedY+=y*weight;
   if(x<width/2)left+=weight;else right+=weight;
   if(y<height/2)top+=weight;else bottom+=weight;
+  const col=Math.min(2,Math.floor(x/width*3)),row=Math.min(2,Math.floor(y/height*3));
+  const zone=zoneStats[row*3+col];zone.sum+=lum;zone.sumSq+=lum*lum;zone.edges+=weight;zone.count++;
  }
  const focusX=total?weightedX/total/(width-1)*100:50;
  const focusY=total?weightedY/total/(height-1)*100:50;
  const balance=(a:number,b:number)=>Math.min(a,b)/Math.max(1,Math.max(a,b));
- return {focusX,focusY,leftRightBalance:balance(left,right),topBottomBalance:balance(top,bottom)};
+ const zoneScores=zoneStats.map(z=>{
+  const mean=z.sum/Math.max(1,z.count);
+  const variance=Math.max(0,z.sumSq/Math.max(1,z.count)-mean*mean);
+  const texture=Math.min(1,(z.edges/Math.max(1,z.count))/.22);
+  const tonalVariation=Math.min(1,Math.sqrt(variance)/.5);
+  return Math.min(1,texture*.7+tonalVariation*.3);
+ });
+ const quietIndex=zoneScores.indexOf(Math.min(...zoneScores));
+ return {focusX,focusY,leftRightBalance:balance(left,right),topBottomBalance:balance(top,bottom),quietZone:QUIET_ZONES[quietIndex],quietZoneBusyness:zoneScores[quietIndex]};
 }
-function combineComposition(points:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number}[]){
+function combineComposition(points:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number;quietZone:string;quietZoneBusyness:number}[]){
  if(!points.length)return undefined;
- return {focusX:points.reduce((s,p)=>s+p.focusX,0)/points.length,focusY:points.reduce((s,p)=>s+p.focusY,0)/points.length,leftRightBalance:points.reduce((s,p)=>s+p.leftRightBalance,0)/points.length,topBottomBalance:points.reduce((s,p)=>s+p.topBottomBalance,0)/points.length};
+ const zoneScores=QUIET_ZONES.map(zone=>({zone,score:points.reduce((sum,p)=>sum+((p.quietZone===zone?p.quietZoneBusyness:1)),0)/points.length}));
+ const quiet=zoneScores.sort((a,b)=>a.score-b.score)[0];
+ return {focusX:points.reduce((s,p)=>s+p.focusX,0)/points.length,focusY:points.reduce((s,p)=>s+p.focusY,0)/points.length,leftRightBalance:points.reduce((s,p)=>s+p.leftRightBalance,0)/points.length,topBottomBalance:points.reduce((s,p)=>s+p.topBottomBalance,0)/points.length,quietZone:quiet.zone,quietZoneBusyness:quiet.score};
 }
 export async function analyzeMediaAsset(asset:MediaAsset):Promise<MediaAnalysis>{
  const file=asset.file; const out:MediaAnalysis={assetId:asset.id,name:asset.name,kind:asset.kind,duration:asset.duration||0,fileSize:file?.size||0,notes:[]};
@@ -41,7 +56,7 @@ export async function analyzeMediaAsset(asset:MediaAsset):Promise<MediaAnalysis>
  const url=asset.objectUrl||URL.createObjectURL(file);
  try {
   if(asset.kind==="image"){const img=new Image();img.src=url;await img.decode();out.width=img.naturalWidth;out.height=img.naturalHeight;out.aspect=img.naturalWidth+":"+img.naturalHeight;const c=document.createElement("canvas");c.width=32;c.height=32;const x=c.getContext("2d",{willReadFrequently:true});if(x){x.drawImage(img,0,0,32,32);const d=x.getImageData(0,0,32,32).data;let l=0;for(let i=0;i<d.length;i+=4)l+=.2126*d[i]+.7152*d[i+1]+.0722*d[i+2];out.visual={sampledFrames:1,sceneChanges:[],averageLuminance:l/(d.length/4)/255,composition:measureComposition(d,32,32)};}out.notes.push("Image dimensions and visual brightness measured locally.");return out;}
-  if(asset.kind==="video"){const v=document.createElement("video");v.preload="metadata";v.muted=true;v.src=url;await new Promise<void>((resolve,reject)=>{v.onloadedmetadata=()=>resolve();v.onerror=()=>reject(new Error("Video metadata could not be decoded."));});out.duration=Number.isFinite(v.duration)?v.duration:0;out.width=v.videoWidth;out.height=v.videoHeight;out.aspect=v.videoWidth+":"+v.videoHeight;const c=document.createElement("canvas");c.width=24;c.height=24;const x=c.getContext("2d",{willReadFrequently:true});const sig:number[]=[];const compositionPoints:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number}[]=[];const n=Math.min(8,Math.max(1,Math.floor(out.duration/2)));if(x&&out.duration>0){for(let k=0;k<n;k++){v.currentTime=Math.min(out.duration*(k+.5)/n,Math.max(0,out.duration-.05));await new Promise<void>(resolve=>{let done=false;const finish=()=>{if(!done){done=true;resolve();}};v.onseeked=finish;setTimeout(finish,1400);});try{x.drawImage(v,0,0,24,24);const d=x.getImageData(0,0,24,24).data;let l=0;for(let j=0;j<d.length;j+=4)l+=.2126*d[j]+.7152*d[j+1]+.0722*d[j+2];sig.push(l/(d.length/4)/255);compositionPoints.push(measureComposition(d,24,24));}catch{}}}const changes:number[]=[];for(let i=1;i<sig.length;i++)if(Math.abs(sig[i]-sig[i-1])>.12)changes.push(out.duration*(i+.5)/n);out.visual={sampledFrames:sig.length,sceneChanges:changes,averageLuminance:sig.reduce((a,b)=>a+b,0)/Math.max(1,sig.length),composition:combineComposition(compositionPoints)};out.notes.push("Metadata and low-resolution brightness-change sampling completed; this is not semantic object recognition.");v.removeAttribute("src");v.load();return out;}
+  if(asset.kind==="video"){const v=document.createElement("video");v.preload="metadata";v.muted=true;v.src=url;await new Promise<void>((resolve,reject)=>{v.onloadedmetadata=()=>resolve();v.onerror=()=>reject(new Error("Video metadata could not be decoded."));});out.duration=Number.isFinite(v.duration)?v.duration:0;out.width=v.videoWidth;out.height=v.videoHeight;out.aspect=v.videoWidth+":"+v.videoHeight;const c=document.createElement("canvas");c.width=24;c.height=24;const x=c.getContext("2d",{willReadFrequently:true});const sig:number[]=[];const compositionPoints:{focusX:number;focusY:number;leftRightBalance:number;topBottomBalance:number;quietZone:string;quietZoneBusyness:number}[]=[];const n=Math.min(8,Math.max(1,Math.floor(out.duration/2)));if(x&&out.duration>0){for(let k=0;k<n;k++){v.currentTime=Math.min(out.duration*(k+.5)/n,Math.max(0,out.duration-.05));await new Promise<void>(resolve=>{let done=false;const finish=()=>{if(!done){done=true;resolve();}};v.onseeked=finish;setTimeout(finish,1400);});try{x.drawImage(v,0,0,24,24);const d=x.getImageData(0,0,24,24).data;let l=0;for(let j=0;j<d.length;j+=4)l+=.2126*d[j]+.7152*d[j+1]+.0722*d[j+2];sig.push(l/(d.length/4)/255);compositionPoints.push(measureComposition(d,24,24));}catch{}}}const changes:number[]=[];for(let i=1;i<sig.length;i++)if(Math.abs(sig[i]-sig[i-1])>.12)changes.push(out.duration*(i+.5)/n);out.visual={sampledFrames:sig.length,sceneChanges:changes,averageLuminance:sig.reduce((a,b)=>a+b,0)/Math.max(1,sig.length),composition:combineComposition(compositionPoints)};out.notes.push("Metadata and low-resolution brightness-change sampling completed; this is not semantic object recognition.");v.removeAttribute("src");v.load();return out;}
   const AC=window.AudioContext||(window as typeof window & {webkitAudioContext?:typeof AudioContext}).webkitAudioContext;if(!AC){out.notes.push("Web Audio is unavailable in this browser.");return out;}const ctx=new AC();try{const b=await ctx.decodeAudioData(await file.arrayBuffer());out.duration=b.duration;const d=b.getChannelData(0);let peak=0,sum=0,silent=0;const win=Math.max(1,Math.floor(b.sampleRate*.25));const beats:number[]=[];const levels:number[]=[];let prev=0;for(let i=0;i<d.length;i+=win){let e=0;for(let j=i;j<Math.min(d.length,i+win);j++){const z=Math.abs(d[j]);if(z>peak)peak=z;e+=d[j]*d[j];}const rms=Math.sqrt(e/Math.max(1,Math.min(win,d.length-i)));levels.push(rms);sum+=e;if(rms<.012)silent++;if(rms>prev*1.65&&rms>.08)beats.push(i/b.sampleRate);prev=rms;}const maxLevel=Math.max(.0001,...levels);const waveform=Array.from({length:Math.min(160,levels.length)},(_,index)=>{const count=Math.min(160,levels.length);const from=Math.floor(index*levels.length/count);const to=Math.max(from+1,Math.floor((index+1)*levels.length/count));const peak=Math.max(...levels.slice(from,to));return Math.max(.04,Math.min(1,peak/maxLevel));});out.audio={peak,rms:Math.sqrt(sum/d.length),silenceRatio:silent/Math.ceil(d.length/win),beatCandidates:beats.slice(0,80),waveform};out.notes.push("Audio energy, silence estimate and transient beat candidates analysed locally.");}finally{await ctx.close();}return out;
  } finally {if(!asset.objectUrl)URL.revokeObjectURL(url);}
 }
