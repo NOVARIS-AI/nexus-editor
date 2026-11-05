@@ -840,3 +840,6 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-model-progress i{display:block;background:var(--accent-c);transition:width .2s}
 .nexus-model-status{overflow-wrap:anywhere}
 @media(max-width:420px){.nexus-model-facts{grid-template-columns:1fr}.nexus-fabric-semantic-actions{align-items:stretch;flex-direction:column}}
+
+.nexus-fabric-hit-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.nexus-fabric-hit-actions button{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font-size:9px}
