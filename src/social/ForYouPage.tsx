@@ -7,13 +7,13 @@ import {
 import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadMyCreatorTopics, loadCreatorProfile, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, saveMyCreatorTopics, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost, type CreatorProfile } from "./social-service";
+import { createPostComment, loadCommunityFeed, loadCommunityPlaybackUrl, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadMyCreatorTopics, loadCreatorProfile, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, saveMyCreatorTopics, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost, type CreatorProfile } from "./social-service";
 import { inferPostCategory, rankNexusFeed } from "./nexus-pulse-algorithm";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
   tags: string[]; creatorTopics?: string[]; category: string; title: string; subtitle: string; palette: string;
-  likes: number; comments: number; sound: string; authorId?: string; isLive?: boolean; createdAt?: string;
+  likes: number; comments: number; sound: string; authorId?: string; isLive?: boolean; createdAt?: string; mediaAssetId?: string | null;
 };
 
 const DEMO_POSTS: FeedPost[] = [
@@ -59,6 +59,9 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [creatorTopicsOpen,setCreatorTopicsOpen] = useState(false);
   const [creatorProfile,setCreatorProfile] = useState<CreatorProfile|null>(null);
   const [profileLoading,setProfileLoading] = useState(false);
+  const [playbackUrl,setPlaybackUrl] = useState("");
+  const [playbackLoading,setPlaybackLoading] = useState(false);
+  const [playbackError,setPlaybackError] = useState("");
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const touchStartY = useRef<number|null>(null);
 
@@ -91,7 +94,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
       .then(async (posts: CommunityPost[]) => {
         if (!active) return;
         const mapped: FeedPost[] = posts.map((post, index) => ({
-          id: post.id, authorId: post.authorId, isLive: true, createdAt: post.createdAt,
+          id: post.id, authorId: post.authorId, isLive: true, createdAt: post.createdAt, mediaAssetId: post.mediaAssetId,
           creator: post.creator, handle: post.handle, initials: post.initials,
           caption: post.caption, tags: post.topics, creatorTopics: post.creatorTopics, category: "Creative",
           title: post.caption.trim().split(/\\s+/).slice(0, 5).join(" ").toUpperCase() || "A NEXUS CREATION",
@@ -163,6 +166,22 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
+
+  useEffect(() => {
+    let active = true;
+    setPlaybackUrl("");
+    setPlaybackError("");
+    if (!current?.isLive || !current.mediaAssetId) {
+      setPlaybackLoading(false);
+      return;
+    }
+    setPlaybackLoading(true);
+    loadCommunityPlaybackUrl(current.id)
+      .then(url => { if (active) setPlaybackUrl(url); })
+      .catch(error => { if (active) setPlaybackError(error instanceof Error ? error.message : "This video could not be loaded."); })
+      .finally(() => { if (active) setPlaybackLoading(false); });
+    return () => { active = false; };
+  }, [current?.id, current?.isLive, current?.mediaAssetId]);
 
   useEffect(() => {
     if (!profileFor || !profilePost?.isLive) { setCreatorProfile(null); return; }
@@ -239,13 +258,19 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
 
     <div className="nfy-stage">
       {current ? <article className="nfy-post" key={current.id} onTouchStart={event=>{touchStartY.current=event.changedTouches[0]?.clientY??null;}} onTouchEnd={event=>{if(touchStartY.current!==null){const delta=touchStartY.current-(event.changedTouches[0]?.clientY??touchStartY.current);if(Math.abs(delta)>45)nextPost(delta>0?1:-1);touchStartY.current=null;}}}>
-        <div className={"nfy-art nfy-"+current.palette}>
-          <div className="nfy-art-grain"/>
-          <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
-          <div className="nfy-art-copy"><span>VELTRONIX NEXUS · CREATOR PREVIEW</span><strong>{current.title}</strong><em>{current.subtitle}</em><small>EDITED IN NEXUS STUDIO</small></div>
-          <div className="nfy-demo-watermark">{current.isLive ? "NEXUS COMMUNITY" : "SAMPLE PREVIEW"}</div>
-          <button className="nfy-sound" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute preview":"Mute preview"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>
-          <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
+        <div className={"nfy-art nfy-"+current.palette+(current.isLive?" nfy-live-video":"")}>
+          {current.isLive && current.mediaAssetId ? (
+            playbackUrl
+              ? <iframe className="nfy-stream-player" src={playbackUrl} title={"Video by "+current.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
+              : <div className="nfy-video-state"><Clapperboard size={26}/><b>{playbackLoading?"Preparing secure playback…":"Video unavailable"}</b><small>{playbackError || "The video may still be processing or playback is not configured."}</small></div>
+          ) : <>
+            <div className="nfy-art-grain"/>
+            <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
+            <div className="nfy-art-copy"><span>VELTRONIX NEXUS · CREATOR PREVIEW</span><strong>{current.title}</strong><em>{current.subtitle}</em><small>EDITED IN NEXUS STUDIO</small></div>
+            <div className="nfy-demo-watermark">SAMPLE PREVIEW</div>
+            <button className="nfy-sound" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute preview":"Mute preview"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>
+            <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
+          </>}
         </div>
         <div className="nfy-post-info">
           <div className="nfy-creator-row">
