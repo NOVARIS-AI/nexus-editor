@@ -1,6 +1,6 @@
 # NEXUS Living Templates — Product and Implementation Specification
 
-Status: approved product direction; implementation pending.
+Status: product direction approved; basic template preview and Use Template flow implemented; adaptive Living Templates engine remains pending.
 Scope: add a real "Use Template" workflow to the existing NEXUS Editor and introduce Living Templates as a signature feature. This is not a claim that the UI or matching engine is already implemented.
 
 ## 1. Existing behavior and gap
@@ -75,3 +75,11 @@ D. Story Gap Radar and user correction controls.
 E. Regression, mobile performance and export testing.
 
 No deployment is authorized by this specification.
+
+## Implementation update — 2026-11-05
+
+The existing Templates page now opens a detail/preview sheet instead of immediately applying a template. The sheet offers two explicit paths:
+- **Use in current project** — adds the existing editable title/subtitle/footer layers and applies the template's look/transition defaults to current visual clips.
+- **Start new project** — confirms before clearing the current timeline, retains imported media in the media library, and creates a new editable template project.
+
+This is the first safe Use Template interaction. The adaptive scene-slot matching, confidence explanations, Fit to my media and Story Gap Radar remain planned work and must not be described as implemented.
