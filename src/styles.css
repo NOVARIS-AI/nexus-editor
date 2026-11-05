@@ -814,3 +814,29 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-engine-mini-progress{display:block;height:4px;overflow:hidden;border-radius:10px;background:#292747;margin-top:5px}
 .nexus-engine-mini-progress i{display:block;height:100%;background:linear-gradient(90deg,#8d42ff,#00d7f5);transition:width .25s}
 @media(max-height:760px){.nexus-engine-setup-card{max-height:96dvh}.nexus-setup-orbit{height:64px;margin:4px auto}.nexus-setup-copy{margin-bottom:14px}.nexus-engine-resource{padding:8px 10px;min-height:52px}}
+
+
+/* NEXUS Semantic Brain V1 — model centre and local embedding controls */
+.nexus-fabric-semantic-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.nexus-fabric-semantic-actions button{padding:9px 12px;border:1px solid var(--accent-c);border-radius:10px;background:color-mix(in srgb,var(--accent-c) 15%,var(--panel2));color:var(--text);font-size:10px;font-weight:800}
+.nexus-fabric-semantic-actions button:disabled{opacity:.5}
+.nexus-fabric-semantic-actions span{font-size:9px;color:var(--muted)}
+.nexus-model-card{display:flex;flex-direction:column;gap:10px;padding:13px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.nexus-model-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.nexus-model-card-head span{font-size:9px;letter-spacing:.1em;color:var(--accent-c);font-weight:900}
+.nexus-model-card-head b{font-size:8px;padding:5px 7px;border-radius:20px;background:color-mix(in srgb,var(--accent-c) 13%,transparent);color:var(--text)}
+.nexus-model-card h3{font-size:14px;margin:0}
+.nexus-model-card p,.nexus-model-card small{font-size:10px;line-height:1.5;color:var(--muted);margin:0}
+.nexus-model-facts{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.nexus-model-facts span{display:flex;flex-direction:column;gap:4px;padding:8px;border:1px solid var(--line);border-radius:9px;font-size:9px;color:var(--muted);min-width:0;overflow-wrap:anywhere}
+.nexus-model-facts b{font-size:9px;color:var(--text);font-weight:700}
+.nexus-model-capabilities{display:flex;flex-wrap:wrap;gap:6px}
+.nexus-model-capabilities span{padding:6px 8px;border-radius:8px;background:color-mix(in srgb,var(--accent-c) 9%,transparent);font-size:9px;color:var(--text)}
+.nexus-model-device{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid var(--line);border-radius:10px}
+.nexus-model-device b{font-size:10px}
+.nexus-model-device span,.nexus-model-device small{font-size:9px;color:var(--muted);line-height:1.5}
+.nexus-model-progress,.nexus-model-progress i{height:6px;border-radius:10px}
+.nexus-model-progress{overflow:hidden;background:var(--line)}
+.nexus-model-progress i{display:block;background:var(--accent-c);transition:width .2s}
+.nexus-model-status{overflow-wrap:anywhere}
+@media(max-width:420px){.nexus-model-facts{grid-template-columns:1fr}.nexus-fabric-semantic-actions{align-items:stretch;flex-direction:column}}
