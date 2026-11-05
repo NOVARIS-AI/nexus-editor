@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, Download, HardDrive, LoaderCircle, RefreshCw, Sparkles, Wifi, XCircle, Cpu, AudioLines, Image, Film, Layers, Palette, AudioWaveform } from "lucide-react";
+import { CheckCircle2, HardDrive, LoaderCircle, RefreshCw, Sparkles, Wifi, XCircle, AudioLines, Image, Film, Layers, Palette, AudioWaveform } from "lucide-react";
 import { pipeline } from "@huggingface/transformers";
-import { checkNexusWorker, getEngineStatus, type NexusWorkerHealth } from "./engine-jobs";
+import { checkNexusWorker, getEngineStatus } from "./engine-jobs";
 import { getBrowserEngineHealth } from "./engine-registry";
 import { detectEngineStack } from "./engine-runtime";
 
@@ -30,8 +30,7 @@ export function WorkspaceSetup({ onComplete, onSkip }: Props) {
  const [storage,setStorage]=useState("Checking available storage…");
  const [attempt,setAttempt]=useState(0);
  const [resources,setResources]=useState<Resource[]>(initialResources);
- const [worker,setWorker]=useState<NexusWorkerHealth|null>(null);
- const [fallbackCount,setFallbackCount]=useState(0);
+ const fallbackCount=resources.filter(item=>item.state==="fallback").length;
 
  useEffect(()=>{
   if(!navigator.storage?.estimate){setStorage("Storage estimate unavailable");return;}
@@ -45,7 +44,7 @@ export function WorkspaceSetup({ onComplete, onSkip }: Props) {
   let active=true;
   const update=(id:string,patch:Partial<Resource>)=>setResources(current=>current.map(item=>item.id===id?{...item,...patch}:item));
   const run=async()=>{
-   setState("preparing");setProgress(0);setError("");setFallbackCount(0);setResources(initialResources);setWorker(null);
+   setState("preparing");setProgress(0);setError("");setResources(initialResources);
    const mark=(id:string,patch:Partial<Resource>)=>{if(active)update(id,patch);};
    try{
     setDetail("Detecting device capabilities and activating local creative engines…");
@@ -67,7 +66,6 @@ export function WorkspaceSetup({ onComplete, onSkip }: Props) {
     try{
      const [health,status]=await Promise.all([checkNexusWorker(),getEngineStatus()]);
      if(!active)return;
-     setWorker(health);
      const brainReady=!!status.brain?.configured;
      mark("director",{state:brainReady?"ready":"fallback",detail:brainReady?"AI Director connected · "+(status.brain.model||"configured model"):"AI Director is not configured; local intent planning remains available."});
      for(const engineId of ["image","video","audio"] as const){
@@ -101,12 +99,9 @@ export function WorkspaceSetup({ onComplete, onSkip }: Props) {
     });
     if(!active)return;
     mark("speech",{state:"ready",progress:100,detail:"Whisper Tiny cached for offline English speech recognition."});
-    const latest=await new Promise<Resource[]>(resolve=>setResources(current=>{resolve(current);return current;}));
-    const fallbacks=latest.filter(item=>item.state==="fallback").length;
-    setFallbackCount(fallbacks);
     setProgress(100);setState("ready");
-    setDetail(fallbacks?fallbacks+" engine(s) will use their local fallback until their managed worker is available.":"Core NEXUS engines are ready.");
-    localStorage.setItem("nexus-workspace-models",JSON.stringify({whisperTiny:"ready",worker:worker?.status||"checked",resources:latest.map(item=>({id:item.id,state:item.state})),updatedAt:Date.now()}));
+    setDetail("Offline speech model cached. NEXUS creative engines are ready or have a working fallback.");
+    localStorage.setItem("nexus-workspace-models",JSON.stringify({whisperTiny:"ready",updatedAt:Date.now()}));
    }catch(cause){
     if(!active)return;
     const message=cause instanceof Error?cause.message:"A required offline resource could not be prepared.";
