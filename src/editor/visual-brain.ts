@@ -51,6 +51,8 @@ export async function loadVisualModel(onProgress?: (event: Progress) => void): P
   loading = (async () => {
     const device = getVisualModelDeviceInfo();
     if (!device.compatible) throw new Error(device.note);
+    const gpu = (navigator as Navigator & { gpu?: { requestAdapter?: () => Promise<unknown> } }).gpu;
+    if (!gpu?.requestAdapter || !(await gpu.requestAdapter())) throw new Error("WebGPU adapter is unavailable on this device. Frame measurements remain available without the model.");
     const { AutoProcessor, AutoModelForImageTextToText, RawImage } = await import("@huggingface/transformers") as any;
     const [processor, model] = await Promise.all([
       AutoProcessor.from_pretrained(VISUAL_MODEL.id, {
