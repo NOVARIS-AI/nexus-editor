@@ -118,7 +118,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [semanticModelReady,setSemanticModelReady]=useState(isSemanticModelLoaded());
   const [semanticModelBusy,setSemanticModelBusy]=useState(false);
   const [semanticModelProgress,setSemanticModelProgress]=useState(0);
-  const [semanticModelMessage,setSemanticModelMessage]=useState("Not downloaded · optional local model");
+  const [semanticModelMessage,setSemanticModelMessage]=useState("Not ready yet");
   const [modelStorageInfo,setModelStorageInfo]=useState("Checking browser storage…");
   const [semanticSearchBusy,setSemanticSearchBusy]=useState(false);
   const [semanticResults,setSemanticResults]=useState<(SemanticHit & {semanticScore:number})[]>([]);
@@ -137,7 +137,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [visionReady, setVisionReady] = useState(isVisualModelLoaded());
   const [visionBusy, setVisionBusy] = useState(false);
   const [visionProgress, setVisionProgress] = useState(0);
-  const [visionMessage, setVisionMessage] = useState("Not downloaded · local vision model");
+  const [visionMessage, setVisionMessage] = useState("Not ready yet");
   const [visionCurrent, setVisionCurrent] = useState("");
   const [visualScanMessage, setVisualScanMessage] = useState("");
   const [memoryStatus, setMemoryStatus] = useState("Project memory stays on this device.");
@@ -150,7 +150,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally {setVisionBusy(false);}
   };
   const runVisualUnderstanding = async () => {
-    if(!visionReady){setVisionMessage("Download the visual model first.");return;}
+    if(!visionReady){setVisionMessage("Prepare Scene Understanding first.");return;}
     if(!visualSamples.length){setVisionMessage("Scan project frames first so the model has real footage to inspect.");return;}
     setVisionBusy(true);setVisionProgress(0);setVisionMessage("Analysing sampled frames locally…");
     try { const descriptions=await understandVisualSamples(visualSamples,(done,total,current)=>{setVisionProgress(Math.round(done/Math.max(1,total)*100));setVisionCurrent(current);setVisionMessage("Understanding frame "+Math.min(done+1,total)+" of "+total);});setVisualDescriptions(descriptions);setVisionProgress(100);setVisionMessage("Visual understanding complete · "+descriptions.length+" frame descriptions generated."); }
@@ -241,7 +241,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition and text-safe-zone suggestions are contrast-based, not subject recognition.</small></div>
         <button onClick={()=>void scanProjectVisuals()} disabled={visualScanBusy}>{visualScanBusy?"Scanning…":"Scan project frames"}</button>
         {visualScanMessage && <p>{visualScanMessage}</p>}
-        <div className="nexus-fabric-vision-actions"><span>{visionReady?"Ready":"Not prepared yet"} · {visualDescriptions.length} scene(s) understood</span><button onClick={()=>{if(!visualSamples.length)void scanProjectVisuals();else if(!visionReady)void prepareVisualModel();else void runVisualUnderstanding();}} disabled={visualScanBusy||visionBusy}>{visualScanBusy?"Sampling…":visionBusy?"Understanding…":!visualSamples.length?"Sample frames":!visionReady?"Load visual model":"Understand frames"}</button></div><small className="nexus-fabric-vision-status">{visionMessage}{visionCurrent?" · "+visionCurrent:""}</small>
+        <div className="nexus-fabric-vision-actions"><span>{visionReady?"Ready":"Not prepared yet"} · {visualDescriptions.length} scene(s) understood</span><button onClick={()=>{if(!visualSamples.length)void scanProjectVisuals();else if(!visionReady)void prepareVisualModel();else void runVisualUnderstanding();}} disabled={visualScanBusy||visionBusy}>{visualScanBusy?"Sampling…":visionBusy?"Understanding…":!visualSamples.length?"Sample frames":!visionReady?"Prepare scenes":"Understand scenes"}</button></div><small className="nexus-fabric-vision-status">{visionMessage}{visionCurrent?" · "+visionCurrent:""}</small>
         {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
           <img src={sample.dataUrl} alt={sample.assetName+" visual sample"} loading="lazy"/>
           <b>{sample.assetName}</b><small>{sample.role}{typeof sample.timestamp==="number"?" · "+sample.timestamp.toFixed(1)+"s":""}</small>
@@ -322,7 +322,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     {tab==="semantic" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. Smart Search finds relevant moments using your project notes, captions and available transcript.</p>
       <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
-      {!semanticModelReady&&<button className="nexus-fabric-primary" onClick={()=>setTab("models")}>Prepare Smart Search</button>}
+      {!semanticModelReady&&<button className="nexus-fabric-primary" onClick={()=>void prepareSemanticModel()}>Prepare Smart Search</button>}
       <div className="nexus-fabric-semantic-actions"><button onClick={()=>void runSemanticSearch()} disabled={!semanticQuery.trim()||semanticSearchBusy||!semanticModelReady}>{semanticSearchBusy?"Understanding meaning…":"Search by meaning"}</button><span>{semanticModelReady?"Smart Search ready":"Basic search ready"}</span></div><div className="nexus-fabric-semantic-results">{semanticQuery.trim()?(semanticSearchMode==="embedding"?semanticResults:semanticHits).map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · {semanticSearchMode==="embedding"?"meaning match "+("semanticScore" in hit && typeof hit.semanticScore === "number" ? hit.semanticScore.toFixed(3) : ""):"text match "+hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item name or type."}</p></div><div className="nexus-fabric-hit-actions"><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button>{hit.kind==="Spoken transcript"&&<button onClick={()=>onApplyPlan([{kind:"add-title",text:hit.title,start:hit.time,duration:Math.max(2,Math.min(6,hit.title.trim().split(/\\s+/).length/2.5)),fontSize:36,fontFamily:"Arial",color:"#ffffff",backgroundColor:"rgba(8,12,22,0.72)",align:"center",x:50,y:78,shadow:true,animation:"fade"}])}>Create editable caption</button>}</div></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&semanticSearchMode==="embedding"&&!semanticResults.length&&!semanticSearchBusy&&<div className="nexus-fabric-empty">No project records were available to compare yet.</div>}{semanticQuery.trim()&&semanticSearchMode==="keyword"&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make search richer.</div>}</div>
       <small className="nexus-fabric-scene-note">Search covers {transcriptSegments.length} available spoken segment(s). Keyword fallback uses related-word matching. Smart Search can find related moments using the meaning of your words and available project text. Search only uses content available in your project.</small>      <div className="nexus-fabric-semantic-tools">
         <section><b>Natural pause candidates</b><small>Potential edit points from transcript gaps (0.8 seconds or longer). Review the audio before trimming.</small>{pauseMoments.length?pauseMoments.map((item,index)=><article key={"pause-"+index}><span>{item.gap.toFixed(1)}s pause · {item.text.slice(0,110)}</span><button onClick={()=>onSeekTo(item.time)}>Review cut</button></article>):<p>No long transcript pauses detected yet. Transcribe an audio/video source to populate this.</p>}</section>
