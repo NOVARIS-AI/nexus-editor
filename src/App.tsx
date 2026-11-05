@@ -1553,7 +1553,7 @@ export default function App() {
     const request = rawRequest.toLowerCase();
     if (!request) return;
     const respond = (text: string) => {
-      respond(text);
+      setAiReply(text);
       setAiChatMessages(old => [...old, { role: "assistant", text }].slice(-40));
     };
     if (aiMode === "teach") {
