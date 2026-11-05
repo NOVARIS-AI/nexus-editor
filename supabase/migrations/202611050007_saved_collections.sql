@@ -63,7 +63,21 @@ create policy "Creators remove items from their collections"
     where c.id = collection_id and c.owner_id = auth.uid()
   ));
 
-create or replace function public.cleanup_nexus_saved_collection_items()\nreturns trigger language plpgsql security definer set search_path = public\nas $nexus$\nbegin\n  delete from public.saved_collection_posts scp\n  using public.saved_collections sc\n  where scp.collection_id = sc.id and sc.owner_id = old.user_id and scp.post_id = old.post_id;\n  return old;\nend;\n$nexus$;\ndrop trigger if exists post_saves_cleanup_collections on public.post_saves;\ncreate trigger post_saves_cleanup_collections after delete on public.post_saves\nfor each row execute function public.cleanup_nexus_saved_collection_items();\n\ndrop trigger if exists saved_collections_set_updated_at on public.saved_collections;
+create or replace function public.cleanup_nexus_saved_collection_items()
+returns trigger language plpgsql security definer set search_path = public
+as $nexus$
+begin
+  delete from public.saved_collection_posts scp
+  using public.saved_collections sc
+  where scp.collection_id = sc.id and sc.owner_id = old.user_id and scp.post_id = old.post_id;
+  return old;
+end;
+$nexus$;
+drop trigger if exists post_saves_cleanup_collections on public.post_saves;
+create trigger post_saves_cleanup_collections after delete on public.post_saves
+for each row execute function public.cleanup_nexus_saved_collection_items();
+
+drop trigger if exists saved_collections_set_updated_at on public.saved_collections;
 create trigger saved_collections_set_updated_at before update on public.saved_collections
 for each row execute function public.set_profile_updated_at();
 
