@@ -29,6 +29,7 @@ import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationR
 import { prepareExecutionPlan, splitTimelineClipAtTime } from "./editor/editing-execution-engine";
 import { inspectProjectQuality, qualitySummary } from "./editor/quality-intelligence";
 import { classifyExportFailure, inspectExportRequest, makeExportFilename, validateExportBlob } from "./editor/export-reliability";
+import { getMobilePerformanceProfile } from "./editor/mobile-performance";
 import { getChromaSvgMatrix } from "./editor/video-engine";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
@@ -952,6 +953,7 @@ export default function App() {
     if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
     const fps = Number.parseInt(exportFps, 10) || 30;
     const size = getExportDimensions(aspectRatio, exportQuality);
+    const mobileProfile=getMobilePerformanceProfile({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:(navigator as Navigator & {deviceMemory?:number}).deviceMemory});
     const qualityFindings=inspectProjectQuality({assets,clips,imageLayers,textLayers,tracks:trackStates,duration,exportWidth:size.width,exportHeight:size.height});
     const qualityState=qualitySummary(qualityFindings);
     if(!qualityState.ready){const blockers=qualityFindings.filter(item=>item.severity==="error").map(item=>item.title+": "+item.detail);setStatus("Export blocked by project quality checks: "+blockers.join(" "));setEngineReport(blockers);return;}
