@@ -36,7 +36,7 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
 
   let query = supabase.from("posts")
     .select("id,author_id,caption,topics,visibility,created_at")
-    .eq("status", "ready");
+    .eq("status", "ready").eq("moderation_state", "approved");
   if (!authorIds) query = query.eq("visibility", "public");
   if (authorIds) query = query.in("author_id", authorIds);
   query = query.order("published_at", { ascending: false, nullsFirst: false })
