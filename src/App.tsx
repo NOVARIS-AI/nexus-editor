@@ -1970,7 +1970,7 @@ export default function App() {
         <div className="mobile-brand"><span className="brand-mark">N</span><b>NEXUS EDITOR</b></div>
         <div className="crumb"><span>Workspace</span><b>/</b><strong>{pageTitle}</strong></div>
         <label className="global-search"><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects, templates..."/><kbd>⌘ K</kbd></label>
-        <button className="icon-button" aria-label="Notifications" onClick={() => setStatus("You're all caught up")}><Bell size={18}/></button>
+        <button className="icon-button" aria-label="Notifications" onClick={() => setPage("notifications")}><Bell size={18}/></button>
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
