@@ -27,18 +27,13 @@ Configure these on the server deployment only. Never put service-role or Cloudfl
 - `SUPABASE_ANON_KEY` (or `SUPABASE_PUBLISHABLE_KEY`)
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_STREAM_API_TOKEN` (Cloudflare Stream Write permission)
-- `CLOUDFLARE_STREAM_WEBHOOK_SECRET` (the signing secret returned when the Stream webhook is created)
+- `CLOUDFLARE_STREAM_TOKEN` (Cloudflare Stream Write and Read permissions)
 
 The browser still uses the existing `VITE_SUPABASE_URL` and publishable/anon key for sign-in. Server credentials are separate.
 
-## Cloudflare webhook setup
+## Processing status
 
-After the server endpoint is deployed and the environment variables are configured, create/update the Stream webhook notification URL:
-
-`https://nexuseditor-omega.vercel.app/api/social/stream-webhook`
-
-Cloudflare's webhook API returns a signing secret. Store that value as `CLOUDFLARE_STREAM_WEBHOOK_SECRET`. The webhook handler rejects missing, stale (over five minutes), or invalid signatures.
+The PublishFlow checks the existing owner-scoped `/api/social/upload-status` endpoint while the app remains open. This endpoint reads the video's status from Cloudflare and updates the private Supabase records. No webhook subscription is required for this first version.
 
 ## Current boundaries — not yet production complete
 
