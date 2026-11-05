@@ -21,6 +21,14 @@ export default async function handler(req: any, res: any) {
     if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || durationSeconds > 600)
       return json(res, 400, { error: "Video duration must be between 1 second and 10 minutes." });
 
+    const db = adminClient();
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count: recentUploads, error: quotaError } = await db.from("media_assets")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_id", user.id).gte("created_at", hourAgo);
+    if (quotaError) throw quotaError;
+    if ((recentUploads || 0) >= 5) return json(res, 429, { error: "You have reached the current upload limit. Please try again later." });
+
     const { account, streamToken } = serverConfig();
     if (!account || !streamToken) return json(res, 503, { error: "Cloudflare Stream is not connected on the server yet." });
 
@@ -39,7 +47,6 @@ export default async function handler(req: any, res: any) {
     if (!cloudflare.ok || !streamResult.success || !streamResult.result?.uid || !streamResult.result?.uploadURL)
       return json(res, 502, { error: "Cloudflare could not prepare this upload. Please try again later." });
 
-    const db = adminClient();
     const { data: asset, error: assetError } = await db.from("media_assets").insert({
       owner_id: user.id, provider: "cloudflare", provider_asset_id: streamResult.result.uid,
       upload_state: "uploading", mime_type: mimeType, size_bytes: sizeBytes,
