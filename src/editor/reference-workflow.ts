@@ -31,14 +31,19 @@ export function detectReferenceWorkflow(input: string): { useReference: boolean;
 export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: ReferenceAnalysisLike[], brief = ""): ReferenceAssetContext[] {
   const videos = assets.filter(item => item.kind === "video");
   const images = assets.filter(item => item.kind === "image");
-  const documents = assets.filter(isDocument);
   const explicitStyle = hasAny(brief, /style|look|colour|color|aesthetic|visual language/);
   const explicitStructure = hasAny(brief, /structure|sequence|shot order|pacing|edit pattern|recreate|match the edit/);
   const explicitReplacement = hasAny(brief, /replace|swap|substitute|use .* instead|put .* in place/);
-  return assets.slice(0, 30).map((asset, index) => {
+  const replacementName = (asset: ReferenceAssetLike) => /\b(replacement|replace|new[-_ ]?(image|photo|subject)|target)\b/i.test(asset.name);
+  const styleName = (asset: ReferenceAssetLike) => /\b(style|mood|look|reference|inspiration|template)\b/i.test(asset.name);
+  return assets.slice(0, 30).map(asset => {
     const analysis = analyses.find(item => item.assetId === asset.id);
+    const imageIndex = images.findIndex(item => item.id === asset.id);
     const role: ReferenceRole = isDocument(asset) ? "script or document"
       : asset.kind === "audio" ? "audio source"
+      : explicitReplacement && asset.kind === "image" && replacementName(asset) ? "replacement image"
+      : explicitStyle && asset.kind === "image" && styleName(asset) ? "style reference"
+      : explicitReplacement && explicitStyle && asset.kind === "image" && images.length > 1 ? (imageIndex === 0 ? "style reference" : "replacement image")
       : explicitReplacement && asset.kind === "image" ? "replacement image"
       : explicitReplacement && asset.kind === "video" ? "replacement video"
       : asset.kind === "video" && (explicitStructure || videos.length > 1) ? "reference video"
@@ -68,7 +73,7 @@ export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: Re
 }
 
 export function buildReferenceFusion(references: ReferenceAssetContext[], brief = ""): ReferenceFusion {
-  const assignments = references.slice(0, 30).map((reference, index) => {
+  const assignments = references.slice(0, 30).map(reference => {
     const contributes = reference.role === "style reference" ? ["Palette, lighting, typography and visual treatment where visible"]
       : reference.role === "structure reference" || reference.role === "reference video" ? ["Shot order, pacing and framing only where sampled evidence supports it"]
       : reference.role === "replacement image" || reference.role === "replacement video" ? ["The replacement subject or source content requested by the user"]
@@ -82,7 +87,7 @@ export function buildReferenceFusion(references: ReferenceAssetContext[], brief 
     return { assetId: reference.id, name: reference.name, role: reference.role, contributes, mustNotCopy };
   });
   const unresolvedChoices = unique([
-    ...(references.length > 1 && !hasAny(brief, /combine|mix|blend|merge|use .* from|take .* from/ ) ? ["The user has not explicitly said whether all references should be blended or kept in separate roles."] : []),
+    ...(references.length > 1 && !hasAny(brief, /combine|mix|blend|merge|use .* from|take .* from/) ? ["The user has not explicitly said whether all references should be blended or kept in separate roles."] : []),
     ...(references.some(item => item.role === "script or document") ? ["Document text must be extracted before its meaning can guide scenes."] : []),
     ...(references.some(item => item.role === "audio source") ? ["Audio meaning remains unknown unless transcript evidence is available."] : []),
     ...(references.some(item => item.limitations?.length) ? ["Some reference conclusions are limited by the available evidence."] : [])
