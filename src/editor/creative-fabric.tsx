@@ -15,7 +15,7 @@ type Props = {
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
   onSeekTo: (time: number) => void;
-  onSendToDirector: (brief: string) => void;
+  onSendToDirector: (brief: string, context?: Record<string, unknown>) => void;
   onClose: () => void;
 };
 type DNA = { purpose: string; audience: string; style: string; palette: string; rules: string };
@@ -230,7 +230,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <div className="nexus-fabric-issues">{graph.issues.map((issue,i)=><div key={i}><Lightbulb size={15}/><span>{issue}</span></div>)}</div>
     </div>}
     {tab==="scenes" && <div className="nexus-fabric-body">
-      <p className="nexus-fabric-copy">Scene Intelligence reads your timeline structure, clip labels, generated-scene notes and timed text. It does not claim to visually understand footage; all analysis runs locally.</p>
+      <p className="nexus-fabric-copy">Scene Intelligence combines timeline structure, transcript context, local frame measurements and—when SmolVLM2 is active—descriptions of visible subjects, objects, settings and actions. The panel labels model-derived observations separately from heuristic scores.</p>
       {!clips.length && <div className="nexus-fabric-empty">Add clips to the timeline and Scene Intelligence will map the story beats here.</div>}
       <div className="nexus-fabric-visual-scan">
         <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition and text-safe-zone suggestions are contrast-based, not subject recognition.</small></div>
@@ -245,10 +245,10 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       </div>
       <section className="nexus-fabric-intelligence-hub">
         <div className="nexus-fabric-intelligence-head"><div><b>SCENE INTELLIGENCE · CONNECTED</b><small>{sceneIntelligence.length} scenes · local structure + sampled visual metrics</small></div><span>{priorMemory?"MEMORY FOUND":"MEMORY STARTED"}</span></div>
-        <div className="nexus-fabric-intelligence-metrics"><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.clarity,0)/sceneIntelligence.length):0}</b><small>Story clarity</small></div><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.momentum,0)/sceneIntelligence.length):0}</b><small>Story momentum</small></div><div><b>{sceneIntelligence.filter(item=>item.confidence==="medium").length}</b><small>Scenes with context</small></div></div>
+        <div className="nexus-fabric-intelligence-metrics"><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.clarity,0)/sceneIntelligence.length):0}</b><small>Story clarity</small></div><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.momentum,0)/sceneIntelligence.length):0}</b><small>Story momentum</small></div><div><b>{sceneIntelligence.filter(item=>item.confidence!=="low").length}</b><small>Scenes with context</small></div></div>
         <div className="nexus-fabric-memory-note"><b>Fabric Memory</b><span>{memoryStatus}</span><small>{priorMemory?"Previous scene map: "+priorMemory.sceneCount+" scene(s) · last saved "+new Date(priorMemory.updatedAt).toLocaleString():"This is the first saved scene map for this project."}</small></div>
         <div className="nexus-fabric-recommendations"><b>Predictive edit recommendations</b>{fabricRecommendations.map((item,index)=><article key={item.title+"-"+index}><span className={item.priority==="high"?"priority":""}>{item.priority==="high"?"PRIORITY":"SUGGESTION"}</span><div><strong>{item.title}</strong><small>{item.detail}</small></div>{item.clipId&&<button onClick={()=>{const clip=clips.find(value=>value.id===item.clipId);if(clip)onSeekTo(clip.start);}}>Review</button>}</article>)}</div>
-        <button className="nexus-fabric-primary" onClick={()=>onSendToDirector(directorBrief)}>Send scene intelligence to AI Director <ArrowRight size={14}/></button>
+        <button className="nexus-fabric-primary" onClick={()=>onSendToDirector(directorBrief,{version:1,projectDNA:dna,scenes:sceneIntelligence.slice(0,16).map(scene=>({clipId:scene.clipId,title:scene.title,role:scene.role,duration:scene.duration,clarity:scene.clarity,momentum:scene.momentum,confidence:scene.confidence,strengths:scene.strengths,risks:scene.risks,nextAction:scene.nextAction,context:scene.context.slice(0,1000)})),recommendations:fabricRecommendations.slice(0,8),visualEvidence:visualDescriptions.slice(0,12).map(item=>({assetName:item.assetName,role:item.role,timestamp:item.timestamp,description:item.description.slice(0,700)})),timelineSignals:{beatMoments:beatMoments.slice(0,12),pauseMoments:pauseMoments.slice(0,8)}})}>Send scene intelligence to AI Director <ArrowRight size={14}/></button>
         <small className="nexus-fabric-scene-note">Scores are transparent local heuristics, not a judgement of creative quality. Frame metrics describe brightness and composition; object/action recognition still requires a dedicated vision-language model.</small>
       </section>
       {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
