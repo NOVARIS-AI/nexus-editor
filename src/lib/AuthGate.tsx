@@ -22,8 +22,12 @@ export function AuthGate({ children }: Props) {
     supabase.auth.getSession().then(({ data, error }) => {
       if (!alive) return;
       setSignedIn(Boolean(data.session));
-      setReady(true);
       if (error) setMessage(error.message);
+    }).catch((error: unknown) => {
+      if (!alive) return;
+      setMessage(error instanceof Error ? error.message : "Couldn't check your saved session. You can still continue as a guest.");
+    }).finally(() => {
+      if (alive) setReady(true);
     });
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
       setSignedIn(Boolean(session));
@@ -42,13 +46,16 @@ export function AuthGate({ children }: Props) {
         if (error) throw error;
         setMessage("Password reset email sent. Check your inbox.");
       } else if (mode === "signup") {
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanDisplayName = displayName.trim().slice(0, 60) || cleanEmail.split("@")[0];
         const { data, error } = await supabase.auth.signUp({
-          email, password, options: { data: { display_name: displayName.trim() || email.split("@")[0] } }
+          email: cleanEmail, password,
+          options: { data: { display_name: cleanDisplayName } }
         });
         if (error) throw error;
         setMessage(data.session ? "Account created. Welcome to NEXUS!" : "Account created. Check your email to confirm your address.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (error) throw error;
       }
     } catch (error) {
@@ -59,13 +66,24 @@ export function AuthGate({ children }: Props) {
   const oauth = async (provider: "google" | "apple") => {
     if (!supabase) { setMessage("Connect Supabase first to enable social sign-in."); return; }
     setBusy(true); setMessage("");
-    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
-    if (error) { setMessage(error.message); setBusy(false); }
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+      if (error) throw error;
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Social sign-in could not be started.");
+      setBusy(false);
+    }
   };
 
   const continueAsGuest = () => { localStorage.setItem("nexus-guest-mode", "true"); setGuest(true); };
   const returnToAccount = () => { localStorage.removeItem("nexus-guest-mode"); setGuest(false); };
-  const signOut = async () => { await supabase?.auth.signOut(); setSignedIn(false); };
+  const signOut = async () => {
+    if (!supabase) { setSignedIn(false); return; }
+    const { error } = await supabase.auth.signOut();
+    if (error) { setMessage(error.message); return; }
+    setSignedIn(false);
+    setMessage("");
+  };
   if (!ready) return <div className="nexus-auth-loading"><div className="nexus-auth-mark">N</div><span>Preparing your creative space…</span></div>;
   if (signedIn) return <>{children}<button className="nexus-auth-access" onClick={signOut}>Sign out</button></>;
   if (guest) return <>{children}<button className="nexus-auth-access" onClick={returnToAccount}>Sign in / Create account</button></>;
