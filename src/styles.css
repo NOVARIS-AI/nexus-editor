@@ -1528,3 +1528,10 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
   .nexus-shell .editor-preview-meta .preview-meta-actions{display:flex!important;justify-content:flex-end!important}
   .nexus-shell .editor-preview-meta .preview-add-media{min-height:24px!important;padding:3px 8px!important;font-size:10px!important}
 }
+
+/* NEXUS community page: use the app's primary navigation, not a second mobile dock. */
+body:has(.nexus-foryou) .top-header{display:none!important}
+@media(max-width:760px){
+  .nexus-shell:has(.nexus-foryou) .main-area{padding-bottom:66px}
+  .nexus-foryou .nfy-bottom{display:none!important}
+}
