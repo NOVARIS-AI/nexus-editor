@@ -39,3 +39,13 @@
 .nfy-video-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;text-align:center;color:#d8c2e8;background:radial-gradient(ellipse at 50% 30%,#3d2b51,#090b13 72%)}
 .nfy-video-state b{font-size:13px;color:#fff}
 .nfy-video-state small{max-width:260px;font-size:10px;line-height:1.55;color:#b8adbf}
+
+
+/* Community safety actions */
+.nfy-report-sheet{display:grid;gap:10px}
+.nfy-report-label{font-size:11px;font-weight:700;color:#e9deef;text-align:left}
+.nfy-report-sheet select,.nfy-report-sheet textarea{width:100%;box-sizing:border-box;border:1px solid var(--nfy-line);border-radius:11px;background:#171321;color:#fff;padding:11px;font:inherit;font-size:12px;outline:none}
+.nfy-report-sheet select:focus,.nfy-report-sheet textarea:focus{border-color:#b78bd0}
+.nfy-report-sheet textarea{min-height:88px;resize:vertical;line-height:1.5}
+.nfy-report-sheet>small{font-size:10px;line-height:1.5;color:var(--nfy-muted)}
+.nfy-report-confirm:disabled{opacity:.55;cursor:wait}
