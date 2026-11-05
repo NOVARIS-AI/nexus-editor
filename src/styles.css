@@ -748,3 +748,12 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-scene-analysis span{padding:4px 6px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:8px}
 .nexus-fabric-scene-analysis button{padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--text);font-size:8px}
 .nexus-fabric-scene-analysis button:active{border-color:var(--accent-c)}
+
+/* Measured scene-to-scene brightness continuity */
+.nexus-fabric-continuity{display:grid;gap:4px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+.nexus-fabric-continuity b{font-size:9px}
+.nexus-fabric-continuity span{font-size:9px;color:var(--text)}
+.nexus-fabric-continuity small{font-size:8px;line-height:1.45;color:var(--muted)}
+.nexus-fabric-continuity.notice{border-color:color-mix(in srgb,#e8ad55 55%,var(--line));background:color-mix(in srgb,#e8ad55 7%,var(--panel))}
+.nexus-fabric-continuity.notice b{color:#e8ad55}
+.nexus-fabric-continuity.steady b{color:var(--accent-c)}
