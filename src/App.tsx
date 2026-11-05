@@ -1289,7 +1289,8 @@ export default function App() {
       const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
       const referenceWorkflow = buildReferenceContext(assets, mediaAnalyses, brief);
       const promptUnderstanding = understandDirectorPrompt(brief);
-      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
+      const referenceDocuments = await Promise.all(aiFiles.slice(0,5).map(async file => ({ name:file.name.slice(0,180), mimeType:file.type || "text/plain", text:(await file.text()).slice(0,12000) })));
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceDocuments, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
@@ -1791,7 +1792,7 @@ export default function App() {
           <div className="ai-studio-chat">
             <div className="ai-studio-chat-head"><span className="ai-studio-orb"><Sparkles size={19}/></span><div><b>NEXUS CREATIVE PARTNER</b><small>IDEA DEVELOPMENT · LIVE WORKFLOW GUIDANCE</small></div><span className="ai-studio-stage">STAGE 1 / 3</span></div>
             <div className="ai-studio-messages">{aiChatMessages.map((m,i)=><article key={i} className={"ai-studio-message "+m.role}><b>{m.role==="assistant"?"NEXUS AI":"YOU"}</b><p>{m.text}</p></article>)}</div>
-            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message or visual style..." rows={3}/><button onClick={()=>{
+            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message or visual style..." rows={3}/><label className="ai-studio-reference-upload">Attach text reference <input type="file" multiple accept=".txt,.md,.csv,.json,.yaml,.yml,.xml,.html" onChange={e=>setAiFiles(Array.from(e.target.files||[]).slice(0,5))}/></label>{aiFiles.length>0&&<small>{aiFiles.map(file=>file.name).join(" · ")}</small>}<button onClick={()=>{
               const message=aiBrief.trim(); if(!message)return;
               setAiChatMessages(old=>[...old,{role:"user",text:message}]);
               if(!aiPlan){void (async()=>{await createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"Storyboard planning finished. Review the scenes before approval. The connected AI Director is used when configured; otherwise NEXUS clearly labels its local fallback."}]);})();}
