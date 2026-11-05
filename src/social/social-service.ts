@@ -363,6 +363,21 @@ export async function loadCommunityPlaybackUrl(postId: string): Promise<string> 
   return result.playerUrl;
 }
 
+export async function checkMyModerationAccess(): Promise<boolean> {
+  if (!supabase) return false;
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return false;
+  try {
+    const response = await fetch("/api/moderation/queue?status=open", {
+      method: "GET", headers: { Authorization: "Bearer " + token }, cache: "no-store"
+    });
+    if (!response.ok) return false;
+    const result = await response.json() as { role?: string };
+    return result.role === "admin" || result.role === "moderator";
+  } catch { return false; }
+}
+
 export type EditableCreatorProfile = { id:string; username:string; displayName:string; avatarUrl:string; bio:string; isPrivate:boolean; creatorTopics:string[] };
 export async function loadMyCreatorProfile(): Promise<EditableCreatorProfile|null> {
   if (!supabase) return null;
