@@ -12,7 +12,7 @@ import { inferPostCategory, rankNexusFeed } from "./nexus-pulse-algorithm";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
-  tags: string[]; category: string; title: string; subtitle: string; palette: string;
+  tags: string[]; creatorTopics?: string[]; category: string; title: string; subtitle: string; palette: string;
   likes: number; comments: number; sound: string; authorId?: string; isLive?: boolean; createdAt?: string;
 };
 
@@ -162,7 +162,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
 
   useEffect(() => {
     if (!profilePost?.isLive || profilePost.authorId !== currentUserId) return;
-    setCreatorTopicsDraft(profilePost.creatorTopics.join(", "));
+    setCreatorTopicsDraft((profilePost.creatorTopics || []).join(", "));
   }, [profilePost?.authorId, currentUserId]);
 
   const saveCreatorTopics = async () => {
