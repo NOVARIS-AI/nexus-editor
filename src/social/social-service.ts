@@ -76,6 +76,46 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
   });
 }
 
+export type CreatorProfile = {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string;
+  isPrivate: boolean;
+  creatorTopics: string[];
+  postCount: number;
+  followerCount: number;
+};
+
+export async function loadCreatorProfile(handle: string): Promise<CreatorProfile | null> {
+  if (!supabase) return null;
+  const { data: profile, error } = await supabase.from("profiles")
+    .select("id,username,display_name,avatar_url,bio,is_private,creator_topics")
+    .eq("username", handle).maybeSingle();
+  fail(error);
+  if (!profile) return null;
+
+  const [posts, followers] = await Promise.all([
+    supabase.from("posts").select("id", { count: "exact", head: true })
+      .eq("author_id", profile.id).eq("status", "ready").eq("visibility", "public"),
+    supabase.from("follows").select("follower_id", { count: "exact", head: true })
+      .eq("followed_id", profile.id).eq("status", "accepted")
+  ]);
+  fail(posts.error); fail(followers.error);
+  return {
+    id: profile.id,
+    username: profile.username || handle,
+    displayName: profile.display_name || "NEXUS Creator",
+    avatarUrl: profile.avatar_url || null,
+    bio: profile.bio || "",
+    isPrivate: Boolean(profile.is_private),
+    creatorTopics: profile.creator_topics || [],
+    postCount: posts.count || 0,
+    followerCount: followers.count || 0
+  };
+}
+
 export async function loadMyPostInteractions(postIds: string[]) {
   if (!supabase || !postIds.length) return { liked: [] as string[], saved: [] as string[] };
   const { data: auth } = await supabase.auth.getUser();
