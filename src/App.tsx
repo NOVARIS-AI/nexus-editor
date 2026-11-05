@@ -490,7 +490,7 @@ export default function App() {
   function importMedia(files: FileList | File[] | null) {
     if (!files) return;
     const remaining = [...pendingProjectAssets];
-    const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/") || /\\.(mp4|m4v|mov|webm|mkv|mp3|m4a|wav|ogg|aac|jpg|jpeg|png|webp|gif|bmp|heic|heif)$/i.test(file.name));
+    const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/") || ["mp4","m4v","mov","webm","mkv","mp3","m4a","wav","ogg","aac","jpg","jpeg","png","webp","gif","bmp","heic","heif"].includes(file.name.split(".").pop()?.toLowerCase() || ""));
     if (!picked.length) { setStatus("Choose a supported photo, video or audio file."); return; }
     const added: MediaAsset[] = picked.map(file => {
       const extension = file.name.split(".").pop()?.toLowerCase() || "";
