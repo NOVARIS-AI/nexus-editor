@@ -1388,3 +1388,67 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-shell .nexus-fabric-trigger{display:inline-flex!important;align-items:center}
 .nexus-shell .nexus-fabric-panel{display:flex!important}
 @media(max-width:700px){.nexus-shell .nexus-fabric-trigger span{display:none}.nexus-shell .nexus-fabric-trigger{width:36px;height:36px;justify-content:center;padding:7px}.nexus-shell .nexus-fabric-panel{display:flex!important}}
+
+
+/* NEXUS ten-theme system: palette tokens drive the complete frosted-glass workspace. */
+.nexus-shell[data-theme="royal-wine"]{--nx-bg:#170B12;--nx-surface:#28101D;--nx-surface-2:#3B192A;--nx-accent:#B84B68;--nx-accent-2:#70233E;--nx-soft:#F0B7C4;--nx-line:rgba(240,183,196,.23);--nx-glow:rgba(184,75,104,.28);--nx-text:#FFF0F3;--nx-muted:#C7A7B1}
+.nexus-shell[data-theme="golden-hour"]{--nx-bg:#1B120A;--nx-surface:#342316;--nx-surface-2:#4A301C;--nx-accent:#D39A4C;--nx-accent-2:#80512C;--nx-soft:#F7E5B8;--nx-line:rgba(247,229,184,.24);--nx-glow:rgba(211,154,76,.28);--nx-text:#FFF5E3;--nx-muted:#C9B69B}
+.nexus-shell[data-theme="lavender-mist"]{--nx-bg:#17131F;--nx-surface:#292333;--nx-surface-2:#3A3048;--nx-accent:#A99AC7;--nx-accent-2:#625276;--nx-soft:#EEE8F5;--nx-line:rgba(238,232,245,.24);--nx-glow:rgba(169,154,199,.26);--nx-text:#F8F4FC;--nx-muted:#BDB3CC}
+.nexus-shell[data-theme="mint-crystal"]{--nx-bg:#0D1D1B;--nx-surface:#142B29;--nx-surface-2:#1E403B;--nx-accent:#8DD4C0;--nx-accent-2:#34766C;--nx-soft:#E5F8F0;--nx-line:rgba(141,212,192,.24);--nx-glow:rgba(79,183,157,.25);--nx-text:#F0FFF9;--nx-muted:#A9CFC2}
+.nexus-shell[data-theme="ruby-noir"]{--nx-bg:#160D12;--nx-surface:#21141B;--nx-surface-2:#381D2A;--nx-accent:#D44C70;--nx-accent-2:#762A45;--nx-soft:#E8C5D0;--nx-line:rgba(232,197,208,.23);--nx-glow:rgba(212,76,112,.28);--nx-text:#FFF0F4;--nx-muted:#C8A7B3}
+.nexus-shell[data-theme="copper-flame"]{--nx-bg:#1D100D;--nx-surface:#38201D;--nx-surface-2:#4C2C25;--nx-accent:#D98961;--nx-accent-2:#98513B;--nx-soft:#F4D0AD;--nx-line:rgba(244,208,173,.23);--nx-glow:rgba(217,137,97,.28);--nx-text:#FFF2E8;--nx-muted:#D0B09C}
+.nexus-shell[data-theme="jade-palace"]{--nx-bg:#0A1B15;--nx-surface:#102C24;--nx-surface-2:#1A4134;--nx-accent:#79BDA0;--nx-accent-2:#26745B;--nx-soft:#E2F1D9;--nx-line:rgba(226,241,217,.23);--nx-glow:rgba(76,170,128,.26);--nx-text:#F1FFF5;--nx-muted:#AFCDBB}
+.nexus-shell[data-theme="sakura"]{--nx-bg:#1B0D17;--nx-surface:#351A2B;--nx-surface-2:#51253F;--nx-accent:#E58EB3;--nx-accent-2:#A33D70;--nx-soft:#FFF0F5;--nx-line:rgba(255,240,245,.24);--nx-glow:rgba(229,142,179,.27);--nx-text:#FFF5F8;--nx-muted:#D1AFC0}
+.nexus-shell[data-theme="champagne-blush"]{--nx-bg:#1D1217;--nx-surface:#39232B;--nx-surface-2:#533440;--nx-accent:#D9A99E;--nx-accent-2:#986477;--nx-soft:#F6E6D5;--nx-line:rgba(246,230,213,.24);--nx-glow:rgba(217,169,158,.27);--nx-text:#FFF6EF;--nx-muted:#D0B7B4}
+.nexus-shell[data-theme="aurora-orchid"]{--nx-bg:#170D1D;--nx-surface:#24112D;--nx-surface-2:#3B1D45;--nx-accent:#C17CCB;--nx-accent-2:#713B79;--nx-soft:#F3D8F5;--nx-line:rgba(243,216,245,.24);--nx-glow:rgba(193,124,203,.28);--nx-text:#FFF3FF;--nx-muted:#CBB0D0}
+
+.nexus-shell:not(.light){background:radial-gradient(ellipse at 14% 0%,var(--nx-glow),transparent 38%),radial-gradient(ellipse at 92% 14%,color-mix(in srgb,var(--nx-accent-2) 48%,transparent),transparent 36%),linear-gradient(145deg,var(--nx-bg),var(--nx-surface) 58%,var(--nx-bg))!important;color:var(--nx-text)}
+.nexus-shell:not(.light) .sidebar{background:color-mix(in srgb,var(--nx-bg) 88%,transparent);border-color:var(--nx-line)}
+.nexus-shell:not(.light) .top-header{background:color-mix(in srgb,var(--nx-surface) 78%,transparent);border-color:var(--nx-line)}
+.nexus-shell:not(.light) .quick-card,.nexus-shell:not(.light) .recent-card,.nexus-shell:not(.light) .project-tile,.nexus-shell:not(.light) .template-card,.nexus-shell:not(.light) .editor-library,.nexus-shell:not(.light) .editor-center,.nexus-shell:not(.light) .editor-inspector,.nexus-shell:not(.light) .timeline-panel,.nexus-shell:not(.light) .settings-nav,.nexus-shell:not(.light) .settings-content,.nexus-shell:not(.light) .ai-tool-card{background:linear-gradient(145deg,color-mix(in srgb,var(--nx-surface-2) 88%,transparent),color-mix(in srgb,var(--nx-surface) 94%,transparent));border-color:var(--nx-line);box-shadow:0 14px 38px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.07);backdrop-filter:blur(20px)}
+.nexus-shell:not(.light) .editor-fullscreen{background:radial-gradient(ellipse at 16% 0%,var(--nx-glow),transparent 38%),linear-gradient(150deg,var(--nx-bg),var(--nx-surface) 72%)}
+.nexus-shell:not(.light) .editor-topbar,.nexus-shell:not(.light) .editor-timeline-zone,.nexus-shell:not(.light) .editor-bottom-tools.nexus-tool-stack{background:color-mix(in srgb,var(--nx-surface) 90%,transparent);border-color:var(--nx-line);backdrop-filter:blur(24px)}
+.nexus-shell:not(.light) .editor-preview-zone{background:linear-gradient(160deg,color-mix(in srgb,var(--nx-surface-2) 42%,transparent),color-mix(in srgb,var(--nx-bg) 54%,transparent))}
+.nexus-shell:not(.light) .editor-preview-frame{border-color:color-mix(in srgb,var(--nx-accent) 68%,transparent);box-shadow:0 14px 42px rgba(0,0,0,.42),0 0 26px var(--nx-glow),inset 0 1px rgba(255,255,255,.08)}
+.nexus-shell:not(.light) .editor-timeline-scroll{background:color-mix(in srgb,var(--nx-bg) 78%,transparent)}
+.nexus-shell:not(.light) .editor-lane-labels,.nexus-shell:not(.light) .editor-lane-labels>span{background:color-mix(in srgb,var(--nx-surface-2) 82%,transparent)}
+.nexus-shell:not(.light) .editor-lane{border-color:var(--nx-line)}
+.nexus-shell:not(.light) .editor-clip{background:linear-gradient(105deg,var(--nx-accent-2),var(--nx-accent));border-color:var(--nx-soft);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.22)}
+.nexus-shell:not(.light) .editor-clip.chosen{outline:2px solid var(--nx-soft)}
+.nexus-shell:not(.light) .editor-transport button,.nexus-shell:not(.light) .editor-top-icon,.nexus-shell:not(.light) .outline-button,.nexus-shell:not(.light) .icon-button,.nexus-shell:not(.light) .mini-icon{background:color-mix(in srgb,var(--nx-surface-2) 72%,transparent);border-color:var(--nx-line);color:var(--nx-text)}
+.nexus-shell:not(.light) .editor-transport .editor-play,.nexus-shell:not(.light) .editor-export-entry,.nexus-shell:not(.light) .gradient-button{background:linear-gradient(115deg,var(--nx-accent-2),var(--nx-accent))!important;color:#fff;border-color:var(--nx-line);box-shadow:0 8px 26px var(--nx-glow),inset 0 1px rgba(255,255,255,.18)}
+.nexus-shell:not(.light) .editor-tool-dock button.active,.nexus-shell:not(.light) .nav-item.active,.nexus-shell:not(.light) .project-filter .filter-active,.nexus-shell:not(.light) .category-tabs .tab-active{background:linear-gradient(120deg,color-mix(in srgb,var(--nx-accent-2) 70%,transparent),color-mix(in srgb,var(--nx-accent) 48%,transparent))!important;color:#fff!important;border-color:var(--nx-line)}
+.nexus-shell:not(.light) .editor-tool-dock button.active{box-shadow:inset 0 0 0 1px var(--nx-line)}
+.nexus-shell:not(.light) .nexus-subtool-ribbon,.nexus-shell:not(.light) .nexus-context-controls{background:color-mix(in srgb,var(--nx-surface-2) 72%,transparent);border-color:var(--nx-line)}
+.nexus-shell:not(.light) .nexus-subtool-ribbon button,.nexus-shell:not(.light) .nexus-context-controls button{background:color-mix(in srgb,var(--nx-accent-2) 32%,var(--nx-surface));border-color:var(--nx-line);color:var(--nx-text)}
+.nexus-shell:not(.light) .nexus-ai-inline,.nexus-shell:not(.light) .nexus-fabric-panel,.nexus-shell:not(.light) .attachment-sheet{background:linear-gradient(145deg,color-mix(in srgb,var(--nx-surface-2) 96%,transparent),color-mix(in srgb,var(--nx-bg) 96%,transparent));border-color:var(--nx-line);box-shadow:0 18px 50px rgba(0,0,0,.4);backdrop-filter:blur(26px)}
+.nexus-shell:not(.light) .nexus-ai-inline-compose input{background:color-mix(in srgb,var(--nx-bg) 88%,transparent);border-color:var(--nx-line);color:var(--nx-text)}
+.nexus-shell:not(.light) .brand-mark,.nexus-shell:not(.light) .avatar,.nexus-shell:not(.light) .preview-n,.nexus-shell:not(.light) .ai-symbol{background:linear-gradient(135deg,var(--nx-accent-2),var(--nx-accent));box-shadow:0 0 24px var(--nx-glow)}
+.nexus-shell:not(.light) .brand-words strong,.nexus-shell:not(.light) .welcome-line h1 span,.nexus-shell:not(.light) .text-link,.nexus-shell:not(.light) .setting-value,.nexus-shell:not(.light) .theme-picker-heading b{color:var(--nx-soft)}
+.nexus-shell:not(.light) .hero-banner{border-color:var(--nx-line);background:radial-gradient(ellipse at 78% 60%,var(--nx-glow),transparent 42%),linear-gradient(120deg,var(--nx-surface),var(--nx-bg));box-shadow:0 20px 60px var(--nx-glow),inset 0 1px rgba(255,255,255,.14)}
+.nexus-shell:not(.light) .hero-orbit{border-color:color-mix(in srgb,var(--nx-accent) 72%,transparent);filter:drop-shadow(0 0 10px var(--nx-glow))}
+.nexus-shell:not(.light) .hero-clapper{border-color:var(--nx-accent);background:linear-gradient(145deg,var(--nx-surface-2),var(--nx-bg));box-shadow:0 0 45px var(--nx-glow),inset 0 0 35px var(--nx-glow)}
+.nexus-shell:not(.light) .hero-clapper:before{border-color:var(--nx-soft)}
+.nexus-shell:not(.light) .hero-glow{background:var(--nx-glow)}
+.nexus-shell:not(.light) .theme-option.selected{border-color:var(--nx-accent);background:color-mix(in srgb,var(--nx-accent-2) 28%,var(--nx-surface))}
+.nexus-shell:not(.light) .theme-check{color:var(--nx-soft)}
+.nexus-shell:not(.light) .status-dot{background:var(--nx-accent)}
+.nexus-shell:not(.light) .timeline-playhead{background:var(--nx-soft)}
+.nexus-shell:not(.light) .editor-inspector input[type=range],.nexus-shell:not(.light) input[type=range]{accent-color:var(--nx-accent)}
+.nexus-shell:not(.light) .nav-item:hover,.nexus-shell:not(.light) .quick-card:hover,.nexus-shell:not(.light) .recent-card:hover,.nexus-shell:not(.light) .project-tile:hover,.nexus-shell:not(.light) .template-card:hover,.nexus-shell:not(.light) .ai-tool-card:hover{border-color:var(--nx-accent);box-shadow:0 16px 42px var(--nx-glow)}
+.nexus-shell:not(.light) .side-caption,.nexus-shell:not(.light) .eyebrow,.nexus-shell:not(.light) .panel-heading,.nexus-shell:not(.light) .editor-preview-meta{color:var(--nx-muted)}
+.nexus-shell:not(.light) .quick-icon.purple,.nexus-shell:not(.light) .quick-icon.violet,.nexus-shell:not(.light) .ai-tool-card>span{background:color-mix(in srgb,var(--nx-accent-2) 58%,var(--nx-surface));color:var(--nx-soft)}
+.nexus-shell:not(.light) .quick-icon.cyan{background:color-mix(in srgb,var(--nx-accent-2) 52%,var(--nx-surface));color:var(--nx-soft)}
+.nexus-shell:not(.light) .quick-icon.amber{background:color-mix(in srgb,var(--nx-accent) 32%,var(--nx-surface));color:var(--nx-soft)}
+.nexus-shell:not(.light) .cloud-card{background:linear-gradient(140deg,var(--nx-surface-2),var(--nx-surface));border-color:var(--nx-line);color:var(--nx-soft)}
+.nexus-shell:not(.light) .cloud-meter{background:color-mix(in srgb,var(--nx-accent-2) 42%,var(--nx-surface))}
+.nexus-shell:not(.light) .cloud-meter i{background:linear-gradient(90deg,var(--nx-accent-2),var(--nx-accent))}
+@media(max-width:700px){
+  .nexus-shell:not(.light) .editor-fullscreen{background:radial-gradient(ellipse at 15% 0%,var(--nx-glow),transparent 42%),linear-gradient(160deg,var(--nx-bg),var(--nx-surface))}
+  .nexus-shell:not(.light) .editor-topbar,.nexus-shell:not(.light) .editor-timeline-zone,.nexus-shell:not(.light) .editor-bottom-tools.nexus-tool-stack{background:color-mix(in srgb,var(--nx-surface) 94%,transparent)}
+  .nexus-shell:not(.light) .editor-preview-zone{background:linear-gradient(160deg,color-mix(in srgb,var(--nx-surface-2) 45%,transparent),color-mix(in srgb,var(--nx-bg) 58%,transparent))}
+  .nexus-shell:not(.light) .editor-preview-frame{border-color:color-mix(in srgb,var(--nx-accent) 72%,transparent)}
+}
+@media(prefers-reduced-transparency:reduce){
+  .nexus-shell:not(.light) .sidebar,.nexus-shell:not(.light) .top-header,.nexus-shell:not(.light) .quick-card,.nexus-shell:not(.light) .recent-card,.nexus-shell:not(.light) .project-tile,.nexus-shell:not(.light) .template-card,.nexus-shell:not(.light) .editor-library,.nexus-shell:not(.light) .editor-center,.nexus-shell:not(.light) .editor-inspector,.nexus-shell:not(.light) .timeline-panel,.nexus-shell:not(.light) .editor-timeline-zone,.nexus-shell:not(.light) .editor-bottom-tools.nexus-tool-stack{backdrop-filter:none!important;background:var(--nx-surface)!important}
+}
