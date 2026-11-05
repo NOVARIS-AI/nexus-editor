@@ -883,3 +883,389 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 @media(max-width:460px){.nexus-fabric-vision-actions{align-items:flex-start;flex-direction:column}.nexus-fabric-vision-actions button{width:100%}}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.nexus-ai-seo-details{margin:10px 0;border:1px solid rgba(120,150,190,.2);border-radius:12px;padding:10px}.nexus-ai-seo-details>summary{cursor:pointer;font-weight:700;padding:6px}.nexus-creator-seo{display:grid;gap:10px;padding-top:10px}.nexus-creator-seo textarea{width:100%;min-height:64px;resize:vertical}.nexus-creator-seo .nexus-effect-group{display:grid;gap:8px}@media(max-width:640px){.nexus-creator-seo{gap:8px}.nexus-ai-seo-details{margin:8px 0}}
+
+
+/* NEXUS Studio mobile editor — clean, familiar editing surface */
+.nexus-fabric-trigger,
+.nexus-fabric-panel{display:none!important}
+
+@media(max-width:700px){
+  .editor-fullscreen{
+    background:#101010;
+    color:#f4f4f4;
+  }
+  .editor-topbar{
+    height:48px;
+    min-height:48px;
+    flex:0 0 48px;
+    gap:8px;
+    padding:0 9px;
+    background:#111;
+    border-bottom:1px solid #272727;
+  }
+  .editor-back{
+    border:0;
+    background:transparent;
+    padding:7px 6px;
+  }
+  .editor-project-title{
+    margin-right:auto;
+    min-width:0;
+  }
+  .editor-project-title b{
+    max-width:34vw;
+    color:#f7f7f7;
+    font-size:10px;
+    font-weight:700;
+  }
+  .editor-project-title small{display:none}
+  .editor-top-icon{
+    border:0;
+    background:#242424;
+    padding:8px;
+  }
+  .editor-top-icon.ai-editor-trigger{
+    color:#d9faff;
+    background:#202a2c;
+  }
+  .editor-export-entry{
+    padding:8px 12px;
+    border:0;
+    border-radius:7px;
+    background:#10c5d8;
+    color:#031317;
+    font-size:10px;
+    font-weight:800;
+  }
+
+  .editor-screen{
+    position:relative;
+    height:calc(100% - 48px);
+    min-height:0;
+    grid-template-rows:minmax(0,1fr) minmax(116px,.42fr) auto 13px;
+    overflow:hidden;
+    background:#101010;
+  }
+  .editor-preview-zone{
+    min-height:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:6px 9px 2px;
+    background:#101010;
+    overflow:hidden;
+  }
+  .editor-preview-meta{
+    flex:0 0 23px;
+    height:23px;
+    width:100%;
+    padding:0 2px;
+    color:#a6a6a6;
+    font-size:8px;
+    letter-spacing:.08em;
+  }
+  .editor-preview-meta .preview-meta-actions{
+    gap:5px;
+  }
+  .editor-preview-meta .preview-meta-actions select,
+  .editor-preview-meta .preview-meta-actions button:not(.preview-add-media){
+    display:none!important;
+  }
+  .editor-preview-meta .preview-add-media{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:5px 8px;
+    border:1px solid #3b3b3b;
+    border-radius:7px;
+    background:#202020;
+    color:#f0f0f0;
+    font-size:8px;
+  }
+  .editor-preview-frame{
+    flex:1 1 auto;
+    min-width:0;
+    min-height:86px;
+    max-height:100%;
+    margin:2px auto 3px;
+    border:1px solid #16798b;
+    border-radius:3px;
+    background:#05050b;
+    box-shadow:0 0 0 1px #0c3039;
+  }
+  .editor-preview-frame video,
+  .editor-preview-frame img{
+    object-fit:contain;
+  }
+  .editor-transport{
+    flex:0 0 34px;
+    height:34px;
+    min-height:34px;
+    justify-content:center;
+    gap:16px;
+    background:transparent;
+  }
+  .editor-transport button{
+    min-width:31px;
+    min-height:29px;
+    padding:5px 9px;
+    border:0;
+    border-radius:7px;
+    background:#202020;
+    color:#ededed;
+    font-size:9px;
+  }
+  .editor-transport .editor-play{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    background:#242424;
+    color:#fff;
+  }
+  .editor-transport span{
+    color:#bdbdbd;
+    font-size:8px;
+  }
+
+  .editor-timeline-zone{
+    min-height:0;
+    padding:6px 7px 4px;
+    border-top:1px solid #303030;
+    background:#181818;
+    overflow:hidden;
+  }
+  .editor-timeline-head{
+    flex:0 0 28px;
+    height:28px;
+    min-height:28px;
+    gap:6px;
+  }
+  .editor-timeline-head>div:first-child{
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .editor-timeline-head b{
+    color:#e8e8e8;
+    font-size:10px;
+    letter-spacing:0;
+  }
+  .editor-timeline-head small{
+    display:block!important;
+    max-width:none;
+    color:#aaa;
+    font-size:8px;
+    letter-spacing:0;
+  }
+  .editor-timeline-actions{
+    max-width:52%;
+    gap:3px;
+  }
+  .editor-timeline-actions button{
+    min-width:25px;
+    min-height:25px;
+    height:25px;
+    padding:0 5px;
+    border:1px solid #393939;
+    border-radius:6px;
+    background:#242424;
+    color:#ddd;
+    font-size:8px;
+  }
+  .editor-timeline-scroll{
+    min-height:0;
+    height:calc(100% - 28px);
+    overflow:auto hidden;
+    background:#181818;
+  }
+  .editor-timeline-ruler{
+    height:18px;
+    margin-left:52px;
+  }
+  .editor-timeline-ruler span{
+    padding:3px 5px;
+    color:#a4a4a4;
+    font-size:7px;
+  }
+  .editor-timeline-rows{
+    min-width:600px;
+    min-height:0;
+    height:calc(100% - 18px);
+    grid-template-columns:52px minmax(0,1fr);
+  }
+  .editor-lane-labels{
+    background:#171717;
+    border-right:1px solid #303030;
+  }
+  .editor-lane-labels>span{
+    min-height:38px;
+    padding:3px 3px 3px 5px;
+    gap:2px;
+    background:#171717;
+  }
+  .editor-lane-labels>span>b{
+    color:#bdbdbd;
+    font-size:7px;
+  }
+  .editor-lane-labels>span>small{
+    display:none;
+  }
+  .editor-track-controls{
+    gap:2px;
+  }
+  .editor-track-controls button{
+    min-width:15px;
+    min-height:15px;
+    padding:0 2px;
+    border-color:#424242;
+    background:#252525;
+    font-size:8px;
+  }
+  .editor-track-controls button:nth-child(n+3){
+    display:none;
+  }
+  .editor-lane{
+    min-height:38px;
+    border-bottom:1px solid #292929;
+  }
+  .editor-clip{
+    height:28px;
+    min-height:26px;
+    border-radius:5px;
+    font-size:8px;
+  }
+  .editor-add-track-asset{
+    position:absolute;
+    left:7px;
+    top:5px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    min-height:26px;
+    padding:0 9px;
+    border:1px solid #454545;
+    border-radius:6px;
+    background:#252525;
+    color:#d6d6d6;
+    font-size:8px;
+  }
+
+  .editor-bottom-tools.nexus-tool-stack{
+    width:100%;
+    height:138px;
+    min-height:138px;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    overflow:hidden;
+    border-top:1px solid #303030;
+    background:#111;
+  }
+  .editor-bottom-tools.nexus-tool-stack[data-tool="edit"][data-subtool="select"]{
+    height:65px;
+    min-height:65px;
+  }
+  .editor-bottom-tools.nexus-tool-stack[data-tool="edit"][data-subtool="select"] .nexus-subtool-ribbon,
+  .editor-bottom-tools.nexus-tool-stack[data-tool="edit"][data-subtool="select"] .nexus-context-controls{
+    display:none!important;
+  }
+  .nexus-subtool-ribbon{
+    flex:0 0 36px;
+    height:36px;
+    min-height:36px;
+    padding:3px 7px;
+    border-bottom:1px solid #2c2c2c;
+    background:#191919;
+  }
+  .nexus-subtool-ribbon button,
+  .nexus-context-controls button{
+    min-height:29px;
+    padding:6px 9px;
+    border:1px solid #3d3d3d;
+    border-radius:7px;
+    background:#262626;
+    color:#e3e3e3;
+    font-size:8px;
+  }
+  .nexus-context-controls{
+    flex:0 0 37px;
+    height:37px;
+    min-height:37px;
+    padding:3px 7px;
+    gap:5px;
+    border-bottom:1px solid #2c2c2c;
+    background:#151515;
+  }
+  .nexus-context-controls .nexus-effect-group{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    min-width:max-content;
+    margin:0;
+    padding:0;
+    border:0;
+    background:transparent;
+  }
+  .editor-bottom-tools.nexus-tool-stack .editor-tool-dock{
+    flex:0 0 64px;
+    height:64px;
+    min-height:64px;
+    padding:3px 4px calc(4px + env(safe-area-inset-bottom,0px));
+    gap:0;
+    background:#111;
+  }
+  .editor-bottom-tools.nexus-tool-stack .editor-tool-dock button{
+    flex:0 0 58px;
+    min-width:58px;
+    min-height:55px;
+    gap:4px;
+    padding:4px 2px;
+    color:#d6d6d6;
+    font-size:8px;
+  }
+  .editor-bottom-tools.nexus-tool-stack .editor-tool-dock button.active{
+    border-radius:8px;
+    background:#28213b;
+    color:#e5caff;
+  }
+  .editor-bottom-tools.nexus-tool-stack .editor-tool-dock button svg{
+    width:19px;
+    height:19px;
+  }
+  .editor-status-line{
+    height:13px;
+    min-height:13px;
+    padding:0 7px;
+    overflow:hidden;
+    background:#101010;
+    color:#999;
+    font-size:7px;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+  }
+  .editor-status-line i{display:none}
+  .editor-screen>.nexus-ai-inline{
+    position:absolute;
+    z-index:50;
+    left:7px;
+    right:7px;
+    bottom:calc(66px + env(safe-area-inset-bottom,0px));
+    max-height:min(68dvh,520px);
+    overflow:auto;
+    margin:0;
+    border:1px solid #46405a;
+    border-radius:14px;
+    background:#101018;
+    box-shadow:0 12px 36px #000b;
+  }
+}
+
+@media(max-width:700px) and (max-height:650px){
+  .editor-screen{
+    grid-template-rows:minmax(0,1fr) minmax(102px,.42fr) auto 12px;
+  }
+  .editor-bottom-tools.nexus-tool-stack[data-tool="edit"][data-subtool="select"]{
+    height:60px;
+    min-height:60px;
+  }
+}
