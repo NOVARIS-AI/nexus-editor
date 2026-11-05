@@ -11,7 +11,7 @@ import {
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Settings,
   SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X,
-  Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines, GitBranch
+  Volume2, Crop, Type, Captions, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines, GitBranch, ShieldCheck
 } from "lucide-react";
 import type { ClipKeyframe, MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "./types";
 import { AudioAssetBrowser } from "./editor/AudioAssetBrowser";
@@ -50,8 +50,9 @@ import { CreatorProfilePage } from "./social/CreatorProfilePage";
 import { NotificationsPage } from "./social/NotificationsPage";
 import { SavedPage } from "./social/SavedPage";
 import { PublishFlow } from "./social/PublishFlow";
+import { ModerationCentre } from "./social/ModerationCentre";
 
-type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "editor" | "projects" | "templates" | "ai" | "settings";
+type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
@@ -1943,6 +1944,7 @@ export default function App() {
     { id: "profile" as Page, label: "My Profile", icon: UserCircle },
     { id: "notifications" as Page, label: "Notifications", icon: Bell },
     { id: "saved" as Page, label: "Saved videos", icon: Bookmark },
+    { id: "moderation" as Page, label: "Moderation Centre", icon: ShieldCheck },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
@@ -1979,6 +1981,7 @@ export default function App() {
       {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "moderation" && <ModerationCentre onBack={() => setPage("home")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onOpenSaved={() => setPage("saved")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
