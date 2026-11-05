@@ -1582,3 +1582,42 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .nexus-tool-stack[data-tool="adjust"] .editor-tool-dock{flex:0 0 58px}
  .nexus-mobile-nav{padding-bottom:calc(7px + env(safe-area-inset-bottom))}
 }
+
+
+/* Mobile navigation consolidation: keep one five-destination dock. */
+.mobile-search-toggle{display:none}
+@media(max-width:760px){
+  .mobile-search-toggle{display:inline-grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text)}
+  .global-search:not(.mobile-search-open){display:none}
+  .global-search.mobile-search-open{position:absolute;top:calc(100% + 6px);left:10px;right:10px;z-index:110;display:flex;width:auto;max-width:none;height:42px;margin:0;background:var(--panel);box-shadow:0 12px 35px #0008}
+  .global-search.mobile-search-open input{min-width:0;font-size:12px}
+}
+@media(max-width:700px){
+  /* The custom five-item dock replaces the legacy sidebar-as-bottom-bar. */
+  .nexus-shell>.sidebar{display:none!important}
+  .nexus-mobile-nav{min-height:58px}
+  .nexus-mobile-nav button{min-width:0;overflow:hidden}
+  .nexus-mobile-nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;font-size:8px}
+}
+
+/* Keep the editor itself viewport-locked; other app pages retain normal scrolling. */
+.editor-fullscreen{padding-top:env(safe-area-inset-top)}
+.editor-bottom-tools{padding-bottom:env(safe-area-inset-bottom)}
+@media(max-width:700px){
+  .editor-topbar{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));gap:7px}
+  .editor-project-title b{max-width:34vw}
+  .editor-top-icon{padding:7px}
+  .editor-top-icon span{display:none}
+  .editor-fullscreen .nexus-subtool-ribbon{touch-action:pan-y}
+  .nexus-tool-stack[data-tool="filters"] .nexus-subtool-ribbon,
+  .nexus-tool-stack[data-tool="adjust"] .nexus-subtool-ribbon{
+    bottom:calc(58px + env(safe-area-inset-bottom));
+    height:min(42dvh,360px);
+    min-height:min(190px,30dvh);
+    max-height:calc(100dvh - 150px - env(safe-area-inset-top));
+    padding-bottom:max(14px,env(safe-area-inset-bottom));
+  }
+}
+@media(prefers-reduced-transparency:reduce){
+  .nexus-mobile-nav,.global-search.mobile-search-open{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
