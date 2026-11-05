@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 const SOUND_EFFECT_CATEGORIES = ["Whoosh","Reverse whoosh","Air sweep","Soft impact","Heavy impact","Cinematic hit","Bass hit","Riser","Downlifter","Transition sweep","Pop","Click","Tap","Button press","Keyboard typing","Mouse click","Notification ping","Success chime","Error beep","Digital glitch","Retro game blip","Laser zap","Sparkle","Magic shimmer","Bell","Clock tick","Camera shutter","Film projector","Vinyl crackle","Crowd cheer","Applause","Laughter","Footsteps","Door knock","Door open","Door close","Page turn","Paper rustle","Water splash","Rain ambience","Ocean waves","Wind ambience","Birds ambience","Fire crackle","Thunder rumble","Heartbeat","Mechanical hum","Engine start","Car pass-by","Dramatic boom","Anime impact","Cartoon boing","Record scratch","Swoosh hit","Glitch transition","Camera flash","Notification pop","Typing fast","Typing slow","Cash register","Coins drop","Magic spell","Fairy dust","Air sweep","Soft impact","Trailer braam","Orchestral hit","Tension pulse","Crowd gasp","Stadium chant","Clapping solo","Footsteps gravel","Footsteps wood","Car engine rev","Motorcycle pass","Police siren","Distant traffic","Rain on window","Forest birds","Wind gust","Ocean surf","Fireplace","Comedy sting","Suspense sting","Sci-fi ambience","Space whoosh","Robot servo","UI hover","UI confirm","UI error","Bubble pop","Water drip","Glass clink","Metal clang","Door creak","Zipper","Page flip","Paper tear","Whistle","Phone vibration","Alarm clock","Tape stop","Vinyl stop","Reverse cymbal","Cymbal crash","Snare roll","808 drop","Kick punch","Snare snap","Clap hit","Finger snap","Shaker loop","Tambourine hit","Crowd laugh","Dog bark","Cat meow","Train pass","Airplane flyby","Thunder crack","Deep rumble","Soft chime","Angel choir","Church bell","African percussion hit","Talking drum","Shekere shake","Afrobeat percussion fill"] as const;
 const MUSIC_CATEGORIES = ["Afrobeats","Amapiano","Afropop","Afro-fusion","Gospel","Worship","Inspirational","Motivational","Cinematic","Epic trailer","Emotional piano","Sad piano","Romantic","Lo-fi hip hop","Chill beats","Study beats","Vlog background","Lifestyle vlog","Travel vlog","Fashion beat","Beauty tutorial","Product showcase","Corporate","Technology","Podcast intro","YouTube intro","TikTok edit","Instagram Reels","Shorts background","Trending dance","Dance pop","House","Deep house","Electronic","EDM","Phonk","Drill instrumental","Trap instrumental","Hip hop instrumental","R&B instrumental","Jazz lounge","Soul","Acoustic guitar","Piano instrumental","Orchestral","Ambient","Nature ambience","Comedy background","Suspense","Gaming","Retro 8-bit","Funky groove","Summer vibe","Feel-good pop","Minimal background","Luxury lifestyle","Sports hype","Workout energy","African highlife","Afro-soul","Talking drum groove","Percussion loop","Marimba groove"] as const;
 const FILTER_PRESETS = ["Original","Cinematic","Vintage","Warm","Cool","B&W","Noir","Matte","Fade","Film Grain","Golden","Arctic","Dream","Vivid","Teal Orange","Soft Glow","Sepia","Retro 70s","Retro 90s","Kodachrome","Portra","Ektar","Fuji Film","Polaroid","Bleach Bypass","Cross Process","Moody","Dark Drama","Bright Day","Pastel","Rose","Lavender","Mint","Ocean Blue","Sunset","Autumn","Winter","Spring","Summer","Neon","Cyberpunk","Monochrome Blue","Monochrome Red","High Contrast","Low Contrast","Soft Portrait","Skin Warmth","Desaturated","Rich Color","Night", ...CREATIVE_FILTERS.map(item => item.name)];
@@ -141,9 +141,15 @@ export default function App() {
   const [aiFormat, setAiFormat] = useState("9:16");
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
+  const [assistantInput, setAssistantInput] = useState("");
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [assistantLauncherPosition, setAssistantLauncherPosition] = useState({ left: 12, top: 120 });
+  const [assistantPanelPosition, setAssistantPanelPosition] = useState({ left: 12, top: 100 });
+  const assistantDrag = useRef<{ kind: "launcher" | "panel"; pointerId: number; startX: number; startY: number; left: number; top: number; moved: boolean } | null>(null);
+  const assistantWasDragged = useRef(false);
   const [creativeFabricOpen, setCreativeFabricOpen] = useState(false);
   const [aiWorkflowStage, setAiWorkflowStage] = useState<"idea" | "planning" | "review" | "editing">("idea");
-  const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Welcome to NEXUS AI Studio. Tell me what you want to create. I’ll guide you through the idea, creative plan, visuals and approval before we open the editing workspace." }]);
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Hi, I’m your NEXUS creative assistant. Ask me a question, tell me what you’re trying to make, or ask me to improve the edit. I’ll use your current project as context and guide you step by step." }]);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number; audioCueType?: string }[]; sourcingNote: string }>(null);
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
@@ -191,6 +197,46 @@ export default function App() {
   const voiceChunks = useRef<BlobPart[]>([]);
   const voiceElapsed = useRef(0);
   const voiceTimer = useRef<number | null>(null);
+  useEffect(() => {
+    const width = window.innerWidth, height = window.innerHeight;
+    setAssistantLauncherPosition({ left: Math.max(8, width - 68), top: Math.max(90, height - 88) });
+    setAssistantPanelPosition({ left: Math.max(8, width - 344), top: Math.max(64, height - 510) });
+  }, []);
+  function beginAssistantDrag(event: ReactPointerEvent<HTMLElement>, kind: "launcher" | "panel") {
+    if (kind === "panel" && (event.target as HTMLElement).closest("button,input,textarea")) return;
+    const point = kind === "launcher" ? assistantLauncherPosition : assistantPanelPosition;
+    assistantDrag.current = { kind, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, left: point.left, top: point.top, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function moveAssistantDrag(event: ReactPointerEvent<HTMLElement>) {
+    const drag = assistantDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX, dy = event.clientY - drag.startY;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    if (!drag.moved) return;
+    const width = drag.kind === "launcher" ? 56 : Math.min(336, window.innerWidth - 20);
+    const height = drag.kind === "launcher" ? 56 : 440;
+    const next = { left: Math.max(8, Math.min(window.innerWidth - width - 8, drag.left + dx)), top: Math.max(8, Math.min(window.innerHeight - height - 8, drag.top + dy)) };
+    if (drag.kind === "launcher") setAssistantLauncherPosition(next); else setAssistantPanelPosition(next);
+  }
+  function endAssistantDrag(event: ReactPointerEvent<HTMLElement>) {
+    const drag = assistantDrag.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    assistantWasDragged.current = drag.moved;
+    assistantDrag.current = null;
+  }
+  function toggleAssistantWindow() {
+    if (assistantWasDragged.current) { assistantWasDragged.current = false; return; }
+    setAiWorkspaceOpen(open => !open);
+  }
+  function sendAssistantMessage() {
+    const message = assistantInput.trim();
+    if (!message || assistantBusy) return;
+    setAssistantInput("");
+    setAiChatMessages(old => [...old, { role: "user", text: message }].slice(-40));
+    setAssistantBusy(true);
+    void runAICommand(message).finally(() => setAssistantBusy(false));
+  }
   useEffect(() => () => {
     if (voiceTimer.current !== null) window.clearInterval(voiceTimer.current);
     if (voiceRecorder.current && voiceRecorder.current.state !== "inactive") voiceRecorder.current.stop();
@@ -1485,21 +1531,26 @@ export default function App() {
     setAiReply("I built an editable reference-inspired sequence with " + sceneCount + " visual scenes, " + textAdditions.length + " timed title layers and " + audioAdditions.length + " imported audio track(s). Scene durations, transition styles and title positions use the AI's approximate reference observations where available. Audio cue offsets are suggestions, not verified beat detection. Review the draft; it is not a finished export.");
     return true;
   }
-  async function runAICommand() {
-    const request = aiBrief.trim().toLowerCase();
+  async function runAICommand(message?: string) {
+    const rawRequest = (message ?? aiBrief).trim();
+    const request = rawRequest.toLowerCase();
     if (!request) return;
+    const respond = (text: string) => {
+      respond(text);
+      setAiChatMessages(old => [...old, { role: "assistant", text }].slice(-40));
+    };
     if (aiMode === "teach") {
-      if (!selectedClip) { setAiReply("Teaching mode: import or add media, then select a timeline clip. I can then walk you through the controls that are currently available."); return; }
-      if (/split|cut/.test(request)) { setActiveTool("edit"); setActiveSubtool("split"); setAiReply("Teaching: move the playhead to the exact point inside the selected clip, then tap Split in the Edit ribbon. The two resulting pieces should appear on the timeline. I have highlighted the Split control; I have not changed the clip."); return; }
-      if (/text|title/.test(request)) { setActiveTool("text"); setActiveSubtool("add"); setAiReply("Teaching: open Text, choose Add text, then edit the wording, font, size and colour in the controls. The current text is still a preview overlay, not a saved timed text layer."); return; }
-      setAiReply("Teaching mode uses your current selection and tool. Try asking how to split a clip, add a title, or change the canvas ratio. I'll guide the steps instead of silently making the edit.");
+      if (!selectedClip) { respond("Teaching mode: import or add media, then select a timeline clip. I can then walk you through the controls that are currently available."); return; }
+      if (/split|cut/.test(request)) { setActiveTool("edit"); setActiveSubtool("split"); respond("Teaching: move the playhead to the exact point inside the selected clip, then tap Split in the Edit ribbon. The two resulting pieces should appear on the timeline. I have highlighted the Split control; I have not changed the clip."); return; }
+      if (/text|title/.test(request)) { setActiveTool("text"); setActiveSubtool("add"); respond("Teaching: open Text, choose Add text, then edit the wording, font, size and colour in the controls. The current text is still a preview overlay, not a saved timed text layer."); return; }
+      respond("Teaching mode uses your current selection and tool. Try asking how to split a clip, add a title, or change the canvas ratio. I'll guide the steps instead of silently making the edit.");
       return;
     }
     if (aiMode === "ask") {
-      setAiReply("NEXUS AI Director is reviewing your brief and current project…");
+      respond("NEXUS AI Director is reviewing your brief and current project…");
       try {
         const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
-        const result = await askNexusDirector(aiBrief.trim(), {
+        const result = await askNexusDirector(rawRequest, {
           projectName, assetCount: assets.length, assets: assets.map(item => ({ name: item.name, kind: item.kind, source: item.source?.type })),
           referenceWorkflow: buildReferenceContext(assets, mediaAnalyses), visualSamples,
           clipCount: clips.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, duration: clipDuration(selectedClip), filter: selectedClip.filter, fit: selectedClip.fit, aiScene: selectedClip.aiScene?.title || null } : null,
@@ -1509,10 +1560,10 @@ export default function App() {
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
-        setAiReply(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
+        respond(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
         setEngineReport(["AI Director ready", ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
       } catch (error) {
-        setAiReply(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
+        respond(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
       }
       return;
     }
@@ -1524,18 +1575,18 @@ export default function App() {
     const activeImageLayer=imageLayers.find(layer=>layer.id===selectedImageLayer);
     if(activeImageLayer) {
       if(/\b(regenerate|replace|make another|new version)\b/.test(normalized)) { await regenerateSelectedImageLayer(); return; }
-      if(/\b(hide|turn off)\b/.test(normalized)) { updateSelectedImageLayer({visible:false}); setAiReply("Selected image layer hidden. Undo can restore the previous project state."); return; }
-      if(/\b(show|turn on)\b/.test(normalized)) { updateSelectedImageLayer({visible:true}); setAiReply("Selected image layer is visible again."); return; }
-      if(/\block\b/.test(normalized)) { updateSelectedImageLayer({locked:true}); setAiReply("Selected image layer locked."); return; }
-      if(/\bunlock\b/.test(normalized)) { updateSelectedImageLayer({locked:false}); setAiReply("Selected image layer unlocked."); return; }
-      if(/\b(background|full frame|fill the canvas)\b/.test(normalized)) { updateSelectedImageLayer({fit:"cover",x:50,y:50,scale:1,rotation:0}); setAiReply("Selected image layer set as a full-frame background. Background layers render below footage; sticker layers stay above it."); return; }
-      if(/\b(send back|backward|behind)\b/.test(normalized)) { reorderSelectedImageLayer(-1); setAiReply("Selected image layer moved backward in the image-layer stack."); return; }
-      if(/\b(bring forward|forward|front)\b/.test(normalized)) { reorderSelectedImageLayer(1); setAiReply("Selected image layer moved forward in the image-layer stack."); return; }
+      if(/\b(hide|turn off)\b/.test(normalized)) { updateSelectedImageLayer({visible:false}); respond("Selected image layer hidden. Undo can restore the previous project state."); return; }
+      if(/\b(show|turn on)\b/.test(normalized)) { updateSelectedImageLayer({visible:true}); respond("Selected image layer is visible again."); return; }
+      if(/\block\b/.test(normalized)) { updateSelectedImageLayer({locked:true}); respond("Selected image layer locked."); return; }
+      if(/\bunlock\b/.test(normalized)) { updateSelectedImageLayer({locked:false}); respond("Selected image layer unlocked."); return; }
+      if(/\b(background|full frame|fill the canvas)\b/.test(normalized)) { updateSelectedImageLayer({fit:"cover",x:50,y:50,scale:1,rotation:0}); respond("Selected image layer set as a full-frame background. Background layers render below footage; sticker layers stay above it."); return; }
+      if(/\b(send back|backward|behind)\b/.test(normalized)) { reorderSelectedImageLayer(-1); respond("Selected image layer moved backward in the image-layer stack."); return; }
+      if(/\b(bring forward|forward|front)\b/.test(normalized)) { reorderSelectedImageLayer(1); respond("Selected image layer moved forward in the image-layer stack."); return; }
       const moveLayerMatch = normalized.match(/\b(?:move|start|place)\s+(?:this\s+)?(?:image\s+)?layer\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds?)\b/i);
-      if(moveLayerMatch) { const nextStart=Math.max(0,Math.min(600,Number(moveLayerMatch[1]))); updateSelectedImageLayer({start:nextStart}); setAiReply("Selected image layer moved to "+nextStart+" seconds. Undo is available."); return; }
+      if(moveLayerMatch) { const nextStart=Math.max(0,Math.min(600,Number(moveLayerMatch[1]))); updateSelectedImageLayer({start:nextStart}); respond("Selected image layer moved to "+nextStart+" seconds. Undo is available."); return; }
       const durationLayerMatch = normalized.match(/\b(?:set\s+)?(?:this\s+)?(?:image\s+)?layer\s+duration\s+(?:to\s+)?(\d+(?:\.\d+)?)\s*(?:s|sec|seconds?)\b/i);
-      if(durationLayerMatch) { const nextDuration=Math.max(.1,Math.min(600,Number(durationLayerMatch[1]))); updateSelectedImageLayer({duration:nextDuration}); setAiReply("Selected image layer duration set to "+nextDuration+" seconds. Undo is available."); return; }
-      if(/\b(delete|remove)\b/.test(normalized)) { recordProjectHistory(); setImageLayers(old=>old.filter(layer=>layer.id!==activeImageLayer.id)); setSelectedImageLayer(null); setAiReply("Selected image layer removed. Undo can restore it."); return; }
+      if(durationLayerMatch) { const nextDuration=Math.max(.1,Math.min(600,Number(durationLayerMatch[1]))); updateSelectedImageLayer({duration:nextDuration}); respond("Selected image layer duration set to "+nextDuration+" seconds. Undo is available."); return; }
+      if(/\b(delete|remove)\b/.test(normalized)) { recordProjectHistory(); setImageLayers(old=>old.filter(layer=>layer.id!==activeImageLayer.id)); setSelectedImageLayer(null); respond("Selected image layer removed. Undo can restore it."); return; }
     }
 
     const referenceIntent = detectReferenceWorkflow(normalized);
@@ -1544,19 +1595,19 @@ export default function App() {
         const videoClip = clips.find(item => assets.find(media => media.id === item.assetId)?.kind === "video");
         if (videoClip) {
           setSelected(videoClip.id);
-          setAiReply("I found a video in your project. Select that video clip, then send “extract the audio” again so I can extract the correct segment.");
-        } else setAiReply("Import a video, add it to the timeline, select it, then ask me to extract its audio.");
+          respond("I found a video in your project. Select that video clip, then send “extract the audio” again so I can extract the correct segment.");
+        } else respond("Import a video, add it to the timeline, select it, then ask me to extract its audio.");
         return;
       }
-      setAiReply("Extracting the selected video's audio and adding it to the timeline…");
+      respond("Extracting the selected video's audio and adding it to the timeline…");
       await extractSelectedVideoAudio();
       return;
     }
     if (referenceIntent.useReference && assets.length) {
-      setAiReply("Checking the uploaded reference and replacement media…");
+      respond("Checking the uploaded reference and replacement media…");
       try {
         const referenceContext = buildReferenceContext(assets, mediaAnalyses);
-        setAiReply("Sampling your pictures and video frames for visual understanding…");
+        respond("Sampling your pictures and video frames for visual understanding…");
         const visualSamples = await captureVisualSamples(assets, 8);
         const result = await askNexusDirector(normalized, {
           mode: "reference-to-edit", projectName, aspectRatio, style: aiStyle,
@@ -1565,12 +1616,12 @@ export default function App() {
           hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const applied = applyReferencePlanToTimeline(result.plan, referenceContext);
-        if (!applied) setAiReply(result.plan.summary + "\n\n" +
+        if (!applied) respond(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
           "\n\nThe reference plan is ready. Add replacement media to build the editable timeline.");
         setEngineReport(["AI Director ready", ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
       } catch (error) {
-        setAiReply(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
+        respond(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
       }
       return;
     }
@@ -1578,15 +1629,15 @@ export default function App() {
     const requestedTemplate = CREATIVE_TEMPLATES.find(item => normalized.includes(item.name.toLowerCase()));
     if (requestedTemplate && /template|apply|use|make|create|start/.test(normalized)) {
       applyCreativeTemplate(requestedTemplate);
-      setAiReply("Applied the " + requestedTemplate.name + " template to the project. Its title, subtitle and footer are editable timeline layers; visual clips received the template colour and transition defaults. Add or replace footage to finish the design.");
+      respond("Applied the " + requestedTemplate.name + " template to the project. Its title, subtitle and footer are editable timeline layers; visual clips received the template colour and transition defaults. Add or replace footage to finish the design.");
       return;
     }
 
     const requestedEffect = CREATIVE_EFFECTS.find(item => normalized.includes(item.name.toLowerCase()));
     if (requestedEffect && /effect|look|apply|make|give|style/.test(normalized)) {
-      if (!visualSelected) { setAiReply("Select a photo or video clip first. Then I can apply " + requestedEffect.name + " directly to it."); return; }
+      if (!visualSelected) { respond("Select a photo or video clip first. Then I can apply " + requestedEffect.name + " directly to it."); return; }
       applyCreativeEffect(requestedEffect);
-      setAiReply("Applied " + requestedEffect.name + " to the selected visual clip. The effect is saved in the project settings and can be adjusted or undone.");
+      respond("Applied " + requestedEffect.name + " to the selected visual clip. The effect is saved in the project settings and can be adjusted or undone.");
       return;
     }
 
@@ -1598,19 +1649,19 @@ export default function App() {
     };
     const requestedStyle = Object.entries(styleAliases).find(([label]) => normalized.includes(label));
     if (requestedStyle && /image|photo|picture|portrait|product|poster|style|look|edit/.test(normalized)) {
-      if (!visualSelected) { setAiReply("Select an image or video clip first so I can apply the " + requestedStyle[0] + " finishing preset."); return; }
+      if (!visualSelected) { respond("Select an image or video clip first so I can apply the " + requestedStyle[0] + " finishing preset."); return; }
       updateSelectedClip(getImageStylePreset(requestedStyle[1]));
       setActiveTool("adjust"); setActiveSubtool("image-style");
-      setAiReply("Applied the " + requestedStyle[0] + " image-finishing preset to the selected visual clip. All settings remain editable.");
+      respond("Applied the " + requestedStyle[0] + " image-finishing preset to the selected visual clip. All settings remain editable.");
       return;
     }
 
     const requestedFilterName = [...CREATIVE_FILTERS.map(item => item.name), ...FILTER_PRESETS].find(name => normalized.includes(name.toLowerCase()));
     if (requestedFilterName && /filter|colour|color|look|apply|make/.test(normalized)) {
-      if (!visualSelected) { setAiReply("Select a photo or video clip first to apply a colour filter."); return; }
+      if (!visualSelected) { respond("Select a photo or video clip first to apply a colour filter."); return; }
       updateSelectedClip({ filter: requestedFilterName });
       setActiveTool("filters"); setActiveSubtool(requestedFilterName);
-      setAiReply("Applied the " + requestedFilterName + " filter to the selected visual clip. You can switch filters or fine-tune the image controls.");
+      respond("Applied the " + requestedFilterName + " filter to the selected visual clip. You can switch filters or fine-tune the image controls.");
       return;
     }
 
@@ -1630,7 +1681,7 @@ export default function App() {
       if (preset) {
         await addGeneratedAudio(preset);
         generatedAudioForCommand = true;
-        setAiReply("Generated the original NEXUS " + preset.name + " audio locally and added the WAV asset to the audio timeline. Preview it, adjust its volume, and extend music beds by duplicating them.");
+        respond("Generated the original NEXUS " + preset.name + " audio locally and added the WAV asset to the audio timeline. Preview it, adjust its volume, and extend music beds by duplicating them.");
       }
     }
 
@@ -1644,129 +1695,129 @@ export default function App() {
       if (remoteKind === "image") {
         setGenerationBusy("image:prompt");
         const sceneTitle = /background|backdrop/i.test(normalized) ? "Project background · " + normalized.slice(0, 52) : normalized.slice(0, 64) || "NEXUS generated image";
-        setAiReply("Sending your image request through the secure NEXUS server connection…");
+        respond("Sending your image request through the secure NEXUS server connection…");
         try {
           await generateImageIntoProject(normalized, sceneTitle);
         } catch (error) {
-          setAiReply((error instanceof Error ? error.message : "NEXUS image generation is unavailable.") + " Your project has not been changed.");
+          respond((error instanceof Error ? error.message : "NEXUS image generation is unavailable.") + " Your project has not been changed.");
         } finally { setGenerationBusy(null); }
         return;
       }
       const available = engineAvailability?.engines?.[remoteKind];
       if (!available?.configured) {
-        setAiReply("The " + remoteKind + " generation worker is not connected yet. I have not pretended to generate a file. " +
+        respond("The " + remoteKind + " generation worker is not connected yet. I have not pretended to generate a file. " +
           (remoteKind === "video" ? "I can build an editable storyboard from your brief, use imported or licensed media, and render the current timeline with the browser renderer." :
           "I can generate original short sound effects and music beds with the local NEXUS audio synthesiser; full narration or long-form music needs a connected audio worker."));
         return;
       }
       setGenerationBusy(remoteKind + ":prompt");
-      setAiReply("Submitting your " + remoteKind + " generation request to the configured NEXUS worker…");
+      respond("Submitting your " + remoteKind + " generation request to the configured NEXUS worker…");
       try {
         const job = await submitEngineJob(remoteKind, normalized, { aspectRatio: aiFormat, style: aiStyle, projectName, source: "nexus-ai-project-brain", projectContext: { assetCount: assets.length, clipCount: clips.length, playhead, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, start: selectedClip.start, duration: clipDuration(selectedClip) } : null, assetNames: assets.slice(0, 30).map(item => item.name) } });
         const sceneTitle = missingVisualRequest && /background|backdrop/i.test(normalized) ? "Project background · " + normalized.slice(0, 52) : normalized.slice(0, 64) || "AI generated " + remoteKind;
         setGenerationJobs(old => [{ ...job, sceneTitle }, ...old.filter(item => item.id !== job.id)]);
-        setAiReply("The " + remoteKind + " job was accepted with your current project context. Its verified output will be downloaded, imported into the media library and added at the playhead or project timeline automatically when the worker finishes.");
+        respond("The " + remoteKind + " job was accepted with your current project context. Its verified output will be downloaded, imported into the media library and added at the playhead or project timeline automatically when the worker finishes.");
       } catch (error) {
-        setAiReply(error instanceof Error ? error.message : "The generation worker rejected this request. Your project is unchanged.");
+        respond(error instanceof Error ? error.message : "The generation worker rejected this request. Your project is unchanged.");
       } finally { setGenerationBusy(null); }
       return;
     }
 
     const creativeCommand = interpretCreativeCommand(request);
     if (creativeCommand === "duplicate-clip") {
-      if (!selectedClip) { setAiReply("Select a clip first, then ask me to duplicate it."); return; }
+      if (!selectedClip) { respond("Select a clip first, then ask me to duplicate it."); return; }
       const copy = { ...selectedClip, id: uid(), start: selectedClip.start + clipDuration(selectedClip), label: selectedClip.label + " copy" };
       applyClipChange([...clips, copy], "Selected clip duplicated after the original."); setSelected(copy.id); setPlayhead(copy.start); setActiveTool("edit");
-      setAiReply("Duplicated “" + selectedClip.label + "” and placed the copy immediately after it. Both clips remain independently editable."); return;
+      respond("Duplicated “" + selectedClip.label + "” and placed the copy immediately after it. Both clips remain independently editable."); return;
     }
     if (creativeCommand === "flip-horizontal" || creativeCommand === "flip-vertical") {
-      if (!selectedClip) { setAiReply("Select a visual clip first, then ask me to flip it."); return; }
+      if (!selectedClip) { respond("Select a visual clip first, then ask me to flip it."); return; }
       const patch = creativeCommand === "flip-horizontal" ? { flipHorizontal: !selectedClip.flipHorizontal } : { flipVertical: !selectedClip.flipVertical };
       updateSelectedClip(patch); setActiveTool("adjust");
-      setAiReply("Updated the selected clip’s " + (creativeCommand === "flip-horizontal" ? "horizontal" : "vertical") + " flip. Preview and export use the same saved setting."); return;
+      respond("Updated the selected clip’s " + (creativeCommand === "flip-horizontal" ? "horizontal" : "vertical") + " flip. Preview and export use the same saved setting."); return;
     }
     if (creativeCommand === "chroma-key") {
-      if (!selectedClip || !asset || asset.kind === "audio") { setAiReply("Select a photo or video clip first to use chroma key."); return; }
+      if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first to use chroma key."); return; }
       updateSelectedClip({ chromaKeyEnabled: !selectedClip.chromaKeyEnabled, chromaKeyColor: selectedClip.chromaKeyColor || "#00ff00" });
       setActiveTool("adjust"); setActiveSubtool("chroma");
-      setAiReply(selectedClip.chromaKeyEnabled ? "Chroma key turned off for the selected visual clip." : "Chroma key enabled. Adjust key colour, tolerance and softness. Preview uses an SVG approximation; export uses pixel-distance keying."); return;
+      respond(selectedClip.chromaKeyEnabled ? "Chroma key turned off for the selected visual clip." : "Chroma key enabled. Adjust key colour, tolerance and softness. Preview uses an SVG approximation; export uses pixel-distance keying."); return;
     }
     const engineCommand = interpretEditorCommand(request);
     if (engineCommand.type === "analyze") { void analyzeAllMedia(); return; }
-    if (engineCommand.type === "guide") { setAiReply(makeEditingGuidance(selectedClip, mediaAnalyses.find(item=>item.assetId===selectedClip?.assetId), playhead)); return; }
+    if (engineCommand.type === "guide") { respond(makeEditingGuidance(selectedClip, mediaAnalyses.find(item=>item.assetId===selectedClip?.assetId), playhead)); return; }
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\b" + name + "\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
-      if (!selectedClip) { setAiReply("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
+      if (!selectedClip) { respond("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
       setActiveTool("edit"); setActiveSubtool("select");
-      setAiReply("Your clip “" + selectedClip.label + "” is selected. The playhead is at " + clock(playhead) + ". Choose a tool from the bottom dock; for a clean cut, move the playhead inside the clip and tap Split. I’ve highlighted Edit for you.");
+      respond("Your clip “" + selectedClip.label + "” is selected. The playhead is at " + clock(playhead) + ". Choose a tool from the bottom dock; for a clean cut, move the playhead inside the clip and tap Split. I’ve highlighted Edit for you.");
       return;
     }
     if (/\b(split|cut)\b/.test(request)) {
-      if (!selectedClip) { setAiReply("Select the clip you want to split first."); return; }
+      if (!selectedClip) { respond("Select the clip you want to split first."); return; }
       setActiveTool("edit"); setActiveSubtool("split"); split();
-      setAiReply("I sent the split command for “" + selectedClip.label + "”. If the playhead is too close to either end, move it inside the clip and try again. Check the timeline to confirm the cut.");
+      respond("I sent the split command for “" + selectedClip.label + "”. If the playhead is too close to either end, move it inside the clip and try again. Check the timeline to confirm the cut.");
       return;
     }
     if (/\b(unmute)\b/.test(request)) {
-      if (!selectedClip) { setAiReply("Select a clip first so I can unmute it."); return; }
-      updateSelectedClip({ muted: false }); setMuteClip(false); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio unmuted. This change is saved on the selected clip and will be respected by export."); return;
+      if (!selectedClip) { respond("Select a clip first so I can unmute it."); return; }
+      updateSelectedClip({ muted: false }); setMuteClip(false); setActiveTool("edit"); setActiveSubtool("volume"); respond("Clip audio unmuted. This change is saved on the selected clip and will be respected by export."); return;
     }
     if (/\b(mute|silence)\b/.test(request)) {
-      if (!selectedClip) { setAiReply("Select a clip first so I can mute it."); return; }
-      updateSelectedClip({ muted: true }); setMuteClip(true); setActiveTool("edit"); setActiveSubtool("volume"); setAiReply("Clip audio muted on the selected clip. The mute is saved and will also apply during export."); return;
+      if (!selectedClip) { respond("Select a clip first so I can mute it."); return; }
+      updateSelectedClip({ muted: true }); setMuteClip(true); setActiveTool("edit"); setActiveSubtool("volume"); respond("Clip audio muted on the selected clip. The mute is saved and will also apply during export."); return;
     }
     const speedMatch = request.match(/\b(?:speed|playback)\s*(?:to|at|=)?\s*(0?\.\d+|[1-4](?:\.\d+)?)\s*x?\b/);
     if (speedMatch) {
-      if (!selectedClip) { setAiReply("Select a clip first so I can change its speed."); return; }
+      if (!selectedClip) { respond("Select a clip first so I can change its speed."); return; }
       const speed = Math.max(0.1, Math.min(4, Number(speedMatch[1])));
       updateSelectedClip({ speed }); setActiveTool("edit"); setActiveSubtool("speed");
-      setAiReply("Set “" + selectedClip.label + "” to " + speed + "× speed. The clip duration and export timing will use this speed."); return;
+      respond("Set “" + selectedClip.label + "” to " + speed + "× speed. The clip duration and export timing will use this speed."); return;
     }
     const volumeMatch = request.match(/\b(?:volume|gain)\s*(?:to|at|=)?\s*(\d{1,3})\s*%/);
     if (volumeMatch) {
-      if (!selectedClip) { setAiReply("Select a clip first so I can change its volume."); return; }
+      if (!selectedClip) { respond("Select a clip first so I can change its volume."); return; }
       const gain = Math.max(0, Math.min(200, Number(volumeMatch[1]))) / 100;
       updateSelectedClip({ gain }); setActiveTool("audio"); setActiveSubtool("volume");
-      setAiReply("Set “" + selectedClip.label + "” volume to " + Math.round(gain * 100) + "%. This clip gain is included in export."); return;
+      respond("Set “" + selectedClip.label + "” volume to " + Math.round(gain * 100) + "%. This clip gain is included in export."); return;
     }
     const fadeMatch = request.match(/\b(fade\s*in|fade\s*out)\s*(?:for|over)?\s*(\d+(?:\.\d+)?)?\s*(?:seconds?|secs?|s)?\b/);
     if (fadeMatch) {
-      if (!selectedClip) { setAiReply("Select a clip first so I can apply a fade."); return; }
+      if (!selectedClip) { respond("Select a clip first so I can apply a fade."); return; }
       const seconds = Math.max(0, Math.min(10, Number(fadeMatch[2] || 1)));
       updateSelectedClip(fadeMatch[1].toLowerCase().includes("in") ? { fadeIn: seconds } : { fadeOut: seconds });
       setActiveTool("audio"); setActiveSubtool("fade");
-      setAiReply("Applied a " + seconds + " second " + (fadeMatch[1].toLowerCase().includes("in") ? "fade-in" : "fade-out") + " to “" + selectedClip.label + "”. The export renderer will use it."); return;
+      respond("Applied a " + seconds + " second " + (fadeMatch[1].toLowerCase().includes("in") ? "fade-in" : "fade-out") + " to “" + selectedClip.label + "”. The export renderer will use it."); return;
     }
     if (/\b(delete|remove)\b/.test(request) && /\b(clip|selected)\b/.test(request)) {
-      if (!selectedClip) { setAiReply("Select the clip you want to remove first."); return; }
+      if (!selectedClip) { respond("Select the clip you want to remove first."); return; }
       applyClipChange(clips.filter(c => c.id !== selectedClip.id), "Clip removed from timeline. You can undo this."); setSelected(null);
-      setAiReply("Removed “" + selectedClip.label + "” from the timeline."); return;
+      respond("Removed “" + selectedClip.label + "” from the timeline."); return;
     }
     if (/\b(add|insert|create)\b.*\b(text|title)\b|\b(text|title)\b.*\b(add|insert|create)\b/.test(request)) {
-      const textMatch = aiBrief.trim().match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
+      const textMatch = rawRequest.match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
       const content = textMatch?.[1]?.trim().replace(/^["“]|["”]$/g, "") || "Your text";
       addGraphicLayer(content.slice(0, 180));
       setActiveTool("text"); setActiveSubtool("add");
-      setAiReply("Added “" + content.slice(0, 180) + "” as a real timed text layer on the timeline. Select the layer to customise its style and duration."); return;
+      respond("Added “" + content.slice(0, 180) + "” as a real timed text layer on the timeline. Select the layer to customise its style and duration."); return;
     }
     const ratioMatch = request.match(/\b(9:16|16:9|1:1|4:5|3:4)\b/);
     if (ratioMatch && /\b(ratio|format|canvas|aspect)\b/.test(request)) {
       setAspectRatio(ratioMatch[1]); setActiveTool("ratio"); setActiveSubtool(ratioMatch[1]);
-      setAiReply("Canvas ratio changed to " + ratioMatch[1] + ". The export uses this ratio too; choose an export preset or quality before rendering."); return;
+      respond("Canvas ratio changed to " + ratioMatch[1] + ". The export uses this ratio too; choose an export preset or quality before rendering."); return;
     }
     if (requestedTool) {
       setActiveTool(requestedTool); setActiveSubtool(requestedTool === "edit" ? "select" : "");
-      setAiReply("Opened the " + requestedTool + " tools in the editor. Its available controls are shown above the bottom dock. Some advanced operations are still under development.");
+      respond("Opened the " + requestedTool + " tools in the editor. Its available controls are shown above the bottom dock. Some advanced operations are still under development.");
       return;
     }
     if (/\b(improve|better|suggest)\b/.test(request)) {
-      setAiReply(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can execute split, mute/unmute, speed, clip volume, fades, timed text creation and ratio changes; advanced operations still need their own connected engine." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
+      respond(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can execute split, mute/unmute, speed, clip volume, fades, timed text creation and ratio changes; advanced operations still need their own connected engine." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
       return;
     }
-    if (/\bundo\b/.test(request)) { undoEdit(); setAiReply("Undo command sent. Check the timeline to confirm the restored edit."); return; }
-    if (/\bredo\b/.test(request)) { redoEdit(); setAiReply("Redo command sent. Check the timeline to confirm the edit."); return; }
-    setAiReply("I can run supported local editor actions without a generation worker: split or delete the selected clip, mute/unmute its exported audio, set speed (for example “speed 2x”), set volume (for example “volume 80%”), apply fades (for example “fade in 2 seconds”), add timed text, change the canvas ratio, analyse media, or guide the next edit.");
+    if (/\bundo\b/.test(request)) { undoEdit(); respond("Undo command sent. Check the timeline to confirm the restored edit."); return; }
+    if (/\bredo\b/.test(request)) { redoEdit(); respond("Redo command sent. Check the timeline to confirm the edit."); return; }
+    respond("I can run supported local editor actions without a generation worker: split or delete the selected clip, mute/unmute its exported audio, set speed (for example “speed 2x”), set volume (for example “volume 80%”), apply fades (for example “fade in 2 seconds”), add timed text, change the canvas ratio, analyse media, or guide the next edit.");
   }
   async function openProject(file?: File) {
     if (!file) return;
@@ -1901,7 +1952,7 @@ export default function App() {
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
-          <button className={"editor-top-icon ai-editor-trigger"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Open AI Director"><Sparkles size={18}/><span>AI Director</span></button><button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
+          <button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
          {creativeFabricOpen && <Suspense fallback={<div className="nexus-ai-inline">Loading Creative Fabric…</div>}><CreativeFabricPanel projectName={projectName} aspectRatio={aspectRatio} assets={assets} clips={clips} textLayers={textLayers} imageLayers={imageLayers} transcriptSegments={transcriptionSegments} beatMarkers={beatMarkers} selectedClipId={selectedClip?.id} onSeekTo={(time:number)=>setPlayhead(time)} onSendToDirector={(brief:string,context?:Record<string,unknown>)=>{setAiBrief(brief);setFabricDirectorContext(context||null);setAiWorkspaceOpen(true);setStatus("Creative Fabric scene intelligence and structured project evidence sent to NEXUS AI Director.");}} onApplyPlan={(operations: FabricOperation[])=>{if(!operations.length)return;const execution=prepareExecutionPlan(operations,{assets,clips,textLayers,selectedClipId:selectedClip?.id,playhead});if(!execution.accepted.length){setStatus("AI execution review: "+execution.rejected.map(item=>item.reason).join(" "));return;}recordProjectHistory();for(const op of execution.accepted){if(op.kind==="split-clip"){const target=clips.find(item=>item.id===op.clipId);if(target){const [left,right]=splitTimelineClipAtTime(target,op.time);setClips(old=>old.flatMap(item=>item.id===target.id?[left,right]:[item]));setSelected(right.id);setPlayhead(right.start);}}else if(op.kind==="add-title"){const layer:TimelineTextLayer={id:uid(),trackId:trackStates.find(track=>track.kind==="overlay"&&!track.locked)?.id||"text-1",start:op.start??playhead,duration:op.duration||5,text:op.text,color:op.color||"#ffffff",fontSize:op.fontSize||64,fontFamily:op.fontFamily||"Arial",x:op.x??50,y:op.y??42,align:op.align||"center",backgroundColor:op.backgroundColor||"transparent",padding:12,shadow:op.shadow??true,animation:op.animation||"fade"};setTextLayers(old=>[...old,layer]);setSelectedTextLayer(layer.id);setActiveTool("text");}else if(op.kind==="apply-look"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,filter:op.filter}:clip));}else if(op.kind==="apply-transition"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,transitionIn:Math.max(clip.transitionIn||0,0.45),transitionOut:Math.max(clip.transitionOut||0,0.45),transitionStyle:op.transition}:clip));}}setStatus("AI execution engine applied "+execution.accepted.length+" approved operation(s). "+(execution.rejected.length?execution.rejected.length+" invalid operation(s) were skipped. ":"")+"Use Undo to reverse the changes.");}} onClose={()=>setCreativeFabricOpen(false)}/></Suspense>}
@@ -1950,35 +2001,23 @@ export default function App() {
               </div></div></div>
             </div>
           </div>
-          {aiWorkspaceOpen && <div className="nexus-ai-inline">
-            <div className="nexus-ai-inline-head"><span className="nexus-ai-mark"><Sparkles size={16}/></span><div><b>NEXUS AI</b><small>{selectedClip ? "Working with selected clip · "+(selectedClip.label||"Media") : clips.length ? "Your editing workspace is ready" : "Tell me what you want to create"}</small></div><div className="nexus-ai-quick-prompts">{["Guide me","Improve this edit","What next?"].map(x=><button key={x} onClick={()=>setAiBrief(x)}>{x}</button>)}</div><div className="nexus-ai-modes"><button className={aiMode==="create"?"active":""} onClick={()=>setAiMode("create")}>Create</button><button className={aiMode==="teach"?"active":""} onClick={()=>setAiMode("teach")}>Teach</button><button className={aiMode==="ask"?"active":""} onClick={()=>setAiMode("ask")}>Ask</button></div><button className="nexus-ai-close" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close AI assistant"><X size={16}/></button></div>
-            {aiMode === "create" && <div className="nexus-ai-create">
-              <div className="nexus-ai-create-options">
-                <label>Creation style<select value={aiStyle} onChange={e=>setAiStyle(e.target.value)}><option>Cinematic</option><option>Documentary</option><option>Motivational</option><option>Social media</option><option>Product promo</option><option>Educational</option></select></label>
-                <label>Format<select value={aiFormat} onChange={e=>setAiFormat(e.target.value)}><option>9:16</option><option>16:9</option><option>1:1</option><option>4:5</option><option>3:4</option></select></label>
-                <button onClick={()=>mediaInput.current?.click()}><Upload size={14}/> Add my media ({assets.length})</button><button disabled={analysisBusy||!assets.length} onClick={()=>void analyzeAllMedia()}>{analysisBusy?"Analysing…":"Analyse media"}</button><button onClick={runProjectVerification}>Verify project</button>
-              </div>
-              <textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe the video you want NEXUS to help you create… You can start with an empty media library." rows={3}/>
-              <button className="nexus-ai-plan-button" onClick={() => void createAIProjectPlan()}><Sparkles size={15}/> Create editable project plan</button>
-              <div className="nexus-ai-online-search">
-                <b>Find media online</b>
-                <div><input value={mediaSearchQuery} onChange={e=>setMediaSearchQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")findOnlineMedia();}} placeholder="Search a scene or subject…"/><button disabled={mediaSearchBusy} onClick={()=>findOnlineMedia()}>{mediaSearchBusy?"Searching…":"Search"}</button></div>
-                <small>{mediaSearchStatus || "Search Wikimedia Commons for openly licensed images and video files. Review the licence before using any result."}</small>
-                {mediaSearchResults.map(item=><article key={item.id}><img src={item.thumbnailUrl} alt=""/><span><b>{item.title}</b><small>{item.mediaKind.toUpperCase()} · {item.license} · {item.creator || "Creator not listed"}</small><small>{item.attribution || "Check source attribution requirements"}</small><button onClick={()=>addSourcedImage(item)}>Add to media library</button><a href={item.pageUrl} target="_blank" rel="noreferrer">View source and licence</a></span></article>)}
-              </div>
-              {mediaAnalyses.length>0 && <div className="nexus-ai-analysis-results"><b>Media analysis · {mediaAnalyses.length} assets</b>{mediaAnalyses.map(item=><article key={item.assetId}><b>{item.name}</b><small>{item.kind.toUpperCase()} · {item.duration.toFixed(1)}s · {item.width?item.width+"×"+item.height:"dimensions unavailable"} · {(item.fileSize/1048576).toFixed(1)} MB</small>{item.audio&&<small>Audio RMS {(item.audio.rms*100).toFixed(1)}% · estimated silence {(item.audio.silenceRatio*100).toFixed(0)}% · {item.audio.beatCandidates.length} transient candidates</small>}{item.visual&&<small>{item.visual.sampledFrames} visual samples · {item.visual.sceneChanges.length} brightness-change candidates · average brightness {(item.visual.averageLuminance*100).toFixed(0)}%</small>}<small>{item.notes.join(" ")}</small></article>)}</div>}{engineReport.length>0&&<div className="nexus-ai-analysis-results"><b>Project verification</b>{engineReport.map((line,i)=><small key={i}>{line}</small>)}</div>}
-              {aiPlan && <div className="nexus-ai-storyboard">
-                {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
-                <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
-                <div className="nexus-ai-generation-actions">{aiPlan.scenes.map((scene,index)=><div key={scene.title+"-"+index}><b>{scene.title}</b><div><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"image")}>Generate image</button><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"video")}>Generate video</button><button disabled={generationBusy!==null} onClick={()=>generateSceneAudio(scene)}>Create audio</button></div></div>)}</div>
-                {generationJobs.length>0&&<div className="nexus-ai-analysis-results"><b>Generation jobs</b>{generationJobs.map(job=><div key={job.id}><small>{job.sceneTitle} · {job.engine==="image"?"Image creation":job.engine==="video"?"Video creation":job.engine==="audio"?"Audio creation":"Export"} · {job.state==="succeeded"?"Ready":job.state==="failed"?"Could not finish":job.state==="cancelled"?"Cancelled":"Preparing"} · {Math.round(job.progress||0)}%</small>{!job.id.startsWith("unavailable-")&&job.state!=="succeeded"&&job.state!=="failed"&&job.state!=="cancelled"&&<button onClick={()=>refreshGenerationJob(job)}>Refresh status</button>}</div>)}</div>}
-                <button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
-              </div>}
-            </div>}
-            <details className="nexus-ai-seo-details"><summary>Creator SEO · titles, descriptions, keywords and chapters</summary><CreatorSeoPanel projectName={projectName} brief={aiBrief} transcript={transcriptionText}/></details>
-            <div className="nexus-ai-inline-compose"><input value={aiBrief} onChange={e=>setAiBrief(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")runAICommand();}} placeholder="Ask about your edit or give an editing command…"/><button onClick={runAICommand}><Sparkles size={16}/> Ask</button></div>
-            <p className="nexus-ai-reply" aria-live="polite">{aiReply}</p><small className="nexus-ai-context-status" title={aiContextSummary}>{aiContextStatus}</small>
-          </div>}
+          {aiWorkspaceOpen && <section className="nexus-assistant-window" style={{ left: assistantPanelPosition.left, top: assistantPanelPosition.top }} onPointerDown={event=>beginAssistantDrag(event,"panel")} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag} role="dialog" aria-label="NEXUS AI assistant">
+            <header className="nexus-assistant-head">
+              <span className="nexus-assistant-mark"><Sparkles size={16}/></span>
+              <span className="nexus-assistant-title"><b>NEXUS AI</b><small>{assistantBusy ? "Thinking through your project…" : selectedClip ? "Your selected clip is in context" : "Your creative coach"}</small></span>
+              <button type="button" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close assistant"><X size={16}/></button>
+            </header>
+            <div className="nexus-assistant-messages">
+              {aiChatMessages.map((message,index)=><article key={index} className={"nexus-assistant-message "+message.role}><b>{message.role==="assistant"?"NEXUS":"YOU"}</b><p>{message.text}</p></article>)}
+              {assistantBusy && <div className="nexus-assistant-thinking"><i/><i/><i/> Thinking</div>}
+            </div>
+            <div className="nexus-assistant-compose">
+              <textarea value={assistantInput} onChange={event=>setAssistantInput(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendAssistantMessage();}}} placeholder="Ask anything about your edit…" rows={2}/>
+              <button type="button" onClick={sendAssistantMessage} disabled={!assistantInput.trim()||assistantBusy} aria-label="Send message"><ArrowRight size={17}/></button>
+            </div>
+            <small className="nexus-assistant-foot">NEXUS can answer questions, coach your next step and apply supported edits.</small>
+          </section>}
+          <button type="button" className="nexus-assistant-orb" style={{ left: assistantLauncherPosition.left, top: assistantLauncherPosition.top }} onPointerDown={event=>beginAssistantDrag(event,"launcher")} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag} onClick={toggleAssistantWindow} aria-label="Open NEXUS AI assistant" title="NEXUS AI"><Sparkles size={21}/></button>
           <div className="editor-bottom-tools nexus-tool-stack" data-tool={activeTool} data-subtool={activeSubtool}>
             <div className="nexus-subtool-ribbon">
               {activeTool==="edit" && <>{[["select","Select"],["split","Split"],["volume","Mute clip"],["speed","Speed"],["animation","Animation"],["cover","Fit"],["delete","Delete"]].map(([id,label])=><button key={id} className={activeSubtool===id?"active":""} disabled={id!=="split"&&id!=="volume"&&id!=="delete"&&!selectedClipForTools} onClick={()=>{setActiveSubtool(id);if(id==="split")split();if(id==="volume"&&selectedClipForTools)updateSelectedClip({muted:!selectedClipForTools.muted});if(id==="delete"&&selectedClipForTools){applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}if(id==="speed"&&selectedClipForTools)setStatus("Use the speed presets and slider below to adjust this clip.");if(id==="animation"&&selectedClipForTools)updateSelectedClip({opacity:selectedClipForTools.opacity===.6?1:.6});if(id==="cover"&&selectedClipForTools)updateSelectedClip({fit:selectedClipForTools.fit==="contain"?"cover":"contain"});}}>{label}</button>)}</>}
