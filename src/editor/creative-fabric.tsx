@@ -4,6 +4,7 @@ import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } 
 import { captureVisualSamples, type VisualSample } from "./visual-sampling";
 import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
 import { SEMANTIC_MODEL, getSemanticDeviceInfo, isSemanticModelLoaded, loadSemanticModel, rankBySemanticSimilarity } from "./semantic-brain";
+import { analyseFabricScenes, makeDirectorBrief, readFabricMemory, recommendFabricActions, writeFabricMemory } from "./fabric-intelligence";
 
 export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; start?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
   onSeekTo: (time: number) => void;
+  onSendToDirector: (brief: string) => void;
   onClose: () => void;
 };
 type DNA = { purpose: string; audience: string; style: string; palette: string; rules: string };
@@ -105,7 +107,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"models"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
@@ -128,6 +130,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [visualAnalyses, setVisualAnalyses] = useState<MediaAnalysis[]>([]);
   const [visualScanBusy, setVisualScanBusy] = useState(false);
   const [visualScanMessage, setVisualScanMessage] = useState("");
+  const [memoryStatus, setMemoryStatus] = useState("Project memory stays on this device.");
   const scanProjectVisuals = async () => {
     if (visualScanBusy) return;
     setVisualScanBusy(true); setVisualScanMessage("Reading local image and video frames…");
@@ -145,6 +148,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally { setVisualScanBusy(false); }
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
+  const sceneIntelligence = useMemo(()=>analyseFabricScenes(assets,clips,textLayers,visualAnalyses),[assets,clips,textLayers,visualAnalyses]);
+  const fabricRecommendations = useMemo(()=>recommendFabricActions(sceneIntelligence,clips),[sceneIntelligence,clips]);
+  const directorBrief = useMemo(()=>makeDirectorBrief(projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations),[projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations]);
+  const priorMemory = useMemo(()=>readFabricMemory(projectName),[projectName]);
+  useEffect(()=>{if(!clips.length)return;const memory={updatedAt:new Date().toISOString(),sceneCount:sceneIntelligence.length,assetCount:assets.length,lastBrief:directorBrief,signatures:sceneIntelligence.map(scene=>scene.role+":"+scene.title+":"+Math.round(scene.duration)),decisions:priorMemory?.decisions||[]};setMemoryStatus(writeFabricMemory(projectName,memory)?"Project memory updated locally · "+memory.sceneCount+" scene(s)":"Browser storage is unavailable; memory was not saved.");},[projectName,clips.length,assets.length,sceneIntelligence,directorBrief,priorMemory]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
   const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments),[semanticQuery,assets,clips,textLayers,transcriptSegments]);
   const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,transcriptSegments,true),[assets,clips,textLayers,transcriptSegments]);
@@ -209,6 +217,14 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
           <button onClick={()=>{const clip=clips.find(item=>item.assetId===sample.assetId);if(clip)onSeekTo(clip.start+Math.max(0,(sample.timestamp||0)-clip.sourceIn)/(clip.speed||1));}}>Go to frame</button>
         </article>)}</div>}
       </div>
+      <section className="nexus-fabric-intelligence-hub">
+        <div className="nexus-fabric-intelligence-head"><div><b>SCENE INTELLIGENCE · CONNECTED</b><small>{sceneIntelligence.length} scenes · local structure + sampled visual metrics</small></div><span>{priorMemory?"MEMORY FOUND":"MEMORY STARTED"}</span></div>
+        <div className="nexus-fabric-intelligence-metrics"><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.clarity,0)/sceneIntelligence.length):0}</b><small>Story clarity</small></div><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.momentum,0)/sceneIntelligence.length):0}</b><small>Story momentum</small></div><div><b>{sceneIntelligence.filter(item=>item.confidence==="medium").length}</b><small>Scenes with context</small></div></div>
+        <div className="nexus-fabric-memory-note"><b>Fabric Memory</b><span>{memoryStatus}</span><small>{priorMemory?"Previous scene map: "+priorMemory.sceneCount+" scene(s) · last saved "+new Date(priorMemory.updatedAt).toLocaleString():"This is the first saved scene map for this project."}</small></div>
+        <div className="nexus-fabric-recommendations"><b>Predictive edit recommendations</b>{fabricRecommendations.map((item,index)=><article key={item.title+"-"+index}><span className={item.priority==="high"?"priority":""}>{item.priority==="high"?"PRIORITY":"SUGGESTION"}</span><div><strong>{item.title}</strong><small>{item.detail}</small></div>{item.clipId&&<button onClick={()=>{const clip=clips.find(value=>value.id===item.clipId);if(clip)onSeekTo(clip.start);}}>Review</button>}</article>)}</div>
+        <button className="nexus-fabric-primary" onClick={()=>onSendToDirector(directorBrief)}>Send scene intelligence to AI Director <ArrowRight size={14}/></button>
+        <small className="nexus-fabric-scene-note">Scores are transparent local heuristics, not a judgement of creative quality. Frame metrics describe brightness and composition; object/action recognition still requires a dedicated vision-language model.</small>
+      </section>
       {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
         const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);
         const attachedText=textLayers.filter(layer=>layer.start<end&&layer.start+layer.duration>clip.start);
@@ -288,7 +304,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       {quoteText.trim()&&<div className="nexus-fabric-quote-card"><span>MESSAGE PROFILE</span><b>{quoteDesign.message}</b><p>{quoteDesign.tone}</p><div className="nexus-fabric-quote-preview" style={{fontFamily:quoteDesign.font,fontSize:"clamp(18px,5vw,28px)",color:quoteDesign.color,background:quoteDesign.background,textAlign:"center"}}>{quoteText}</div><div className="nexus-fabric-quote-specs"><span>Typeface: {quoteDesign.font}</span><span>Layout: {quoteDesign.layout}</span><span>Suggested look: {quoteDesign.look}</span><span>Transition: {quoteDesign.transition}</span></div><small>Preview is a design direction. Check the actual canvas and text-safe zone before export.</small><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan([{kind:"add-title",text:quoteText,fontSize:quoteDesign.size,fontFamily:quoteDesign.font,color:quoteDesign.color,backgroundColor:quoteDesign.background,align:"center",x:50,y:50,duration:Math.max(5,Math.min(12,quoteText.trim().split(/\\s+/).length/2.4)),shadow:true,animation:"fade"},{kind:"apply-look",filter:quoteDesign.look,...(selectedClipId?{clipId:selectedClipId}:{})},{kind:"apply-transition",transition:quoteDesign.transition,...(selectedClipId?{clipId:selectedClipId}:{})}]);setApproved(true);}}><Check size={15}/> Apply quote treatment to timeline</button></div>}
       <small className="nexus-fabric-scene-note">Message category and styling are heuristic suggestions, not a claim to know the author's intention. You can edit the resulting text layer and undo the operation.</small>
     </div>}
-    {tab==="whatif" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Explore different creative directions without replacing your current edit.</p><div className="nexus-fabric-universes">{["Cinematic","Documentary","Bold social","Minimal"].map(v=><button key={v} className={universe===v?"active":""} onClick={()=>setUniverse(v)}>{v}</button>)}</div><div className="nexus-fabric-universe-card"><WandSparkles size={22}/><b>{universe} universe</b><p>{({Cinematic:"Use contrast, deliberate pacing and a strong visual payoff. Preserve the core story and quote wording.",Documentary:"Prioritise natural footage, clear context, restrained transitions and an honest visual tone.","Bold social":"Prioritise an immediate hook, strong type hierarchy, short beats and high mobile readability.",Minimal:"Reduce effects and competing layers; let one image and one clear message carry the scene."})[universe]}</p><small>This is a direction preview, not a generated duplicate or a change to your timeline.</small></div></div>}
+    {tab==="whatif" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Compare four non-destructive creative directions. Choose a scene first; each treatment is previewed as a plan and only changes the timeline when you apply it.</p><div className="nexus-fabric-universes">{["Cinematic","Documentary","Bold social","Minimal"].map(v=><button key={v} className={universe===v?"active":""} onClick={()=>setUniverse(v)}>{v}</button>)}</div><div className="nexus-fabric-universe-card"><WandSparkles size={22}/><b>{universe} universe</b><p>{({Cinematic:"Use contrast, deliberate pacing and a strong visual payoff. Preserve the core story and quote wording.",Documentary:"Prioritise natural footage, clear context, restrained transitions and an honest visual tone.","Bold social":"Prioritise an immediate hook, strong type hierarchy, short beats and high mobile readability.",Minimal:"Reduce effects and competing layers; let one image and one clear message carry the scene."})[universe]}</p><small>This creates a reversible treatment on the chosen clip, not a duplicate export or destructive overwrite.</small></div><label className="nexus-fabric-semantic-search">Target scene<select value={selectedClipId||""} onChange={e=>{const target=clips.find(clip=>clip.id===e.target.value);if(target)onSeekTo(target.start);}}><option value="">Choose a scene by timeline position</option>{[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=><option key={clip.id} value={clip.id}>Scene {index+1} · {clip.label}</option>)}</select></label><button className="nexus-fabric-primary" disabled={!selectedClipId} onClick={()=>{const treatment=universe==="Documentary"?{filter:"Matte",transition:"fade" as const}:universe==="Bold social"?{filter:"Vivid",transition:"zoom" as const}:universe==="Minimal"?{filter:"Original",transition:"fade" as const}:{filter:"Cinematic",transition:"slide" as const};onApplyPlan([{kind:"apply-look",filter:treatment.filter,clipId:selectedClipId!},{kind:"apply-transition",transition:treatment.transition,clipId:selectedClipId!}]);}}>Apply {universe} treatment to selected scene</button></div>}
     <footer className="nexus-fabric-footer"><span>Existing tools remain in control</span><button onClick={onClose}>Return to editor <ArrowRight size={14}/></button></footer>
   </aside>;
 }
