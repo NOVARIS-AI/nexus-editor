@@ -14,6 +14,7 @@ type FeaturePipeline = (text: string | string[], options?: Record<string, unknow
 let extractor: FeaturePipeline | null = null;
 let loading: Promise<FeaturePipeline> | null = null;
 let loadedAt = 0;
+const embeddingCache = new Map<string, number[]>();
 
 export type ModelProgress = { status?: string; file?: string; progress?: number; loaded?: number; total?: number };
 
@@ -57,8 +58,14 @@ export function semanticModelLoadedAt() { return loadedAt; }
 
 export async function embedText(text: string): Promise<number[]> {
   if (!extractor) throw new Error("Load the Semantic Embeddings model in Model Centre first.");
-  const output = await extractor(text.slice(0, 1200), { pooling: "mean", normalize: true });
-  return Array.from(output.data, Number);
+  const clean = text.trim().slice(0, 1200);
+  const cached = embeddingCache.get(clean);
+  if (cached) return cached;
+  const output = await extractor(clean, { pooling: "mean", normalize: true });
+  const vector = Array.from(output.data, Number);
+  if (embeddingCache.size >= 500) embeddingCache.delete(embeddingCache.keys().next().value as string);
+  embeddingCache.set(clean, vector);
+  return vector;
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
