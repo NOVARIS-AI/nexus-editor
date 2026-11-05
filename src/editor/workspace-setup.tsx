@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CheckCircle2, HardDrive, LoaderCircle, RefreshCw, Sparkles, Wifi, XCircle, AudioLines, Image, Film, Layers, Palette, AudioWaveform } from "lucide-react";
+import { CheckCircle2, HardDrive, LoaderCircle, RefreshCw, Sparkles, Wifi, XCircle, AudioLines, Image, Film, Layers, Palette, AudioWaveform, Download } from "lucide-react";
 import { pipeline } from "@huggingface/transformers";
 import { checkNexusWorker, getEngineStatus } from "./engine-jobs";
 import { getBrowserEngineHealth } from "./engine-registry";
