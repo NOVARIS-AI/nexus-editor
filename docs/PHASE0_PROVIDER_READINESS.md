@@ -1,51 +1,62 @@
-# NEXUS Public Platform — Phase 0 Provider Readiness
+# NEXUS Public Platform — Provider Readiness
 
-Status: **Repository audit completed; external provider ownership/configuration remains pending.**
+Status: **Dedicated NEXUS Supabase project confirmed by the owner; profile foundation applied; social schema committed and awaiting execution.**
 Date: 2026-11-05
 
-## Confirmed from the current main branch
+## Confirmed NEXUS Supabase setup
 
-- Frontend: React 18 + TypeScript + Vite 6.
-- API pattern: Vercel-style serverless handlers in the root `api/` directory.
-- Existing dependencies: no Supabase JS client is currently declared in `package.json`.
-- Existing environment template: `.env.example` contains AI, Cloudflare Worker, media-engine and Groq variables, but no Supabase or Cloudflare Stream variables.
-- No `src/lib/supabase.ts` or `src/integrations/supabase/client.ts` exists at the inspected paths.
-- Existing Cloudflare Worker is documented for AI text/image requests at `/v1/generate`; it is not a video upload/streaming service.
-- Existing editor project/media handling must remain separate from social post records and managed Stream assets.
-- The project build script is `tsc -b && vite build`; test script is `vitest run`.
+The owner confirmed that the Supabase project displayed with the mistaken project name **“Aurora voice text” is actually the newly created, dedicated NEXUS project**. Treat it as NEXUS-only. Do not connect it to the separate AURORA VoiceText product or reuse AURORA VoiceText credentials.
 
-## Provider readiness findings
+The owner has:
+- Saved the project URL and publishable/anon key privately.
+- Created a starter table named `Nexus editor`. Preserve it; this migration does not alter or remove it.
+- Applied `supabase/migrations/202611050001_profiles.sql` successfully.
+- Confirmed `public.profiles`, its RLS policies, profile timestamp trigger and new-user profile trigger are present.
 
-### Supabase
-**Not yet connected to this repository.** The account/project intended to own NEXUS identity and social data has not been confirmed. Do not reuse another product's Supabase project merely because it is available in prior context. Before provisioning:
-1. Confirm the dedicated NEXUS Supabase project/account.
-2. Inspect existing schema and policies before migrations.
-3. Confirm current free-plan limits, region and project availability.
-4. Prepare Auth redirect URLs for local development and the canonical app domain.
-5. Keep the service-role key server-only; browser may receive only the anon/publishable key and URL.
+The profile foundation uses `auth.users(id)` as the profile primary/foreign key, unique optional usernames, display name, avatar URL, bio and private-profile setting. RLS permits public profile reads only for non-private profiles and owner access for private profiles.
 
-### Cloudflare Stream
-**Not yet connected or verified.** No Stream account entitlement, storage/egress allocation, API token, webhook secret or account limits have been verified. The existing AI Worker credentials are not Stream credentials. Before integration:
-1. Confirm Cloudflare Stream is enabled for the intended account.
-2. Review current pricing, free/trial allocation if any, supported upload methods, file/duration limits, playback controls and regional availability.
-3. Decide maximum upload size/duration and initial quality policy.
-4. Create a narrowly scoped Stream API token only when implementation is ready.
-5. Store Stream token and webhook secret only in server-side runtime configuration.
-6. Confirm signed webhook verification and upload URL expiry behaviour.
+## Repository integration audit
 
-Do not create a paid subscription, add a payment method, provision a new paid resource or enable billing without explicit approval.
+- Frontend: React + TypeScript + Vite.
+- Supabase JS client is declared in the app dependencies.
+- `src/lib/supabase.ts` reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (falling back to `VITE_SUPABASE_ANON_KEY`).
+- `src/lib/AuthGate.tsx` contains the auth/guest gate and email/password plus configured Google/Apple OAuth entry points.
+- The browser must receive only the project URL and publishable/anon key. Never put the Supabase secret/service-role key in frontend code, GitHub, Vite variables or a public environment file.
+- Existing Cloudflare Worker is for AI text/image generation. It is not a video host.
 
-## Safe next implementation boundary
+## Social database foundation committed
 
-Until the provider project/account is confirmed, implementation may proceed on provider-independent work:
-- typed domain contracts and validation schemas;
-- UI shell/navigation for For You, Profile and Publish;
-- local-only mock fixtures for development, clearly separated from production API;
-- SQL migration drafts reviewed before execution;
-- API interfaces with explicit unconfigured responses.
+Migration: `supabase/migrations/202611050002_social_foundation.sql`
 
-Do not ship a fake login, fake upload, fake feed, or UI that claims content has been published. Do not write live provider credentials into GitHub or `.env.example`.
+It adds:
+- `follows` with pending requests for private accounts and approval by the followed creator.
+- `blocks` with private block-list visibility.
+- `media_assets` for private provider metadata; client-created rows start unconfigured and pending.
+- `posts` with draft-first status, public/followers/private visibility and publish metadata.
+- `post_likes`, `post_saves` and `comments`.
+- `reports` and a restricted `moderation_events` audit table.
+- Indexes, constraints, RLS policies and trusted-service-only guards for publish/upload state.
 
-## Required confirmation to begin Phase 1
+**Important:** this migration has been committed to GitHub but has not yet been run in Supabase. It deliberately does not configure Cloudflare Stream, create public playable videos, or enable publishing. The owner should run it once, after the profile migration, in the confirmed dedicated NEXUS project.
 
-The owner must identify the dedicated Supabase project/account intended for NEXUS and confirm whether Cloudflare Stream is available on the intended Cloudflare account. If not available, compare an appropriate video provider before selecting one. No deployment is part of this phase.
+The starter `Nexus editor` table and existing profile migration are preserved.
+
+## Cloudflare Stream remains unverified
+
+No Stream entitlement, pricing/quotas, API token, webhook secret or upload limits have been confirmed. Do not treat the AI Worker credentials as Stream credentials. Before enabling uploads:
+1. Confirm Stream is available on the intended account and review current costs/quotas.
+2. Agree safe upload size/duration limits.
+3. Use a narrowly scoped server-side token and signed webhook verification.
+4. Keep secrets server-side and use direct, short-lived upload URLs.
+5. Do not activate paid billing without explicit approval.
+
+## Next sequence
+
+1. Owner runs the new social migration and confirms success.
+2. Verify tables and RLS policies exist in Supabase.
+3. Add typed social data access and server-side authorization tests.
+4. Build server-backed profile/follow/like/save/comment flows.
+5. Select and configure an approved video provider before upload/publish integration.
+6. Complete moderation, privacy, child-safety and abuse controls before public uploads.
+
+No deployment is part of this work. GitHub remains the implementation source of truth until testing and explicit release approval.
