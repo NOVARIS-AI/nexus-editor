@@ -129,7 +129,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
           <img src={sample.dataUrl} alt={sample.assetName+" visual sample"} loading="lazy"/>
           <b>{sample.assetName}</b><small>{sample.role}{typeof sample.timestamp==="number"?" · "+sample.timestamp.toFixed(1)+"s":""}</small>
-          <button onClick={()=>{const clip=clips.find(item=>item.assetId===sample.assetId);if(clip)onSeekTo(clip.start);}}>Go to scene</button>
+          <button onClick={()=>{const clip=clips.find(item=>item.assetId===sample.assetId);if(clip)onSeekTo(clip.start+Math.max(0,(sample.timestamp||0)-clip.sourceIn)/(clip.speed||1));}}>Go to frame</button>
         </article>)}</div>}
       </div>
       {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
