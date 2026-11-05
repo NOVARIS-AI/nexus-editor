@@ -34,8 +34,8 @@ export function PublishFlow({projectName,onClose}:Props) {
   const selectVideo=(file:File|null)=>{
     setUploadResult(null);setUploadProgress(0);setMessage("");
     if(!file){setVideoFile(null);return;}
-    if(!["video/mp4","video/webm","video/quicktime"].includes(file.type.toLowerCase())){setMessage("Choose an MP4, WebM or QuickTime video.");return;}
-    if(file.size>200*1024*1024){setMessage("This upload route currently accepts videos up to 200 MB.");return;}
+    if(!["video/mp4","video/webm","video/quicktime"].includes(file.type.toLowerCase())){setVideoFile(null);setMessage("Choose an MP4, WebM or QuickTime video.");return;}
+    if(file.size>200*1024*1024){setVideoFile(null);setMessage("This upload route currently accepts videos up to 200 MB.");return;}
     setVideoFile(file);
   };
   const upload=async()=>{
