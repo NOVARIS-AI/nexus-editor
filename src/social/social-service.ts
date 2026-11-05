@@ -342,7 +342,7 @@ export async function updateMyCreatorProfile(p:Omit<EditableCreatorProfile,"id">
   if(p.bio.length>160)throw new Error("Bio must be 160 characters or fewer.");
   const topics=[...new Set(p.creatorTopics.map(x=>x.trim().toLowerCase()).filter(Boolean))].slice(0,12);
   const {error}=await supabase.from("profiles").update({username,display_name:p.displayName.trim(),avatar_url:p.avatarUrl.trim()||null,bio:p.bio.trim(),is_private:p.isPrivate,creator_topics:topics}).eq("id",auth.user.id);fail(error);
-  return {...p,username,displayName:p.displayName.trim(),bio:p.bio.trim(),creatorTopics:topics};
+  return {...p,id:auth.user.id,username,displayName:p.displayName.trim(),bio:p.bio.trim(),creatorTopics:topics};
 }
 export type CreatorConnection={id:string;username:string;displayName:string;avatarUrl:string|null;bio:string;createdAt:string};
 export type CreatorConnections={followers:CreatorConnection[];following:CreatorConnection[];requests:CreatorConnection[]};
