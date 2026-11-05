@@ -134,11 +134,12 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const operations = useMemo<FabricOperation[]>(()=>{
     if(!intent.trim()) return [];
     const q=intent.toLowerCase(); const result:FabricOperation[]=[];
-    if(/title|headline|quote|caption|text|opening|intro/.test(q)) { const explicit=intent.match(/(?:title|quote|caption)\s*:\s*["“]?([^"”\n]{3,90})/i)?.[1]?.trim(); result.push({kind:"add-title",text:explicit||"Your title"}); }
-    if(/cinematic|film|movie|dramatic/.test(q)) result.push({kind:"apply-look",filter:"Cinematic"});
-    else if(/warm|golden|sunset/.test(q)) result.push({kind:"apply-look",filter:"Warm"});
-    else if(/black.?and.?white|monochrome|noir/.test(q)) result.push({kind:"apply-look",filter:"B&W"});
-    if(/transition|smooth|fade|emotional|reflect|calm|faith|wisdom|inspir/.test(q)) result.push({kind:"apply-transition",transition: /energetic|bold|hook|attention/.test(q)?"zoom":"fade"});
+    if(/title|headline|quote|caption|text|opening|intro|message/.test(q)) { const explicit=intent.match(/(?:title|quote|caption|message)\\s*:\\s*["“]?([^"”\\n]{3,90})/i)?.[1]?.trim(); const design=understandQuote(explicit||intent); result.push({kind:"add-title",text:explicit||"Your title",fontSize:design.size,fontFamily:design.font,color:design.color,backgroundColor:design.background,align:"center",x:50,y:50,shadow:true,animation:"fade"}); }
+    const target=selectedClipId?{clipId:selectedClipId}:{};
+    if(/cinematic|film|movie|dramatic/.test(q)) result.push({kind:"apply-look",filter:"Cinematic",...target});
+    else if(/warm|golden|sunset|faith|wisdom|inspir|emotional/.test(q)) result.push({kind:"apply-look",filter:"Warm",...target});
+    else if(/black.?and.?white|monochrome|noir/.test(q)) result.push({kind:"apply-look",filter:"B&W",...target});
+    if(/transition|smooth|fade|emotional|reflect|calm|faith|wisdom|inspir|hook|energetic/.test(q)) result.push({kind:"apply-transition",transition:/energetic|bold|hook|attention|action/.test(q)?"zoom":"fade",...target});
     return result;
   },[intent,dna.purpose,projectName]);
   const saveDNA = () => { try { localStorage.setItem("nexus-fabric-dna:"+projectName,JSON.stringify(dna)); setSaved(true); } catch { setSaved(false); } };
