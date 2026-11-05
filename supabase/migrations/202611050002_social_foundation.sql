@@ -246,13 +246,13 @@ using (owner_id = auth.uid() and upload_state in ('pending','failed'));
 -- without exposing the block list to other users through RLS.
 create or replace function public.is_nexus_blocked(user_a uuid, user_b uuid)
 returns boolean language sql stable security definer set search_path = public
-as $
+as $nexus$
   select exists (
     select 1 from public.blocks b
     where (b.blocker_id = user_a and b.blocked_id = user_b)
        or (b.blocker_id = user_b and b.blocked_id = user_a)
   );
-$;
+$nexus$;
 
 -- Post visibility is checked in the database, including follower-only/private and blocks.
 drop policy if exists "Creators and eligible viewers can read posts" on public.posts;
