@@ -105,7 +105,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 }
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
-  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"whatif">("map");
+  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
   const [quoteText, setQuoteText] = useState("");
@@ -238,7 +238,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. This local semantic layer searches scene notes, captions, asset names and available transcription segments. It expands related concepts; it does not yet recognise objects or actions inside raw footage.</p>
       <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
       <div className="nexus-fabric-semantic-results">{semanticQuery.trim()?semanticHits.map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · relevance {hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item's name or type."}</p></div><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make semantic search richer.</div>}</div>
-      <small className="nexus-fabric-scene-note">Search covers "+transcriptSegments.length+" available spoken segment(s). Meaning matching uses local concept expansion and text matching; it does not infer speech that has not been transcribed.</small>      <div className="nexus-fabric-semantic-tools">
+      <small className="nexus-fabric-scene-note">Search covers {transcriptSegments.length} available spoken segment(s). Meaning matching uses local concept expansion and text matching; it does not infer speech that has not been transcribed.</small>      <div className="nexus-fabric-semantic-tools">
         <section><b>Natural pause candidates</b><small>Potential edit points from transcript gaps (0.8 seconds or longer). Review the audio before trimming.</small>{pauseMoments.length?pauseMoments.map((item,index)=><article key={"pause-"+index}><span>{item.gap.toFixed(1)}s pause · {item.text.slice(0,110)}</span><button onClick={()=>onSeekTo(item.time)}>Review cut</button></article>):<p>No long transcript pauses detected yet. Transcribe an audio/video source to populate this.</p>}</section>
         <section><b>Music beat moments</b><small>Detected beat markers mapped from source-audio time to timeline time where the audio asset is used.</small>{beatMoments.length?beatMoments.map((item,index)=><article key={"beat-"+index}><span>{item.asset} · timeline {item.time.toFixed(2)}s</span><button onClick={()=>onSeekTo(item.time)}>Go to beat</button></article>):<p>No mapped beat markers yet. Run local beat analysis on an audio asset.</p>}</section>
       </div>
