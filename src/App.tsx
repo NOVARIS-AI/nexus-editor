@@ -202,6 +202,13 @@ export default function App() {
     setAssistantLauncherPosition({ left: Math.max(8, width - 68), top: Math.max(90, height - 88) });
     setAssistantPanelPosition({ left: Math.max(8, width - 344), top: Math.max(64, height - 510) });
   }, []);
+  useEffect(() => {
+    if (aiWorkspaceOpen) {
+      setAssistantLauncherPosition(position => ({ ...position, top: Math.max(8, assistantPanelPosition.top - 62) }));
+    } else {
+      setAssistantLauncherPosition(position => ({ ...position, top: Math.max(90, window.innerHeight - 88) }));
+    }
+  }, [aiWorkspaceOpen]);
   function beginAssistantDrag(event: ReactPointerEvent<HTMLElement>, kind: "launcher" | "panel") {
     if (kind === "panel" && (event.target as HTMLElement).closest("button,input,textarea")) return;
     const point = kind === "launcher" ? assistantLauncherPosition : assistantPanelPosition;
