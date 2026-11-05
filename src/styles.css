@@ -869,3 +869,15 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-recommendations article small{font-size:9px;line-height:1.45;color:var(--muted)}
 .nexus-fabric-recommendations article button{flex:none;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--panel2);color:var(--text);font-size:9px}
 @media(max-width:460px){.nexus-fabric-intelligence-hub{padding:10px}.nexus-fabric-intelligence-metrics{gap:5px}.nexus-fabric-intelligence-metrics>div{padding:8px}.nexus-fabric-intelligence-metrics b{font-size:17px}.nexus-fabric-recommendations article{align-items:flex-start;flex-wrap:wrap}.nexus-fabric-recommendations article>div{flex-basis:calc(100% - 90px)}}
+
+
+/* SmolVLM2 visual intelligence controls */
+.nexus-fabric-vision-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.nexus-fabric-vision-actions span,.nexus-fabric-vision-status{font-size:9px;line-height:1.45;color:var(--muted)}
+.nexus-fabric-vision-actions button,.nexus-model-card>button:not(.nexus-fabric-primary){border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--panel2);color:var(--text);font-size:10px;font-weight:650}
+.nexus-fabric-vision-actions button:disabled,.nexus-model-card button:disabled{opacity:.45;cursor:not-allowed}
+.nexus-fabric-vision-status{display:block;margin-top:7px}
+.nexus-fabric-vision-description{display:grid;gap:5px;margin:9px 0;padding:10px;border:1px solid color-mix(in srgb,var(--accent-c) 32%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--accent-c) 5%,var(--panel))}
+.nexus-fabric-vision-description b{font-size:9px;letter-spacing:.05em;color:var(--accent-c)}
+.nexus-fabric-vision-description p{margin:0;font-size:11px;line-height:1.55;color:var(--text)}
+@media(max-width:460px){.nexus-fabric-vision-actions{align-items:flex-start;flex-direction:column}.nexus-fabric-vision-actions button{width:100%}}
