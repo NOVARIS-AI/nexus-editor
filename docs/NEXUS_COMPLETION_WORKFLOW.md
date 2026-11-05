@@ -91,3 +91,14 @@ Sequence this after the current editor foundations are preserved:
 8. Run web/Android integration, security, load and cost tests before an explicitly approved release.
 
 This workstream is planned, not yet implemented. Do not mark it complete based on the architecture document alone.
+
+
+## Workstream D — Use Template and NEXUS Living Templates
+
+The current template cards apply a basic title/look treatment immediately. Upgrade this into a deliberate template-to-project flow with a preview, a clear **Use Template** action, and a safe new-project handoff.
+
+The signature differentiator is **NEXUS Living Templates**: adapt scene slots and timing to the creator's available media, show match confidence and reasons, and let the creator accept, swap or leave slots empty. Add **Story Gap Radar** to identify missing narrative beats and suggest what to capture or import, without inventing visual analysis.
+
+See [LIVING_TEMPLATES_SPEC.md](./LIVING_TEMPLATES_SPEC.md) for the detailed behavior, data model direction, privacy constraints, acceptance criteria and implementation sequence.
+
+This workstream is product-specified, not implemented. Do not mark Use Template or Living Templates complete until the UI, matching engine, correction controls, tests and mobile checks pass.
