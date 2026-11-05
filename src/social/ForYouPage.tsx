@@ -68,6 +68,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
   const [playbackError,setPlaybackError] = useState("");
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const touchStartY = useRef<number|null>(null);
+  const lastWheelAt = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -260,7 +261,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
       <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);if(item!=="All"){const next=preferredCategories.includes(item)?preferredCategories.filter(value=>value!==item):[...preferredCategories,item];setPreferredCategories(next);persistPulse({preferredCategories:next});}}}>{item}</button>)}</div>
     </div>}
 
-    <div className="nfy-stage">
+    <div className="nfy-stage" role="region" aria-label="Creator feed. Use the up and down arrow keys or scroll to change posts." tabIndex={0} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}} onWheel={event=>{if(Math.abs(event.deltaY)<24)return;const now=Date.now();if(now-lastWheelAt.current<650)return;lastWheelAt.current=now;nextPost(event.deltaY>0?1:-1);}}>
       {current ? <article className="nfy-post" key={current.id} onTouchStart={event=>{touchStartY.current=event.changedTouches[0]?.clientY??null;}} onTouchEnd={event=>{if(touchStartY.current!==null){const delta=touchStartY.current-(event.changedTouches[0]?.clientY??touchStartY.current);if(Math.abs(delta)>45)nextPost(delta>0?1:-1);touchStartY.current=null;}}}>
         <div className={"nfy-art nfy-"+current.palette+(current.isLive?" nfy-live-video":"")}>
           {current.isLive && current.mediaAssetId ? (
@@ -295,7 +296,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
           <button onClick={()=>{setReportFor(current.id);setReportReason("spam");setReportDetails("");setMenuFor(null);}}><Flag size={14}/> Report post</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
         </aside>
       </article> : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
-      <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span>{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
+      <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span aria-live="polite">{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
     </div>
 
     <div className="nfy-notice"><Sparkles size={14}/><span>{feedLoading ? "Loading community posts…" : serviceError ? serviceError : notice}</span><button onClick={()=>setNotice("Preview mode · sample posts only")} aria-label="Dismiss notice"><X size={14}/></button></div>
