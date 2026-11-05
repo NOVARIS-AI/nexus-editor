@@ -38,7 +38,7 @@ function semanticTerms(query: string) {
 }
 function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[]) : SemanticHit[] {
   const terms=semanticTerms(query); if(!terms.length)return [];
-  const records:SemanticHit[]=[
+  const records:(Omit<SemanticHit,"score">)[]=[
     ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
     ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
     ...transcript.map((segment,index)=>({id:"transcript-"+index,title:segment.text.slice(0,76),kind:"Spoken transcript",time:segment.start,detail:segment.text})),
@@ -156,7 +156,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
     <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",whatif:"What-if"})[k]}</button>)}</nav>
+    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
