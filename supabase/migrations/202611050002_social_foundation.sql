@@ -107,11 +107,18 @@ begin
       raise exception 'Only the trusted publishing service can change post status';
     end if;
   elsif tg_table_name = 'media_assets' then
-    if tg_op = 'INSERT' and new.upload_state <> 'pending' and jwt_role <> 'service_role' then
-      raise exception 'Media assets must begin as pending';
-    end if;
-    if tg_op = 'UPDATE' and new.upload_state is distinct from old.upload_state and jwt_role <> 'service_role' then
-      raise exception 'Only the trusted media service can change upload state';
+    if jwt_role <> 'service_role' then
+      if tg_op = 'INSERT' and (new.upload_state <> 'pending' or new.provider <> 'unconfigured' or new.provider_asset_id is not null or new.playback_id is not null) then
+        raise exception 'Media assets must begin as unconfigured pending records';
+      end if;
+      if tg_op = 'UPDATE' and (
+        new.upload_state is distinct from old.upload_state
+        or new.provider is distinct from old.provider
+        or new.provider_asset_id is distinct from old.provider_asset_id
+        or new.playback_id is distinct from old.playback_id
+      ) then
+        raise exception 'Only the trusted media service can change provider and upload state';
+      end if;
     end if;
   end if;
   new.updated_at := now();
@@ -235,6 +242,18 @@ drop policy if exists "Owners can delete pending media metadata" on public.media
 create policy "Owners can delete pending media metadata" on public.media_assets for delete
 using (owner_id = auth.uid() and upload_state in ('pending','failed'));
 
+-- SECURITY DEFINER helper lets visibility checks detect blocks in either direction
+-- without exposing the block list to other users through RLS.
+create or replace function public.is_nexus_blocked(user_a uuid, user_b uuid)
+returns boolean language sql stable security definer set search_path = public
+as $
+  select exists (
+    select 1 from public.blocks b
+    where (b.blocker_id = user_a and b.blocked_id = user_b)
+       or (b.blocker_id = user_b and b.blocked_id = user_a)
+  );
+$;
+
 -- Post visibility is checked in the database, including follower-only/private and blocks.
 drop policy if exists "Creators and eligible viewers can read posts" on public.posts;
 create policy "Creators and eligible viewers can read posts" on public.posts for select
@@ -242,11 +261,7 @@ using (
   author_id = auth.uid()
   or (
     status = 'ready'
-    and not exists (
-      select 1 from public.blocks b
-      where (b.blocker_id = auth.uid() and b.blocked_id = author_id)
-         or (b.blocker_id = author_id and b.blocked_id = auth.uid())
-    )
+    and not public.is_nexus_blocked(auth.uid(), author_id)
     and (
       (visibility = 'public' and exists (
         select 1 from public.profiles p where p.id = author_id and p.is_private = false
