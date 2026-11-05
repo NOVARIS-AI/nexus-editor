@@ -950,9 +950,13 @@ export default function App() {
     if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
     const fps = Number.parseInt(exportFps, 10) || 30;
     const size = getExportDimensions(aspectRatio, exportQuality);
+    const qualityFindings=inspectProjectQuality({assets,clips,imageLayers,textLayers,tracks:trackStates,duration,exportWidth:size.width,exportHeight:size.height});
+    const qualityState=qualitySummary(qualityFindings);
+    if(!qualityState.ready){const blockers=qualityFindings.filter(item=>item.severity==="error").map(item=>item.title+": "+item.detail);setStatus("Export blocked by project quality checks: "+blockers.join(" "));setEngineReport(blockers);return;}
     const preflight=inspectExportRequest({width:size.width,height:size.height,fps,duration,clipCount:clips.length,hasVisual:hasExportableContent,hasAudio:clips.some(clip=>{const kind=assets.find(item=>item.id===clip.assetId)?.kind;return kind==="audio"||kind==="video";})});
     if(!preflight.ok){setStatus("Export preflight blocked: "+preflight.errors.join(" "));setEngineReport(preflight.errors);return;}
-    if(preflight.warnings.length)setStatus("Export checks: "+preflight.warnings.join(" "));
+    const advisory=[...qualityFindings.filter(item=>item.severity==="warning").map(item=>item.title),...preflight.warnings];
+    if(advisory.length)setStatus("Export review: "+advisory.join(" · "));
     const controller = new AbortController();
     exportAbortController.current = controller;
     setExportBusy(true); setExportProgress(0);

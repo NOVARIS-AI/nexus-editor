@@ -11,7 +11,7 @@ export function prepareExecutionPlan(operations:ExecutionOperation[],context:Exe
   if(!clip){reject("The target timeline clip no longer exists.");continue;}
   const asset=context.assets.find(item=>item.id===clip.assetId);
   if(!asset){reject("The target clip has no available media asset.");continue;}
-  if(op.kind==="split-clip"){const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);if(!Number.isFinite(op.time)||op.time<=clip.start+.08||op.time>=end-.08){reject("The split point must be safely inside the selected clip.");continue;}}
+  if(op.kind==="split-clip"){const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);if(clip.speedCurve?.length){reject("Speed-ramped clips need a curve-aware split before they can be split safely.");continue;}if(!Number.isFinite(op.time)||op.time<=clip.start+.08||op.time>=end-.08){reject("The split point must be safely inside the selected clip.");continue;}}
   else if(asset.kind==="audio"){reject("Visual treatments can only target image or video clips.");continue;}
   if(op.kind==="apply-look"&&!op.filter.trim()){reject("A filter name is required.");continue;}
   accepted.push(op);

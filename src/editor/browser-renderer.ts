@@ -45,6 +45,19 @@ const waitForMedia = (media: HTMLMediaElement, signal?: AbortSignal) => new Prom
   media.load();
 });
 
+const loadImageForExport = (image: HTMLImageElement, source: string, signal?: AbortSignal) => new Promise<void>((resolve, reject) => {
+  if (signal?.aborted) return reject(new DOMException("Export cancelled.", "AbortError"));
+  const timer = window.setTimeout(() => { cleanup(); reject(new Error("An image took too long to load for export. Re-import it or try a smaller image.")); }, 20000);
+  const done = () => { cleanup(); resolve(); };
+  const fail = () => { cleanup(); reject(new Error("An image could not be decoded for export. Check that the source file is supported and not damaged.")); };
+  const aborted = () => { cleanup(); reject(new DOMException("Export cancelled.", "AbortError")); };
+  const cleanup = () => { window.clearTimeout(timer); image.removeEventListener("load", done); image.removeEventListener("error", fail); signal?.removeEventListener("abort", aborted); };
+  image.addEventListener("load", done, { once: true });
+  image.addEventListener("error", fail, { once: true });
+  signal?.addEventListener("abort", aborted, { once: true });
+  image.src = source;
+});
+
 const seekMedia = async (media: HTMLMediaElement, time: number, signal?: AbortSignal) => {
   if (signal?.aborted) throw new DOMException("Export cancelled.", "AbortError");
   if (!Number.isFinite(time) || time < 0) throw new Error("A timeline clip has an invalid source in-point.");
@@ -148,8 +161,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const asset = assets.get(layer.assetId);
       if (!asset || asset.kind !== "image" || !asset.objectUrl) throw new Error("An image layer is missing its original image. Re-import the image before exporting.");
       if (!Number.isFinite(layer.start) || !Number.isFinite(layer.duration) || layer.start < 0 || layer.duration <= 0) throw new Error("An image layer has invalid timeline timing.");
-      const image = new Image(); image.src = asset.objectUrl;
-      await new Promise<void>((resolve,reject)=>{ image.onload=()=>resolve(); image.onerror=()=>reject(new Error("Image layer could not be loaded: "+asset.name)); });
+      const image = new Image();
+      await loadImageForExport(image, asset.objectUrl, input.signal);
       imageLayerImages.set(layer.id,image);
     }
     for (const clip of input.clips) {
@@ -157,8 +170,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const asset = assets.get(clip.assetId);
       if (!asset?.objectUrl) continue;
       if (asset.kind === "image") {
-        const image = new Image(); image.src = asset.objectUrl;
-        await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error("Image could not be loaded: " + asset.name)); });
+        const image = new Image();
+        await loadImageForExport(image, asset.objectUrl, input.signal);
         throwIfAborted();
         imageByClip.set(clip.id, image);
       } else if (asset.kind === "video") {
