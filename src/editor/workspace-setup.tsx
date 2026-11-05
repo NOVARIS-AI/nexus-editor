@@ -15,8 +15,8 @@ const initialResources:Resource[] = [
  {id:"image",title:"Image creation & graphics",detail:"Checking image and design features",state:"pending"},
  {id:"video",title:"Video creation",detail:"Checking video creation and editing features",state:"pending"},
  {id:"editing",title:"Editing, effects & motion",detail:"Preparing the editing workspace",state:"pending"},
- {id:"audio",title:"Audio intelligence & processing",detail:"Preparing audio and sound tools",state:"pending"},
- {id:"export",title:"Rendering & export",detail:"Checking video export support",state:"pending"},
+ {id:"audio",title:"Audio & sound tools",detail:"Preparing audio and sound tools",state:"pending"},
+ {id:"export",title:"Export & sharing",detail:"Checking video export support",state:"pending"},
  {id:"speech",title:"Offline speech recognition",detail:"Preparing speech recognition for offline use",state:"pending"}
 ];
 const stateLabel=(state:ResourceState)=>({pending:"Waiting",working:"Preparing",ready:"Ready",fallback:"Available",failed:"Needs attention"}[state]);
@@ -25,7 +25,7 @@ const iconFor=(id:string)=>id==="speech"?<AudioLines/>:id==="director"?<Sparkles
 export function WorkspaceSetup({ onComplete, onSkip }: Props) {
  const [state,setState]=useState<SetupState>("preparing");
  const [progress,setProgress]=useState(0);
- const [detail,setDetail]=useState("Checking this device and preparing the NEXUS creative engine system…");
+ const [detail,setDetail]=useState("Checking this device and preparing your creative workspace…");
  const [error,setError]=useState("");
  const [storage,setStorage]=useState("Checking available storage…");
  const [attempt,setAttempt]=useState(0);
