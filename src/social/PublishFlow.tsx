@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck } from "lucide-react";
 import "./publish-flow.css";
 
@@ -7,6 +7,7 @@ type Visibility = "public"|"followers"|"private";
 
 export function PublishFlow({projectName,onClose}:Props) {
   const [step,setStep]=useState(0);
+  useEffect(()=>{const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape")onClose();};window.addEventListener("keydown",onKeyDown);return()=>window.removeEventListener("keydown",onKeyDown);},[onClose]);
   const [caption,setCaption]=useState("");
   const [visibility,setVisibility]=useState<Visibility>("public");
   const [allowComments,setAllowComments]=useState(true);
@@ -27,7 +28,7 @@ export function PublishFlow({projectName,onClose}:Props) {
     <section className="nexus-publish-modal" onClick={event=>event.stopPropagation()}>
       <header className="nexus-publish-head"><button onClick={onClose} aria-label="Close publish flow"><X size={19}/></button><div><span>STUDIO → COMMUNITY</span><h2>Publish your creation</h2><small>{projectName}</small></div><span className="nexus-publish-draft">DRAFT</span></header>
       <div className="nexus-publish-steps">{["Details","Audience","Review"].map((name,index)=><div className={step===index?"active":step>index?"done":""} key={name}><i>{step>index?<Check size={12}/>:index+1}</i><span>{name}</span></div>)}</div>
-      {step===0&&<div className="nexus-publish-body"><div className="nexus-publish-cover"><div><Image size={26}/><b>{cover}</b><small>Cover frame selection will be available after video rendering is connected.</small></div></div><label className="nexus-publish-label">Caption</label><textarea maxLength={2200} value={caption} onChange={event=>setCaption(event.target.value)} placeholder="Tell the community what your video is about…"/><div className="nexus-publish-count">{caption.length}/2200</div><label className="nexus-publish-label">Project source</label><div className="nexus-publish-source"><Check size={16}/><span><b>{projectName}</b><small>Your editable Studio project stays private and unchanged.</small></span></div></div>}
+      {step===0&&<div className="nexus-publish-body"><div className="nexus-publish-cover"><div><Image size={26}/><b>{cover}</b><small>Cover frame selection will be available after video rendering is connected.</small></div></div><label className="nexus-publish-label" htmlFor="nexus-publish-caption">Caption</label><textarea id="nexus-publish-caption" maxLength={2200} value={caption} onChange={event=>setCaption(event.target.value)} placeholder="Tell the community what your video is about…"/><div className="nexus-publish-count">{caption.length}/2200</div><label className="nexus-publish-label">Project source</label><div className="nexus-publish-source"><Check size={16}/><span><b>{projectName}</b><small>Your editable Studio project stays private and unchanged.</small></span></div></div>}
       {step===1&&<div className="nexus-publish-body"><h3>Who can watch this?</h3><p className="nexus-publish-muted">Choose the audience for this post. Privacy must also be enforced by the publishing service.</p><div className="nexus-publish-options">
         <button className={visibility==="public"?"selected":""} onClick={()=>setVisibility("public")}><Globe2/><span><b>Public</b><small>Anyone can discover and watch.</small></span>{visibility==="public"&&<Check/>}</button>
         <button className={visibility==="followers"?"selected":""} onClick={()=>setVisibility("followers")}><Users/><span><b>Followers</b><small>Only approved followers can watch.</small></span>{visibility==="followers"&&<Check/>}</button>
