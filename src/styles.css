@@ -757,3 +757,8 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-continuity.notice{border-color:color-mix(in srgb,#e8ad55 55%,var(--line));background:color-mix(in srgb,#e8ad55 7%,var(--panel))}
 .nexus-fabric-continuity.notice b{color:#e8ad55}
 .nexus-fabric-continuity.steady b{color:var(--accent-c)}
+
+.nexus-fabric-composition{display:grid;gap:5px;margin:8px 0;padding:10px 12px;border:1px solid rgba(45,212,230,.22);border-radius:12px;background:rgba(45,212,230,.055)}
+.nexus-fabric-composition b{font-size:11px;letter-spacing:.04em;color:#8ce6ef}
+.nexus-fabric-composition span{font-size:11px;color:var(--text-secondary,#aab4c5)}
+.nexus-fabric-composition small{font-size:10px;line-height:1.45;color:var(--text-muted,#8994a8)}
