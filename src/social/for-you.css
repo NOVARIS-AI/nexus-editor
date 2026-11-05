@@ -74,3 +74,17 @@
  .nfy-notice{margin:5px 8px 0;max-width:none}
  .nfy-discover{margin:6px 9px 10px}
 }
+
+
+/* Feed navigation: keyboard, wheel and touch gestures share the same post index. */
+.nfy-stage:focus-visible{outline:2px solid #c99ce2;outline-offset:3px;border-radius:18px}
+.nfy-post{scroll-snap-align:start;scroll-snap-stop:always}
+.nfy-art{user-select:none;-webkit-user-select:none}
+@media(max-width:760px){
+ .nexus-foryou{overscroll-behavior-y:contain}
+ .nfy-post{touch-action:pan-y;scroll-snap-align:start}
+ .nfy-stage{scroll-snap-type:y mandatory;scroll-padding-top:8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .nfy-post,.nfy-art,.nfy-actions>button span{transition:none!important;animation:none!important;scroll-behavior:auto!important}
+}
