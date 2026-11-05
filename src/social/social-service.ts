@@ -9,6 +9,8 @@ export type CommunityPost = {
   caption: string;
   likes: number;
   comments: number;
+  topics: string[];
+  creatorTopics: string[];
   visibility: "public" | "followers" | "private";
   createdAt: string;
 };
@@ -33,12 +35,12 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
   }
 
   let query = supabase.from("posts")
-    .select("id,author_id,caption,visibility,created_at")
+    .select("id,author_id,caption,topics,visibility,created_at")
     .eq("status", "ready");
   if (!authorIds) query = query.eq("visibility", "public");
   if (authorIds) query = query.in("author_id", authorIds);
   query = query.order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false }).limit(30);
+    .order("created_at", { ascending: false }).limit(100);
 
   const { data: posts, error: postsError } = await query;
   fail(postsError);
@@ -47,7 +49,7 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
   const ids = posts.map(post => post.id);
   const creators = [...new Set(posts.map(post => post.author_id))];
   const [profilesResult, likesResult, commentsResult] = await Promise.all([
-    supabase.from("profiles").select("id,username,display_name").in("id", creators),
+    supabase.from("profiles").select("id,username,display_name,creator_topics").in("id", creators),
     supabase.from("post_likes").select("post_id,user_id").in("post_id", ids),
     supabase.from("comments").select("id,post_id").in("post_id", ids).eq("status", "visible")
   ]);
@@ -65,7 +67,8 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
     return {
       id: post.id, authorId: post.author_id, creator: display, handle,
       initials: display.split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "N",
-      caption: post.caption || "", likes: likeCounts.get(post.id) || 0,
+      caption: post.caption || "", topics: post.topics || [], creatorTopics: profile?.creator_topics || [],
+      likes: likeCounts.get(post.id) || 0,
       comments: commentCounts.get(post.id) || 0,
       visibility: post.visibility as CommunityPost["visibility"],
       createdAt: post.created_at
@@ -171,4 +174,77 @@ export async function loadMyFollowedCreators(creatorIds: string[]) {
     .eq("status", "accepted").in("followed_id", creatorIds);
   fail(error);
   return (data || []).map(row => row.followed_id);
+}
+
+export type NexusPulsePreferences = {
+  preferredCategories: string[];
+  hiddenPostIds: string[];
+  hiddenCreatorIds: string[];
+};
+
+const emptyPulsePreferences: NexusPulsePreferences = {
+  preferredCategories: [], hiddenPostIds: [], hiddenCreatorIds: []
+};
+
+export async function loadPulsePreferences(): Promise<NexusPulsePreferences> {
+  if (!supabase) return emptyPulsePreferences;
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return emptyPulsePreferences;
+  const { data, error } = await supabase.from("feed_preferences")
+    .select("preferred_categories,hidden_post_ids,hidden_creator_ids")
+    .eq("user_id", auth.user.id).maybeSingle();
+  fail(error);
+  return data ? {
+    preferredCategories: data.preferred_categories || [],
+    hiddenPostIds: data.hidden_post_ids || [],
+    hiddenCreatorIds: data.hidden_creator_ids || []
+  } : emptyPulsePreferences;
+}
+
+export async function savePulsePreferences(preferences: NexusPulsePreferences) {
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sign in to save feed preferences.");
+  const { error } = await supabase.from("feed_preferences").upsert({
+    user_id: auth.user.id,
+    preferred_categories: [...new Set(preferences.preferredCategories)].slice(0, 20),
+    hidden_post_ids: [...new Set(preferences.hiddenPostIds)].slice(-500),
+    hidden_creator_ids: [...new Set(preferences.hiddenCreatorIds)].slice(-500)
+  }, { onConflict: "user_id" });
+  fail(error);
+}
+
+export async function loadPulseInterestWeights() {
+  if (!supabase) return {} as Record<string, number>;
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return {} as Record<string, number>;
+  const [likes, saves] = await Promise.all([
+    supabase.from("post_likes").select("post_id,posts!inner(caption,topics)").eq("user_id", auth.user.id).limit(200),
+    supabase.from("post_saves").select("post_id,posts!inner(caption,topics)").eq("user_id", auth.user.id).limit(200)
+  ]);
+  fail(likes.error); fail(saves.error);
+  const weights: Record<string, number> = {};
+  const add = (rows: any[] | null, weight: number) => {
+    for (const row of rows || []) {
+      const post = Array.isArray(row.posts) ? row.posts[0] : row.posts;
+      const text = [post?.caption || "", ...(post?.topics || [])].join(" ").toLowerCase();
+      const terms: Record<string, string[]> = {
+        Creative: ["edit","editing","cinematic","visual","story","motion","film","creator","design"],
+        Design: ["design","logo","brand","poster","graphic","typography","colour","color","product"],
+        Learning: ["learn","lesson","tutorial","explain","study","education","how to","tips","knowledge"],
+        Lifestyle: ["daily","routine","travel","food","fashion","life","vlog","moment","recap"],
+        Gaming: ["game","gaming","gamer","gameplay","level","stream"],
+        Music: ["music","song","beat","audio","dance","sing","sound"],
+        Business: ["business","brand","marketing","sales","startup","entrepreneur","productivity"]
+      };
+      let best = "Creative", score = 0;
+      for (const [category, words] of Object.entries(terms)) {
+        const count = words.reduce((total, word) => total + (text.includes(word) ? 1 : 0), 0);
+        if (count > score) { best = category; score = count; }
+      }
+      weights[best] = (weights[best] || 0) + weight;
+    }
+  };
+  add(likes.data, 1); add(saves.data, 2);
+  return weights;
 }
