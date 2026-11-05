@@ -6,8 +6,10 @@ import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
 import { SEMANTIC_MODEL, getSemanticDeviceInfo, isSemanticModelLoaded, loadSemanticModel, rankBySemanticSimilarity } from "./semantic-brain";
 import { analyseFabricScenes, makeDirectorBrief, readFabricMemory, recommendFabricActions, writeFabricMemory } from "./fabric-intelligence";
 import { VISUAL_MODEL, getVisualModelDeviceInfo, isVisualModelLoaded, loadVisualModel, understandVisualSamples, type VisualUnderstanding } from "./visual-brain";
+import { buildVisualSceneEvidence, describeVisualCoverage } from "./visual-intelligence";
+import { buildMessageAwarePlan } from "./message-aware-editing";
 
-export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; start?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
+export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; start?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string } | { kind: "split-clip"; clipId: string; time: number };
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
@@ -110,7 +112,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 }
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
-  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"models"|"quote"|"whatif">("map");
+  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"message"|"models"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticModelReady,setSemanticModelReady]=useState(isSemanticModelLoaded());
@@ -174,6 +176,9 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
   const sceneIntelligence = useMemo(()=>analyseFabricScenes(assets,clips,textLayers,visualAnalyses,visualDescriptions),[assets,clips,textLayers,visualAnalyses,visualDescriptions]);
+  const visualSceneEvidence = useMemo(()=>buildVisualSceneEvidence(clips,visualDescriptions,visualAnalyses),[clips,visualDescriptions,visualAnalyses]);
+  const visualCoverage = useMemo(()=>describeVisualCoverage(visualSceneEvidence),[visualSceneEvidence]);
+  const messageAwarePlan = useMemo(()=>buildMessageAwarePlan({assets,clips,transcriptSegments,beatMarkers}),[assets,clips,transcriptSegments,beatMarkers]);
   const fabricRecommendations = useMemo(()=>recommendFabricActions(sceneIntelligence,clips),[sceneIntelligence,clips]);
   const directorBrief = useMemo(()=>makeDirectorBrief(projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations),[projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations]);
   const priorMemory = useMemo(()=>readFabricMemory(projectName),[projectName]);
@@ -220,7 +225,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
     <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","models","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",models:"Model Centre",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
+    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","message","models","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",message:"Message-aware edit",models:"Model Centre",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
@@ -244,11 +249,17 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         </article>)}</div>}
       </div>
       <section className="nexus-fabric-intelligence-hub">
+        <div className="nexus-fabric-intelligence-head"><div><b>VISUAL EVIDENCE MAP</b><small>Scene-linked observations · no hidden inference</small></div><span>{visualCoverage.modelDescribed} MODEL-DESCRIBED</span></div>
+        <div className="nexus-fabric-intelligence-metrics"><div><b>{visualCoverage.totalScenes}</b><small>Timeline scenes</small></div><div><b>{visualCoverage.modelDescribed}</b><small>Model-described</small></div><div><b>{visualCoverage.notSampled}</b><small>Not sampled</small></div></div>
+        {visualSceneEvidence.slice(0,10).map(item=><article className="nexus-fabric-recommendations" key={"visual-evidence-"+item.clipId}><b>{item.title}</b><small>{item.coverage.replace("-"," ")} · {item.frameCount} frame(s) · {item.confidence} confidence</small>{item.descriptions.slice(0,2).map((description,index)=><p key={index}>{description}</p>)}{item.compositionNote&&<small>{item.compositionNote}</small>}</article>)}
+        <small className="nexus-fabric-scene-note">Model descriptions are observations from sampled frames, not a complete account of the video. Unseen moments remain unknown.</small>
+      </section>
+      <section className="nexus-fabric-intelligence-hub">
         <div className="nexus-fabric-intelligence-head"><div><b>SCENE INTELLIGENCE · CONNECTED</b><small>{sceneIntelligence.length} scenes · local structure + sampled visual metrics</small></div><span>{priorMemory?"MEMORY FOUND":"MEMORY STARTED"}</span></div>
         <div className="nexus-fabric-intelligence-metrics"><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.clarity,0)/sceneIntelligence.length):0}</b><small>Story clarity</small></div><div><b>{sceneIntelligence.length?Math.round(sceneIntelligence.reduce((sum,item)=>sum+item.momentum,0)/sceneIntelligence.length):0}</b><small>Story momentum</small></div><div><b>{sceneIntelligence.filter(item=>item.confidence!=="low").length}</b><small>Scenes with context</small></div></div>
         <div className="nexus-fabric-memory-note"><b>Fabric Memory</b><span>{memoryStatus}</span><small>{priorMemory?"Previous scene map: "+priorMemory.sceneCount+" scene(s) · last saved "+new Date(priorMemory.updatedAt).toLocaleString():"This is the first saved scene map for this project."}</small></div>
         <div className="nexus-fabric-recommendations"><b>Predictive edit recommendations</b>{fabricRecommendations.map((item,index)=><article key={item.title+"-"+index}><span className={item.priority==="high"?"priority":""}>{item.priority==="high"?"PRIORITY":"SUGGESTION"}</span><div><strong>{item.title}</strong><small>{item.detail}</small></div>{item.clipId&&<button onClick={()=>{const clip=clips.find(value=>value.id===item.clipId);if(clip)onSeekTo(clip.start);}}>Review</button>}</article>)}</div>
-        <button className="nexus-fabric-primary" onClick={()=>onSendToDirector(directorBrief,{version:1,projectDNA:dna,scenes:sceneIntelligence.slice(0,16).map(scene=>({clipId:scene.clipId,title:scene.title,role:scene.role,duration:scene.duration,clarity:scene.clarity,momentum:scene.momentum,confidence:scene.confidence,strengths:scene.strengths,risks:scene.risks,nextAction:scene.nextAction,context:scene.context.slice(0,1000)})),recommendations:fabricRecommendations.slice(0,8),visualEvidence:visualDescriptions.slice(0,12).map(item=>({assetName:item.assetName,role:item.role,timestamp:item.timestamp,description:item.description.slice(0,700)})),timelineSignals:{beatMoments:beatMoments.slice(0,12),pauseMoments:pauseMoments.slice(0,8)}})}>Send scene intelligence to AI Director <ArrowRight size={14}/></button>
+        <button className="nexus-fabric-primary" onClick={()=>onSendToDirector(directorBrief,{version:1,projectDNA:dna,scenes:sceneIntelligence.slice(0,16).map(scene=>({clipId:scene.clipId,title:scene.title,role:scene.role,duration:scene.duration,clarity:scene.clarity,momentum:scene.momentum,confidence:scene.confidence,strengths:scene.strengths,risks:scene.risks,nextAction:scene.nextAction,context:scene.context.slice(0,1000)})),recommendations:fabricRecommendations.slice(0,8),visualEvidence:visualDescriptions.slice(0,12).map(item=>({assetName:item.assetName,role:item.role,timestamp:item.timestamp,description:item.description.slice(0,700)})),visualSceneEvidence:visualSceneEvidence.slice(0,16),timelineSignals:{beatMoments:beatMoments.slice(0,12),pauseMoments:pauseMoments.slice(0,8)}})}>Send scene intelligence to AI Director <ArrowRight size={14}/></button>
         <small className="nexus-fabric-scene-note">Scores are transparent local heuristics, not a judgement of creative quality. Frame metrics describe brightness and composition; when SmolVLM2 is downloaded and supported, its separate visual descriptions add visible subject and action context.</small>
       </section>
       {[...clips].sort((a,b)=>a.start-b.start).map((clip,index)=>{
@@ -319,6 +330,15 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       </div>
     </div>}
 
+    {tab==="message" && <div className="nexus-fabric-body">
+      <p className="nexus-fabric-copy">Message-Aware Editing connects the intended message to real project evidence. It can suggest editable captions from transcript segments, reviewable cuts at natural pauses, beat-aware transitions and visual treatments. Nothing changes until you approve an individual suggestion.</p>
+      <div className="nexus-fabric-intelligence-hub">
+        <div className="nexus-fabric-intelligence-head"><div><b>MESSAGE → EDIT DECISIONS</b><small>{messageAwarePlan.length} evidence-backed suggestion(s)</small></div><span>REVIEW FIRST</span></div>
+        <div className="nexus-fabric-intelligence-metrics"><div><b>{transcriptSegments.length}</b><small>Transcript segments</small></div><div><b>{pauseMoments.length}</b><small>Pause candidates</small></div><div><b>{beatMoments.length}</b><small>Mapped beat moments</small></div></div>
+        {messageAwarePlan.length ? <div className="nexus-fabric-recommendations">{messageAwarePlan.map(item=><article key={item.id}><span className={item.confidence==="high"?"priority":""}>{item.confidence.toUpperCase()}</span><div><strong>{item.title}</strong><small>{item.detail}</small><small>Evidence: {item.evidence} · {item.time.toFixed(2)}s</small></div><button onClick={()=>onSeekTo(item.time)}>Review</button>{item.operation&&<button onClick={()=>onApplyPlan([item.operation as FabricOperation])}>Apply</button>}</article>)}</div> : <div className="nexus-fabric-empty">Add timeline scenes, transcribe your audio, or analyse an audio track for beat candidates. The planner will use only evidence that exists in this project.</div>}
+      </div>
+      <small className="nexus-fabric-scene-note">Transcript timing and beat detection can be approximate. Listen and preview before applying cuts or transitions. Captions remain editable text layers.</small>
+    </div>}
     {tab==="models" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Manage optional local intelligence models. Downloads are initiated by you, cached by the browser where supported and run on this device. No paid API or account key is used.</p>
       <section className="nexus-model-card"><div className="nexus-model-card-head"><span>TEXT EMBEDDINGS</span><b>{semanticModelReady?"ACTIVE":"OPTIONAL DOWNLOAD"}</b></div><h3>{SEMANTIC_MODEL.name}</h3><p>{SEMANTIC_MODEL.description}</p><div className="nexus-model-facts"><span>Model <b>{SEMANTIC_MODEL.id}</b></span><span>Download <b>{SEMANTIC_MODEL.size}</b></span><span>Runtime <b>Transformers.js · ONNX · WASM</b></span><span>Tasks <b>Meaning search, transcript retrieval</b></span></div><div className="nexus-model-capabilities">{SEMANTIC_MODEL.strengths.map(item=><span key={item}>✓ {item}</span>)}</div><small>Limitations: {SEMANTIC_MODEL.limitations.join(" · ")}</small><div className="nexus-model-device"><b>Device compatibility</b><span>WebAssembly: {deviceInfo.webAssembly?"Available":"Unavailable"} · WebGPU: {deviceInfo.webGPU?"Available":"Not detected"} · Reported memory: {deviceInfo.deviceMemory?deviceInfo.deviceMemory+" GB":"Unknown"}</span><span>Browser storage: {modelStorageInfo}</span><small>{deviceInfo.note}</small></div>{semanticModelBusy&&<div className="nexus-model-progress"><i style={{width:semanticModelProgress+"%"}}/></div>}<p className="nexus-model-status">{semanticModelMessage}</p><button className="nexus-fabric-primary" disabled={semanticModelBusy||semanticModelReady||!deviceInfo.compatible} onClick={()=>void prepareSemanticModel()}>{semanticModelBusy?"Downloading model "+semanticModelProgress+"%":semanticModelReady?"Model active":"Download & activate model"}</button></section>
