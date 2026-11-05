@@ -4,6 +4,7 @@ import { understandDirectorPrompt } from "../src/editor/prompt-understander";
 import { buildReferenceContext, buildReferenceFusion } from "../src/editor/reference-workflow";
 import { analyseFabricScenes, makeDirectorBrief, recommendFabricActions, readFabricMemory, writeFabricMemory } from "../src/editor/fabric-intelligence";
 import { parseLocalDraft, readRecoverableDraft, writeRecoverableDraft } from "../src/editor/project-recovery";
+import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationRoute, validateGeneratedImage } from "../src/editor/scene-creation-pipeline";
 
 const asset = { id: "media-1", name: "opening.mp4", kind: "video" as const, duration: 12, mimeType: "video/mp4" };
 const clip = { id: "clip-1", assetId: "media-1", trackId: "video-1", start: 0, sourceIn: 0, sourceOut: 8, label: "Opening" };
@@ -106,6 +107,44 @@ describe("Creative Fabric project intelligence", () => {
     const memory = { updatedAt: "2026-11-05T00:00:00.000Z", sceneCount: 1, assetCount: 1, lastBrief: "Keep the hook", signatures: ["Hook:Opening:8"], decisions: [] };
     expect(writeFabricMemory("Test", memory)).toBe(true);
     expect(readFabricMemory("Test")).toEqual(memory);
+  });
+});
+
+
+describe("Build 9 — Intelligent media and creation pipeline", () => {
+  const scene = { title: "Wisdom message", visual: "A speaker in a warm cinematic interior", narration: "Share a thoughtful message", searchTerms: ["warm light", "portrait"], duration: 18 };
+
+  it("builds a scene-specific prompt from brief, style and delivery frame", () => {
+    const prompt = buildSceneVisualPrompt(scene, { style: "Documentary", aspectRatio: "9:16", projectBrief: "A calm educational short" });
+    expect(prompt).toContain("Wisdom message");
+    expect(prompt).toContain("Documentary");
+    expect(prompt).toContain("9:16");
+    expect(prompt).toContain("not a finished video");
+    expect(prompt).toContain("Do not add typography");
+  });
+
+  it("routes to configured engines and never pretends a fallback is model-generated video", () => {
+    expect(resolveSceneGenerationRoute("video", { imageConfigured: true, videoConfigured: true }).route).toBe("managed-video-worker");
+    expect(resolveSceneGenerationRoute("video", { imageConfigured: true, videoConfigured: false }).route).toBe("image-motion-fallback");
+    expect(resolveSceneGenerationRoute("video", { imageConfigured: false, videoConfigured: false }).route).toBe("unavailable");
+    expect(resolveSceneGenerationRoute("image", { imageConfigured: false, videoConfigured: true }).route).toBe("unavailable");
+  });
+
+  it("creates bounded procedural music beds and short transition accents", () => {
+    const music = createSceneAudioPreset(scene);
+    expect(music.kind).toBe("music");
+    expect(music.duration).toBe(12);
+    const accent = createSceneAudioPreset({ ...scene, audioCueType: "whoosh transition", duration: 20 });
+    expect(accent.kind).toBe("sfx");
+    expect(accent.recipe).toBe("sweep");
+    expect(accent.duration).toBeLessThanOrEqual(3.5);
+  });
+
+  it("rejects invalid, empty and oversized generated images", () => {
+    expect(validateGeneratedImage(new Blob(["png"], { type: "image/png" })).extension).toBe("png");
+    expect(() => validateGeneratedImage(new Blob(["bad"], { type: "text/plain" }))).toThrow(/PNG, JPEG or WebP/i);
+    expect(() => validateGeneratedImage(new Blob([], { type: "image/png" }))).toThrow(/empty/i);
+    expect(() => validateGeneratedImage(new Blob(["12345"], { type: "image/png" }), "", 4)).toThrow(/import limit/i);
   });
 });
 

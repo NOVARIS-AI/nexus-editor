@@ -25,6 +25,7 @@ import { getBrowserEngineHealth } from "./editor/engine-registry";
 import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/transcription-engines";
 import { askNexusDirector } from "./editor/ai-director";
 import { createApostleQuotePosterLayers, getImageStylePreset, generateNexusWorkerImage } from "./editor/image-engine";
+import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationRoute, validateGeneratedImage } from "./editor/scene-creation-pipeline";
 import { getChromaSvgMatrix } from "./editor/video-engine";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
@@ -133,7 +134,7 @@ export default function App() {
   const [creativeFabricOpen, setCreativeFabricOpen] = useState(false);
   const [aiWorkflowStage, setAiWorkflowStage] = useState<"idea" | "planning" | "review" | "editing">("idea");
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Welcome to NEXUS AI Studio. Tell me what you want to create. I’ll guide you through the idea, creative plan, visuals and approval before we open the editing workspace." }]);
-  const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number }[]; sourcingNote: string }>(null);
+  const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number; audioCueType?: string }[]; sourcingNote: string }>(null);
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
   const [mediaSearchStatus, setMediaSearchStatus] = useState("");
@@ -1077,40 +1078,69 @@ export default function App() {
     const key=engine+":"+scene.title;
     setGenerationBusy(key); setAiReply("Preparing "+engine+" generation for "+scene.title+"…");
     try {
-      const prompt=scene.visual+"; "+scene.searchTerms.join(", ")+". Create a polished, usable visual for this exact scene. No text, captions, logos or watermarks.";
+      const route=resolveSceneGenerationRoute(engine,{
+        imageConfigured:engineAvailability?.engines?.image?.configured===true||workerHealth?.ok===true,
+        videoConfigured:engineAvailability?.engines?.video?.configured===true
+      });
+      if(route.route==="unavailable")throw new Error(route.explanation);
+      const prompt=buildSceneVisualPrompt(scene,{style:aiStyle,aspectRatio:aiFormat,projectBrief:aiBrief});
       if(engine==="image") {
         const generated=await generateNexusWorkerImage(prompt);
         const response=await fetch(generated.image);
+        if(!response.ok)throw new Error("The generated image could not be retrieved.");
         const blob=await response.blob();
-        const extension=generated.mimeType.split("/")[1]?.replace(/[^a-z0-9]/gi,"")||"png";
-        const file=new File([blob],scene.title.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+extension,{type:generated.mimeType});
-        const created:MediaAsset={id:uid(),name:scene.title+" · AI generated",kind:"image",duration:Math.max(1,scene.duration||5),mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:"Cloudflare Workers AI"}};
+        const verified=validateGeneratedImage(blob,generated.mimeType);
+        const file=new File([blob],scene.title.replace(/[^a-z0-9-_]+/gi,"-")+"-generated."+verified.extension,{type:verified.mimeType});
+        const created:MediaAsset={id:uid(),name:scene.title+" · AI generated",kind:"image",duration:Math.max(1,scene.duration||5),mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:generated.provider+" · "+(generated.model||"image model")}};
         setAssets(old=>[...old,created]);
         const target=clips.find(item=>item.aiScene?.title===scene.title);
         if(target) {
           const replacement:TimelineClip={...target,assetId:created.id,sourceIn:0,sourceOut:Math.max(.5,clipDuration(target)),label:scene.title+" · AI generated",aiScene:{...target.aiScene!,sourceType:"generated"}};
           applyClipChange(clips.map(item=>item.id===target.id?replacement:item),"Generated image replaced the storyboard placeholder.");
           setSelected(target.id);setPlayhead(target.start);
-          setAiReply("Image generated, imported and placed over the matching storyboard placeholder. Its timeline position is preserved.");
+          setAiReply("Image generated, validated, imported and placed over the matching storyboard placeholder. Its timeline position is preserved.");
         } else {
           const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"video-1",start:timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name};
           applyClipChange([...clips,clip],"Generated image added to the editable timeline.");
           setSelected(clip.id);setPlayhead(clip.start);
-          setAiReply("Image generated, imported and added to the editable timeline.");
+          setAiReply("Image generated, validated, imported and added to the editable timeline.");
         }
         setPage("editor");
-      } else if (!engineAvailability?.engines?.video?.configured && engineAvailability?.engines?.image?.configured) {
+      } else if(route.route==="image-motion-fallback") {
         await generateAnimatedSceneFromStill(scene,prompt);
       } else {
-        const job=await submitEngineJob(engine,prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
+        const job=await submitEngineJob("video",prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
         setGenerationJobs(old=>[{...job,sceneTitle:scene.title},...old.filter(item=>item.id!==job.id)]);
-        setAiReply("Video generation job queued for "+scene.title+". Refresh its status to see real worker progress.");
+        setAiReply("Video generation job queued for "+scene.title+". The worker must return a verified video before it is imported.");
       }
     } catch(error) {
       const message=error instanceof Error?error.message:"Generation worker unavailable.";
       setAiReply(message+" Your storyboard and timeline have not been changed.");
       setGenerationJobs(old=>[{id:"unavailable-"+Date.now(),engine,state:"failed",progress:0,message,sceneTitle:scene.title,error:message},...old]);
     } finally { setGenerationBusy(null); }
+  }
+  async function generateSceneAudio(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number;audioCueType?:string}) {
+    const key="audio:"+scene.title;
+    setGenerationBusy(key);setAiReply("Composing an original local audio bed for "+scene.title+"…");
+    try {
+      const preset=createSceneAudioPreset(scene);
+      const blob=await generateNexusAudio(preset);
+      const safeName=preset.name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"nexus-scene-audio";
+      const file=new File([blob],"nexus-"+safeName+".wav",{type:"audio/wav"});
+      const objectUrl=URL.createObjectURL(file);
+      const created:MediaAsset={id:uid(),name:file.name,kind:"audio",duration:preset.duration,mimeType:file.type,file,objectUrl,source:{type:"generated",creator:"NEXUS local procedural audio synthesizer",attribution:"Original locally synthesised audio; not a licensed commercial music recording."}};
+      const target=clips.find(item=>item.aiScene?.title===scene.title);
+      const start=target?.start??timelineDuration(clips);
+      const audioTrackIds=["audio-1","audio-2","audio-3","audio-4"];
+      const used=new Set(clips.filter(item=>assets.find(media=>media.id===item.assetId)?.kind==="audio").map(item=>item.trackId));
+      const trackId=audioTrackIds.find(value=>!used.has(value))||"audio-1";
+      const clip:TimelineClip={id:uid(),assetId:created.id,trackId,start,sourceIn:0,sourceOut:preset.duration,label:preset.name,gain:1,muted:false,fadeIn:.12,fadeOut:.35,speed:1};
+      setAssets(old=>[...old,created]);applyClipChange([...clips,clip],"Original locally generated audio added under "+scene.title+".");
+      setSelected(clip.id);setPlayhead(start);setPage("editor");setActiveTool("audio");setActiveSubtool("mixer");
+      setAiReply("Original audio added beneath "+scene.title+". "+(preset.duration>=12?"The generated bed is capped at 12 seconds; duplicate or extend it for longer scenes.":"Preview it and adjust its level against the dialogue.")+" This is procedural audio, not an AI singer or a commercial music track.");
+    } catch(error) {
+      setAiReply((error instanceof Error?error.message:"Local audio synthesis failed.")+" The existing project remains unchanged.");
+    } finally {setGenerationBusy(null);}
   }
   const importedGenerationOutputs = useRef<Set<string>>(new Set());
   const generationRefreshInFlight = useRef<Set<string>>(new Set());
@@ -1296,7 +1326,7 @@ export default function App() {
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
       const target = match ? Math.min(180,Math.max(10,Number(match[1]))) : 30;
-      const plannedScenes = rawScenes.map((scene,index) => ({ title: String(scene.title || "Scene " + (index+1)).slice(0, 64), visual: String(scene.visual || "Supporting visual").slice(0, 600), narration: String(scene.narration || "").slice(0, 900), searchTerms: Array.isArray(scene.searchTerms) && scene.searchTerms.length ? scene.searchTerms.slice(0,4).map((term:string)=>String(term).slice(0,100)) : [String(scene.visual || brief).slice(0,120)], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: target / rawScenes.length }));
+      const plannedScenes = rawScenes.map((scene,index) => ({ title: String(scene.title || "Scene " + (index+1)).slice(0, 64), visual: String(scene.visual || "Supporting visual").slice(0, 600), narration: String(scene.narration || "").slice(0, 900), searchTerms: Array.isArray(scene.searchTerms) && scene.searchTerms.length ? scene.searchTerms.slice(0,4).map((term:string)=>String(term).slice(0,100)) : [String(scene.visual || brief).slice(0,120)], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: target / rawScenes.length, audioCueType: String(scene.audioCueType || "").slice(0,48) }));
       setAiPlan({title:brief.slice(0,72),duration:target,scenes:plannedScenes,sourcingNote:result.plan.userReferenceNeeded ? "A personal reference photo or video is needed to depict you accurately." : "NEXUS will search licensed media first; missing visuals use editable native scenes until generation workers are connected."});
       setAiWorkflowStage("review");
       setAiReply(result.plan.summary + " Review the scenes and approve before timeline changes are made.");
@@ -1893,7 +1923,7 @@ export default function App() {
               {aiPlan && <div className="nexus-ai-storyboard">
                 {aiPlan.scenes.map((scene,index)=><article key={scene.title}><b>{index+1}. {scene.title}</b><p>{scene.visual}</p><small>Search for: {scene.searchTerms.join(" · ")}</small><small>Fallback: {scene.fallback}</small></article>)}
                 <p className="nexus-ai-sourcing-note">{aiPlan.sourcingNote}</p>
-                <div className="nexus-ai-generation-actions">{aiPlan.scenes.map((scene,index)=><div key={scene.title+"-"+index}><b>{scene.title}</b><div><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"image")}>Generate image</button><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"video")}>Generate video</button></div></div>)}</div>
+                <div className="nexus-ai-generation-actions">{aiPlan.scenes.map((scene,index)=><div key={scene.title+"-"+index}><b>{scene.title}</b><div><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"image")}>Generate image</button><button disabled={generationBusy!==null} onClick={()=>generateSceneMedia(scene,"video")}>Generate video</button><button disabled={generationBusy!==null} onClick={()=>generateSceneAudio(scene)}>Create audio</button></div></div>)}</div>
                 {generationJobs.length>0&&<div className="nexus-ai-analysis-results"><b>Generation jobs</b>{generationJobs.map(job=><div key={job.id}><small>{job.sceneTitle} · {job.engine} · {job.state} · {Math.round(job.progress||0)}%</small><small>{job.message||job.error||"Waiting for worker update"}</small>{!job.id.startsWith("unavailable-")&&job.state!=="succeeded"&&job.state!=="failed"&&job.state!=="cancelled"&&<button onClick={()=>refreshGenerationJob(job)}>Refresh status</button>}</div>)}</div>}
                 <button className="nexus-ai-plan-button" onClick={buildAIProjectTimeline}>Build editable timeline</button>
               </div>}
