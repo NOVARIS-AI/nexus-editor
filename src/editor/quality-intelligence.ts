@@ -1,0 +1,25 @@
+import type {MediaAsset,TimelineClip,TimelineImageLayer,TimelineTextLayer,TimelineTrack} from "../types";
+export type QualitySeverity="error"|"warning"|"info";
+export type QualityFinding={id:string;severity:QualitySeverity;title:string;detail:string;fix?:string};
+export type QualityInput={assets:MediaAsset[];clips:TimelineClip[];imageLayers:TimelineImageLayer[];textLayers:TimelineTextLayer[];tracks:TimelineTrack[];duration:number;exportWidth?:number;exportHeight?:number};
+export function inspectProjectQuality(input:QualityInput):QualityFinding[]{
+ const out:QualityFinding[]=[],assets=new Map(input.assets.map(a=>[a.id,a])),tracks=new Map(input.tracks.map(t=>[t.id,t]));
+ const add=(id:string,severity:QualitySeverity,title:string,detail:string,fix?:string)=>out.push({id,severity,title,detail,fix});
+ if(!input.clips.length&&!input.imageLayers.some(x=>x.visible)&&!input.textLayers.some(x=>x.visible!==false))add("empty","error","No visible content","The project has no visible timeline content.","Add a clip, image or visible text layer.");
+ for(const c of input.clips){const a=assets.get(c.assetId);if(!a){add("asset:"+c.id,"error","Missing media: "+c.label,"This clip points to a missing media asset.","Re-import the source media.");continue;}
+ if(!Number.isFinite(c.start)||c.start<0||!Number.isFinite(c.sourceIn)||c.sourceIn<0||!Number.isFinite(c.sourceOut)||c.sourceOut<=c.sourceIn)add("timing:"+c.id,"error","Invalid clip timing: "+c.label,"The source points or timeline start are invalid.","Trim the clip again or restore an earlier project.");
+ if(!a.objectUrl&&!a.file)add("relink:"+c.id,"warning","Media needs relinking: "+c.label,"The original media is unavailable in this session.","Re-import the original file.");
+ if(!tracks.has(c.trackId))add("track:"+c.id,"warning","Unknown timeline track","This clip refers to a track that is missing.","Move the clip to an existing track.");
+ if(a.kind==="video"&&Number.isFinite(a.duration)&&c.sourceOut>a.duration+.12)add("out:"+c.id,"error","Out-point exceeds source: "+c.label,"The selected source range exceeds media duration.","Trim the out-point.");
+ }
+ for(const l of input.imageLayers){if(!assets.has(l.assetId))add("image:"+l.id,"error","Image layer is missing its asset","The overlay cannot render without its source image.","Re-import the image or remove the layer.");if(!Number.isFinite(l.start)||l.start<0||!Number.isFinite(l.duration)||l.duration<=0)add("image-time:"+l.id,"error","Invalid image timing","The image layer has invalid timing.","Adjust its timeline timing.");if(!Number.isFinite(l.opacity)||l.opacity<0||l.opacity>1)add("opacity:"+l.id,"error","Invalid image opacity","Opacity must be between 0 and 1.","Reset layer opacity.");}
+ for(const l of input.textLayers){if(!Number.isFinite(l.start)||l.start<0||!Number.isFinite(l.duration)||l.duration<=0)add("text-time:"+l.id,"error","Invalid text timing","The text layer has invalid timing.","Adjust its timeline timing.");if(!l.text.trim())add("empty-text:"+l.id,"warning","Empty text layer","This layer contains no text.","Add text or remove it.");const words=l.text.trim().split(/\s+/).filter(Boolean).length;if(words>=7&&l.duration<words/2.7)add("read:"+l.id,"warning","Text may disappear too quickly","The text may not remain visible long enough to read.","Extend the layer or shorten its wording.");if(l.fontSize<16)add("small:"+l.id,"warning","Small text may be hard to read","Font size is below 16.","Increase size and preview on a phone.");}
+ const visuals=input.clips.filter(c=>{const a=assets.get(c.assetId);return a&&(a.kind==="video"||a.kind==="image");}).sort((a,b)=>a.start-b.start);
+ for(let i=1;i<visuals.length;i++){const prev=visuals[i-1],end=prev.start+(prev.sourceOut-prev.sourceIn)/(prev.speed||1);if(visuals[i].start>end+.25)add("gap:"+prev.id+":"+visuals[i].id,"warning","Possible visual gap","A "+(visuals[i].start-end).toFixed(1)+" second gap appears between visual clips.","Preview the gap; it may be intentional.");}
+ if(input.assets.some(a=>a.kind==="audio")&&!input.clips.some(c=>assets.get(c.assetId)?.kind==="audio"))add("audio-unused","info","Imported audio is not on the timeline","An audio asset is available but not included in the edit.","Add it if it belongs in the final video.");
+ if(input.duration>180)add("long","warning","Long timeline","Long browser exports may be memory-intensive.","Consider exporting shorter sections.");
+ if(input.exportWidth&&input.exportHeight&&input.exportWidth*input.exportHeight>8_500_000)add("pixels","warning","High-resolution export load","This resolution may exceed available browser memory.","Use lower resolution or shorter sections.");
+ if(!out.length)add("clean","info","No structural issues detected","Local checks found no obvious structural problems. Watch and listen to the complete preview.");
+ return out;
+}
+export function qualitySummary(items:QualityFinding[]){return{errors:items.filter(x=>x.severity==="error").length,warnings:items.filter(x=>x.severity==="warning").length,info:items.filter(x=>x.severity==="info").length,ready:!items.some(x=>x.severity==="error")};}

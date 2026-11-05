@@ -26,6 +26,9 @@ import { transcribeWhisper, transcribeVosk, transcribeOnline } from "./editor/tr
 import { askNexusDirector } from "./editor/ai-director";
 import { createApostleQuotePosterLayers, getImageStylePreset, generateNexusWorkerImage } from "./editor/image-engine";
 import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationRoute, validateGeneratedImage } from "./editor/scene-creation-pipeline";
+import { prepareExecutionPlan, splitTimelineClipAtTime } from "./editor/editing-execution-engine";
+import { inspectProjectQuality, qualitySummary } from "./editor/quality-intelligence";
+import { classifyExportFailure, inspectExportRequest, makeExportFilename, validateExportBlob } from "./editor/export-reliability";
 import { getChromaSvgMatrix } from "./editor/video-engine";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
@@ -947,6 +950,9 @@ export default function App() {
     if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
     const fps = Number.parseInt(exportFps, 10) || 30;
     const size = getExportDimensions(aspectRatio, exportQuality);
+    const preflight=inspectExportRequest({width:size.width,height:size.height,fps,duration,clipCount:clips.length,hasVisual:hasExportableContent,hasAudio:clips.some(clip=>{const kind=assets.find(item=>item.id===clip.assetId)?.kind;return kind==="audio"||kind==="video";})});
+    if(!preflight.ok){setStatus("Export preflight blocked: "+preflight.errors.join(" "));setEngineReport(preflight.errors);return;}
+    if(preflight.warnings.length)setStatus("Export checks: "+preflight.warnings.join(" "));
     const controller = new AbortController();
     exportAbortController.current = controller;
     setExportBusy(true); setExportProgress(0);
@@ -957,8 +963,7 @@ export default function App() {
         duration: Math.max(0.1, duration), signal: controller.signal,
         onProgress: value => { setExportProgress(value); setStatus("Rendering video · " + value + "%"); }
       });
-      const extension = blob.type.toLowerCase().includes("mp4") ? "mp4" : "webm";
-      const filename = (projectName || "nexus-video").replace(/[^a-z0-9-_]+/gi, "-") + "." + extension;
+      const verified=validateExportBlob(blob);\n      const extension=verified.extension;\n      const filename=makeExportFilename(projectName,extension);
       if (isNativeAndroid()) {
         await saveExportOnAndroid(blob, filename);
         setStatus("Export complete · " + filename + " saved in Documents/NEXUS Exports. The Android share sheet is ready.");
@@ -971,7 +976,7 @@ export default function App() {
         setStatus("Export complete · " + extension.toUpperCase() + " video saved to your device.");
       }
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Video export failed. Your project is unchanged.");
+      const failure=classifyExportFailure(error);\n      setStatus(failure.message);
     } finally { if (exportAbortController.current === controller) exportAbortController.current = null; setExportBusy(false); }
   }
   async function startNativeClipTranscode() {
@@ -997,6 +1002,8 @@ export default function App() {
   }
   function runProjectVerification() {
     const result=verifyProject(assets,clips); const render=getRenderCapabilities();
+    const quality=inspectProjectQuality({assets,clips,imageLayers,textLayers,tracks:trackStates,duration});
+    const qualityState=qualitySummary(quality);
     const health=getBrowserEngineHealth();
     const imageIssues=imageLayers.flatMap(layer=>[
       !assets.some(item=>item.id===layer.assetId&&item.kind==="image")?"Image layer "+layer.id+" has no imported image asset.":null,
@@ -1008,7 +1015,7 @@ export default function App() {
       !layer.text.trim()?"Text layer "+layer.id+" is empty.":null
     ].filter(Boolean) as string[]);
     const layerIssues=[...imageIssues,...textIssues];
-    const lines=[result.ok&&!layerIssues.length?"Project and layer structure check passed.":"Project structure check found issues.",...result.issues,...layerIssues,"Timeline layers: "+clips.length+" clips · "+imageLayers.length+" image layers · "+textLayers.length+" text layers",hasExportableContent?"Renderable content is present.":"No exportable visual content is present.",render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
+    const lines=[result.ok&&!layerIssues.length?"Project and layer structure check passed.":"Project structure check found issues.","QUALITY SCORECARD · "+qualityState.errors+" errors · "+qualityState.warnings+" warnings · "+qualityState.info+" notes",...quality.map(item=>item.severity.toUpperCase()+" · "+item.title+": "+item.detail+(item.fix?" Fix: "+item.fix:"")),...result.issues,...layerIssues,"Timeline layers: "+clips.length+" clips · "+imageLayers.length+" image layers · "+textLayers.length+" text layers",hasExportableContent?"Renderable content is present.":"No exportable visual content is present.",render.summary,"ENGINE STATUS",...health.map(engine=>engine.id+": "+engine.state+" — "+engine.note)];
     setEngineReport(lines);setAiReply(lines.join(" "));
   }
   async function generateAnimatedSceneFromStill(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, prompt:string) {
@@ -1857,7 +1864,7 @@ export default function App() {
           <button className={"editor-top-icon ai-editor-trigger"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Toggle NEXUS AI guidance"><Sparkles size={18}/><span>AI</span></button><button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open NEXUS Creative Fabric"><GitBranch size={17}/><span>Fabric</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
-         {creativeFabricOpen && <CreativeFabricPanel projectName={projectName} aspectRatio={aspectRatio} assets={assets} clips={clips} textLayers={textLayers} imageLayers={imageLayers} transcriptSegments={transcriptionSegments} beatMarkers={beatMarkers} selectedClipId={selectedClip?.id} onSeekTo={(time:number)=>setPlayhead(time)} onSendToDirector={(brief:string,context?:Record<string,unknown>)=>{setAiBrief(brief);setFabricDirectorContext(context||null);setAiWorkspaceOpen(true);setStatus("Creative Fabric scene intelligence and structured project evidence sent to NEXUS AI Director.");}} onApplyPlan={(operations: FabricOperation[])=>{if(!operations.length)return;recordProjectHistory();for(const op of operations){if(op.kind==="add-title"){const layer:TimelineTextLayer={id:uid(),trackId:trackStates.find(track=>track.kind==="overlay"&&!track.locked)?.id||"text-1",start:op.start??playhead,duration:op.duration||5,text:op.text,color:op.color||"#ffffff",fontSize:op.fontSize||64,fontFamily:op.fontFamily||"Arial",x:op.x??50,y:op.y??42,align:op.align||"center",backgroundColor:op.backgroundColor||"transparent",padding:12,shadow:op.shadow??true,animation:op.animation||"fade"};setTextLayers(old=>[...old,layer]);setSelectedTextLayer(layer.id);setActiveTool("text");}else if(op.kind==="apply-look"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,filter:op.filter}:clip));}else if(op.kind==="apply-transition"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,transitionIn:Math.max(clip.transitionIn||0,0.45),transitionOut:Math.max(clip.transitionOut||0,0.45),transitionStyle:op.transition}:clip));}}setStatus("Creative Fabric applied "+operations.length+" reviewed operation(s). Use Undo to reverse the changes.");}} onClose={()=>setCreativeFabricOpen(false)}/>}
+         {creativeFabricOpen && <CreativeFabricPanel projectName={projectName} aspectRatio={aspectRatio} assets={assets} clips={clips} textLayers={textLayers} imageLayers={imageLayers} transcriptSegments={transcriptionSegments} beatMarkers={beatMarkers} selectedClipId={selectedClip?.id} onSeekTo={(time:number)=>setPlayhead(time)} onSendToDirector={(brief:string,context?:Record<string,unknown>)=>{setAiBrief(brief);setFabricDirectorContext(context||null);setAiWorkspaceOpen(true);setStatus("Creative Fabric scene intelligence and structured project evidence sent to NEXUS AI Director.");}} onApplyPlan={(operations: FabricOperation[])=>{if(!operations.length)return;const execution=prepareExecutionPlan(operations,{assets,clips,textLayers,selectedClipId:selectedClip?.id,playhead});if(!execution.accepted.length){setStatus("AI execution review: "+execution.rejected.map(item=>item.reason).join(" "));return;}recordProjectHistory();for(const op of execution.accepted){if(op.kind==="split-clip"){const target=clips.find(item=>item.id===op.clipId);if(target){const [left,right]=splitTimelineClipAtTime(target,op.time);setClips(old=>old.flatMap(item=>item.id===target.id?[left,right]:[item]));setSelected(right.id);setPlayhead(right.start);}}else if(op.kind==="add-title"){const layer:TimelineTextLayer={id:uid(),trackId:trackStates.find(track=>track.kind==="overlay"&&!track.locked)?.id||"text-1",start:op.start??playhead,duration:op.duration||5,text:op.text,color:op.color||"#ffffff",fontSize:op.fontSize||64,fontFamily:op.fontFamily||"Arial",x:op.x??50,y:op.y??42,align:op.align||"center",backgroundColor:op.backgroundColor||"transparent",padding:12,shadow:op.shadow??true,animation:op.animation||"fade"};setTextLayers(old=>[...old,layer]);setSelectedTextLayer(layer.id);setActiveTool("text");}else if(op.kind==="apply-look"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,filter:op.filter}:clip));}else if(op.kind==="apply-transition"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,transitionIn:Math.max(clip.transitionIn||0,0.45),transitionOut:Math.max(clip.transitionOut||0,0.45),transitionStyle:op.transition}:clip));}}setStatus("AI execution engine applied "+execution.accepted.length+" approved operation(s). "+(execution.rejected.length?execution.rejected.length+" invalid operation(s) were skipped. ":"")+"Use Undo to reverse the changes.");}} onClose={()=>setCreativeFabricOpen(false)}/>}
         <input ref={mediaInput} hidden type="file" accept="image/*,video/*" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={audioInput} hidden type="file" accept="audio/*" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={filesInput} hidden type="file" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>

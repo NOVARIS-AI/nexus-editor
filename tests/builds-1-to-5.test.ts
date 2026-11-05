@@ -5,6 +5,9 @@ import { buildReferenceContext, buildReferenceFusion } from "../src/editor/refer
 import { analyseFabricScenes, makeDirectorBrief, recommendFabricActions, readFabricMemory, writeFabricMemory } from "../src/editor/fabric-intelligence";
 import { parseLocalDraft, readRecoverableDraft, writeRecoverableDraft } from "../src/editor/project-recovery";
 import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationRoute, validateGeneratedImage } from "../src/editor/scene-creation-pipeline";
+import { prepareExecutionPlan, splitTimelineClipAtTime } from "../src/editor/editing-execution-engine";
+import { inspectProjectQuality, qualitySummary } from "../src/editor/quality-intelligence";
+import { classifyExportFailure, inspectExportRequest, makeExportFilename, validateExportBlob } from "../src/editor/export-reliability";
 
 const asset = { id: "media-1", name: "opening.mp4", kind: "video" as const, duration: 12, mimeType: "video/mp4" };
 const clip = { id: "clip-1", assetId: "media-1", trackId: "video-1", start: 0, sourceIn: 0, sourceOut: 8, label: "Opening" };
@@ -146,6 +149,27 @@ describe("Build 9 — Intelligent media and creation pipeline", () => {
     expect(() => validateGeneratedImage(new Blob([], { type: "image/png" }))).toThrow(/empty/i);
     expect(() => validateGeneratedImage(new Blob(["12345"], { type: "image/png" }), "", 4)).toThrow(/import limit/i);
   });
+});
+
+
+describe("Build 10 — AI editing execution engine",()=>{
+ it("prepares safe reviewable operations and rejects invalid split targets",()=>{
+  const plan=prepareExecutionPlan([{kind:"add-title",text:"A clear message",start:2,duration:4},{kind:"apply-look",filter:"Cinematic",clipId:"clip-1"},{kind:"split-clip",clipId:"clip-1",time:4},{kind:"split-clip",clipId:"clip-1",time:0}],{assets:[{...asset,objectUrl:"blob:video"}],clips:[clip],textLayers:[],selectedClipId:"clip-1",playhead:0});
+  expect(plan.requiresApproval).toBe(true);expect(plan.accepted).toHaveLength(3);expect(plan.rejected).toHaveLength(1);
+ });
+ it("splits a clip while preserving the source boundary",()=>{const [left,right]=splitTimelineClipAtTime(clip,3);expect(left.sourceOut).toBe(3);expect(right.sourceIn).toBe(3);expect(right.start).toBe(3);});
+});
+describe("Build 11 — Quality intelligence",()=>{
+ it("finds missing assets, short reading time and small text",()=>{
+  const findings=inspectProjectQuality({assets:[asset],clips:[{...clip,assetId:"missing"}],imageLayers:[],textLayers:[{id:"t",trackId:"text-1",start:0,duration:.5,text:"This is a long message that needs much more reading time",color:"#fff",fontSize:12,fontFamily:"Arial"}],tracks:defaultTracks,duration:8});
+  expect(findings.some(x=>x.severity==="error"&&/missing media/i.test(x.title))).toBe(true);expect(findings.some(x=>x.id==="read:t")).toBe(true);expect(findings.some(x=>x.id==="small:t")).toBe(true);expect(qualitySummary(findings).ready).toBe(false);
+ });
+ it("marks a structurally clean project ready for human review",()=>{const findings=inspectProjectQuality({assets:[{...asset,objectUrl:"blob:video"}],clips:[clip],imageLayers:[],textLayers:[],tracks:defaultTracks,duration:8});expect(qualitySummary(findings).ready).toBe(true);});
+});
+describe("Build 12 — Export reliability",()=>{
+ it("blocks invalid export requests",()=>{expect(inspectExportRequest({width:0,height:0,fps:30,duration:8,clipCount:1,hasVisual:true,hasAudio:false}).ok).toBe(false);});
+ it("validates video outputs and sanitises filenames",()=>{expect(validateExportBlob(new Blob(["video"],{type:"video/webm"})).extension).toBe("webm");expect(()=>validateExportBlob(new Blob([],{type:"video/mp4"}))).toThrow(/empty/i);expect(makeExportFilename("My project / final","mp4")).toBe("My-project-final.mp4");});
+ it("classifies cancellation and decode failures",()=>{expect(classifyExportFailure(new Error("Export cancelled")).code).toBe("cancelled");expect(classifyExportFailure(new Error("A media file could not be decoded")).code).toBe("media-decode");});
 });
 
 describe("Local project recovery", () => {
