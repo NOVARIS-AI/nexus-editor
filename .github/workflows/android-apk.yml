@@ -9,7 +9,7 @@ on:
       - "public/**"
       - "scripts/**"
       - "native-engine-plugin/**"
-      - "docs/ANDROID_APK.md"
+      - "docs/ANDROID_APK_BUILD.md"
       - "package.json"
       - "capacitor.config.ts"
       - "vite.config.ts"
@@ -19,35 +19,55 @@ on:
 permissions:
   contents: read
 
-env:
-  CI: true
+concurrency:
+  group: nexus-android-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-apk:
     name: Build installable Android debug APK
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
       - name: Build web editor
         run: npm run build
-      - name: Generate Android project and sync native plugins
-        run: npx cap add android && node scripts/generate-android-branding.mjs && npx cap sync android
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Generate Android project
+        run: npm run android:prepare
+
+      - name: Sync native plugins and apply NEXUS branding
+        run: npx cap sync android && node scripts/generate-android-branding.mjs
+
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+
+      - name: Verify APK exists
+        run: test -s android/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
