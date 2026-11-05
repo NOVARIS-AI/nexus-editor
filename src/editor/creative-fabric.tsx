@@ -8,6 +8,7 @@ export type FabricOperation = { kind: "add-title"; text: string; fontSize?: numb
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
+  transcriptSegments?: TranscriptSegment[]; beatMarkers?: BeatMarker[];
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
   onSeekTo: (time: number) => void;
@@ -17,6 +18,8 @@ type DNA = { purpose: string; audience: string; style: string; palette: string; 
 const blankDNA: DNA = { purpose: "", audience: "", style: "Cinematic", palette: "Project colours", rules: "" };
 
 type SemanticHit = { id: string; title: string; kind: string; time: number; score: number; detail: string };
+type TranscriptSegment = { start:number; end:number; text:string };
+type BeatMarker = { assetId:string; time:number };
 const semanticGroups: Record<string,string[]> = {
   explanation: ["explain","explaining","teach","teaching","lesson","tutorial","how","guide","demonstration","main point","core message","message"],
   hook: ["hook","opening","intro","attention","start","first","stop scrolling","headline"],
@@ -33,11 +36,12 @@ function semanticTerms(query: string) {
   for(const [concept,terms] of Object.entries(semanticGroups)) if(terms.some(term=>query.toLowerCase().includes(term))) { expanded.add(concept); terms.forEach(term=>expanded.add(term)); }
   return [...expanded].filter(word=>word.length>2);
 }
-function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[]) : SemanticHit[] {
+function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[]) : SemanticHit[] {
   const terms=semanticTerms(query); if(!terms.length)return [];
   const records:SemanticHit[]=[
     ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
     ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
+    ...transcript.map((segment,index)=>({id:"transcript-"+index,title:segment.text.slice(0,76),kind:"Spoken transcript",time:segment.start,detail:segment.text})),
     ...assets.map(asset=>({id:asset.id,title:asset.name,kind:asset.kind==="audio"?"Audio source":"Media source",time:clips.find(clip=>clip.assetId===asset.id)?.start||0,detail:asset.name+" "+asset.kind}))
   ];
   return records.map(record=>{const hay=(record.title+" "+record.detail+" "+record.kind).toLowerCase();const matched=terms.filter(term=>hay.includes(term));const exact=matched.filter(term=>query.toLowerCase().includes(term)).length;return {...record,score:matched.length+exact*1.5};}).filter(item=>item.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
@@ -100,9 +104,11 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"whatif">("map");
-  const [intent, setIntent] = useState("");\n  const [semanticQuery, setSemanticQuery] = useState("");\n  const [quoteText, setQuoteText] = useState("");
+  const [intent, setIntent] = useState("");
+  const [semanticQuery, setSemanticQuery] = useState("");
+  const [quoteText, setQuoteText] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
     try { return { ...blankDNA, ...JSON.parse(localStorage.getItem("nexus-fabric-dna:"+projectName)||"{}") }; } catch { return blankDNA; }
   });
@@ -130,7 +136,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally { setVisualScanBusy(false); }
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
-  const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);\n  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers),[semanticQuery,assets,clips,textLayers]);\n  const quoteDesign = useMemo(()=>understandQuote(quoteText),[quoteText]);
+  const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
+  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments),[semanticQuery,assets,clips,textLayers,transcriptSegments]);
+  const beatMoments = useMemo(()=>beatMarkers.flatMap(marker=>clips.filter(clip=>clip.assetId===marker.assetId && marker.time>=clip.sourceIn && marker.time<=clip.sourceOut).map(clip=>({time:clip.start+(marker.time-clip.sourceIn)/(clip.speed||1),asset:assets.find(a=>a.id===marker.assetId)?.name||"Audio",sourceTime:marker.time}))).sort((a,b)=>a.time-b.time).slice(0,16),[beatMarkers,clips,assets]);
+  const pauseMoments = useMemo(()=>transcriptSegments.slice(1).flatMap((segment,index)=>{const previous=transcriptSegments[index];const gap=segment.start-previous.end;return gap>=0.8?[{time:previous.end,gap,text:previous.text+" → "+segment.text}]:[];}).slice(0,12),[transcriptSegments]);
+  const quoteDesign = useMemo(()=>understandQuote(quoteText),[quoteText]);
   const operations = useMemo<FabricOperation[]>(()=>{
     if(!intent.trim()) return [];
     const q=intent.toLowerCase(); const result:FabricOperation[]=[];
@@ -225,10 +235,13 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     </div>}
     {tab==="intent" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Describe the result you want. Fabric turns it into a transparent, reviewable plan using the tools already in NEXUS.</p><textarea className="nexus-fabric-intent" value={intent} onChange={e=>setIntent(e.target.value)} placeholder="Make this a powerful 30-second wisdom quote video with a cinematic opening, readable message and calm ending…"/>{plan.length>0&&<div className="nexus-fabric-plan"><b>Proposed creative direction</b>{plan.map((s,i)=><div key={i}><span>{i+1}</span>{s}</div>)}<small>Target: {selectedClipId?"selected clip":"all eligible clips"} · Nothing changes until you approve.</small>{operations.length>0?<><div className="nexus-fabric-operation-list"><b>Ready-to-apply operations</b>{operations.map((op,i)=><span key={i}>{op.kind==="add-title"?"Add editable title: "+op.text:op.kind==="apply-look"?"Apply "+op.filter+" look":"Apply "+op.transition+" transitions"}</span>)}</div><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan(operations);setApproved(true);}}><Check size={15}/> {approved?"Apply again":"Approve & apply to timeline"}</button></>:<small>This request currently produces guidance only. Ask for a title, cinematic look or transition to create supported actions.</small>}</div>}</div>}
     {tab==="semantic" && <div className="nexus-fabric-body">
-      <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. This first semantic layer expands related concepts across scene notes, clip labels, text and asset names. It runs locally and does not inspect speech or recognise objects inside footage.</p>
+      <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. This local semantic layer searches scene notes, captions, asset names and available transcription segments. It expands related concepts; it does not yet recognise objects or actions inside raw footage.</p>
       <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
       <div className="nexus-fabric-semantic-results">{semanticQuery.trim()?semanticHits.map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · relevance {hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item's name or type."}</p></div><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make semantic search richer.</div>}</div>
-      <small className="nexus-fabric-scene-note">Current version: concept expansion + local text matching. True embedding-based search and automatic speech understanding are future engine upgrades, not claimed as active.</small>
+      <small className="nexus-fabric-scene-note">Search covers "+transcriptSegments.length+" available spoken segment(s). Meaning matching uses local concept expansion and text matching; it does not infer speech that has not been transcribed.</small>      <div className="nexus-fabric-semantic-tools">
+        <section><b>Natural pause candidates</b><small>Potential edit points from transcript gaps (0.8 seconds or longer). Review the audio before trimming.</small>{pauseMoments.length?pauseMoments.map((item,index)=><article key={"pause-"+index}><span>{item.gap.toFixed(1)}s pause · {item.text.slice(0,110)}</span><button onClick={()=>onSeekTo(item.time)}>Review cut</button></article>):<p>No long transcript pauses detected yet. Transcribe an audio/video source to populate this.</p>}</section>
+        <section><b>Music beat moments</b><small>Detected beat markers mapped from source-audio time to timeline time where the audio asset is used.</small>{beatMoments.length?beatMoments.map((item,index)=><article key={"beat-"+index}><span>{item.asset} · timeline {item.time.toFixed(2)}s</span><button onClick={()=>onSeekTo(item.time)}>Go to beat</button></article>):<p>No mapped beat markers yet. Run local beat analysis on an audio asset.</p>}</section>
+      </div>
     </div>}
     {tab==="quote" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Quote Intelligence reads the wording you provide, estimates its message category and proposes a typography, tone and visual treatment. It preserves the exact quote text.</p>
