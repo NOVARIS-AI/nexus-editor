@@ -10,6 +10,8 @@ Updated: 2026-11-05
 - The server validates the user session, file metadata and upload limits, creates a Cloudflare Stream direct-creator upload URL, and creates private Supabase media/post records.
 - The browser uploads the video directly to Cloudflare using the one-time URL. The Cloudflare API token never reaches the browser.
 - `/api/social/stream-webhook` verifies Cloudflare's HMAC-SHA256 webhook signature and updates media/post processing state.
+- `/api/social/upload-status` returns only the signed-in owner's upload state; the PublishFlow checks for processing completion and review status.
+- Upload URL creation is limited to five upload attempts per account per hour, in addition to the file size and duration caps.
 - Newly uploaded posts remain pending moderation. The feed now filters for both `status = ready` and `moderation_state = approved`.
 - Existing ready posts are marked approved by migration 0004 to preserve the existing feed.
 
