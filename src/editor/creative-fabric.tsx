@@ -5,6 +5,7 @@ import { captureVisualSamples, type VisualSample } from "./visual-sampling";
 import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
 import { SEMANTIC_MODEL, getSemanticDeviceInfo, isSemanticModelLoaded, loadSemanticModel, rankBySemanticSimilarity } from "./semantic-brain";
 import { analyseFabricScenes, makeDirectorBrief, readFabricMemory, recommendFabricActions, writeFabricMemory } from "./fabric-intelligence";
+import { VISUAL_MODEL, getVisualModelDeviceInfo, isVisualModelLoaded, loadVisualModel, understandVisualSamples, type VisualUnderstanding } from "./visual-brain";
 
 export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; start?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
@@ -129,8 +130,30 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const [visualSamples, setVisualSamples] = useState<VisualSample[]>([]);
   const [visualAnalyses, setVisualAnalyses] = useState<MediaAnalysis[]>([]);
   const [visualScanBusy, setVisualScanBusy] = useState(false);
+  const [visualDescriptions, setVisualDescriptions] = useState<VisualUnderstanding[]>([]);
+  const [visionReady, setVisionReady] = useState(isVisualModelLoaded());
+  const [visionBusy, setVisionBusy] = useState(false);
+  const [visionProgress, setVisionProgress] = useState(0);
+  const [visionMessage, setVisionMessage] = useState("Not downloaded · local vision model");
+  const [visionCurrent, setVisionCurrent] = useState("");
   const [visualScanMessage, setVisualScanMessage] = useState("");
   const [memoryStatus, setMemoryStatus] = useState("Project memory stays on this device.");
+  const visionDeviceInfo = useMemo(()=>getVisualModelDeviceInfo(),[]);
+  const prepareVisualModel = async () => {
+    if(visionBusy||visionReady)return;
+    setVisionBusy(true);setVisionProgress(0);setVisionMessage("Downloading SmolVLM2 visual model…");
+    try { await loadVisualModel(event=>{if(typeof event.progress==="number")setVisionProgress(Math.max(0,Math.min(100,Math.round(event.progress))));if(event.file)setVisionMessage("Preparing "+event.file.split("/").pop());});setVisionReady(true);setVisionProgress(100);setVisionMessage("SmolVLM2 loaded in this session. Model files are cached by the browser when storage permits."); }
+    catch(error) {setVisionMessage(error instanceof Error?error.message:"Visual model could not be loaded.");}
+    finally {setVisionBusy(false);}
+  };
+  const runVisualUnderstanding = async () => {
+    if(!visionReady){setVisionMessage("Download the visual model first.");return;}
+    if(!visualSamples.length){setVisionMessage("Scan project frames first so the model has real footage to inspect.");return;}
+    setVisionBusy(true);setVisionProgress(0);setVisionMessage("Analysing sampled frames locally…");
+    try { const descriptions=await understandVisualSamples(visualSamples,(done,total,current)=>{setVisionProgress(Math.round(done/Math.max(1,total)*100));setVisionCurrent(current);setVisionMessage("Understanding frame "+Math.min(done+1,total)+" of "+total);});setVisualDescriptions(descriptions);setVisionProgress(100);setVisionMessage("Visual understanding complete · "+descriptions.length+" frame descriptions generated."); }
+    catch(error) {setVisionMessage(error instanceof Error?error.message:"Frame understanding failed. Try fewer samples or check WebGPU support.");}
+    finally {setVisionBusy(false);setVisionCurrent("");}
+  };
   const scanProjectVisuals = async () => {
     if (visualScanBusy) return;
     setVisualScanBusy(true); setVisualScanMessage("Reading local image and video frames…");
@@ -141,6 +164,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       const analyses: MediaAnalysis[] = [];
       for (const asset of visualAssets) { try { analyses.push(await analyzeMediaAsset(asset)); } catch { /* keep the contact sheet if one source fails */ } }
       setVisualAnalyses(analyses);
+      setVisualDescriptions([]);
       const changes = analyses.reduce((sum, item) => sum + (item.visual?.sceneChanges.length || 0), 0);
       setVisualScanMessage(samples.length ? "Captured " + samples.length + " frame(s) and measured " + analyses.length + " source(s) locally. " + changes + " possible visual-change point(s) detected. No upload or API key used." : "No readable image/video files found. Re-import the original media if needed.");
     }
@@ -211,6 +235,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition and text-safe-zone suggestions are contrast-based, not subject recognition.</small></div>
         <button onClick={()=>void scanProjectVisuals()} disabled={visualScanBusy}>{visualScanBusy?"Scanning…":"Scan project frames"}</button>
         {visualScanMessage && <p>{visualScanMessage}</p>}
+        <div className="nexus-fabric-vision-actions"><span>{visionReady?"SmolVLM2 ready":"Visual model not loaded"} · {visualDescriptions.length} frame(s) understood</span><button onClick={()=>{if(!visualSamples.length)void scanProjectVisuals();else if(!visionReady)setTab("models");else void runVisualUnderstanding();}} disabled={visualScanBusy||visionBusy}>{visualScanBusy?"Sampling…":visionBusy?"Understanding…":!visualSamples.length?"Sample frames":!visionReady?"Load visual model":"Understand frames"}</button></div><small className="nexus-fabric-vision-status">{visionMessage}{visionCurrent?" · "+visionCurrent:""}</small>
         {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
           <img src={sample.dataUrl} alt={sample.assetName+" visual sample"} loading="lazy"/>
           <b>{sample.assetName}</b><small>{sample.role}{typeof sample.timestamp==="number"?" · "+sample.timestamp.toFixed(1)+"s":""}</small>
@@ -243,6 +268,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
           <div className="nexus-fabric-scene-top"><span>SCENE {String(index+1).padStart(2,"0")}</span><b>{role}</b><small>{seconds.toFixed(1)}s</small></div>
           <strong>{clip.aiScene?.title||clip.label||"Untitled scene"}</strong>
           {sceneSamples.length>0&&<div className="nexus-fabric-scene-frames">{sceneSamples.map((sample,index)=><button key={sample.assetId+"-scene-"+index} onClick={()=>onSeekTo(clip.start+Math.max(0,(sample.timestamp||0)-clip.sourceIn)/(clip.speed||1))} title="Jump to sampled frame"><img src={sample.dataUrl} alt={"Frame from "+sample.assetName}/><small>{typeof sample.timestamp==="number"?sample.timestamp.toFixed(1)+"s":"Image"}</small></button>)}</div>}
+          {visualDescriptions.filter(item=>item.assetId===clip.assetId).map((item,index)=><div className="nexus-fabric-vision-description" key={item.assetId+"-vlm-"+index}><b>SmolVLM2 visual understanding{typeof item.timestamp==="number"?" · "+item.timestamp.toFixed(1)+"s":""}</b><p>{item.description}</p></div>)}
           <p>{clip.aiScene?.visual||attachedText.map(layer=>layer.text).join(" · ")||"No scene description or overlapping text yet. Add a caption or scene note to improve the story map."}</p>
           {visualAnalyses.filter(item=>item.assetId===clip.assetId&&item.visual).map(item=><div className="nexus-fabric-scene-analysis" key={item.assetId}>
             <span>{item.visual!.averageLuminance<0.28?"Low-light source":item.visual!.averageLuminance>0.76?"Bright source":"Balanced average brightness"}</span>
@@ -295,7 +321,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     {tab==="models" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Manage optional local intelligence models. Downloads are initiated by you, cached by the browser where supported and run on this device. No paid API or account key is used.</p>
       <section className="nexus-model-card"><div className="nexus-model-card-head"><span>TEXT EMBEDDINGS</span><b>{semanticModelReady?"ACTIVE":"OPTIONAL DOWNLOAD"}</b></div><h3>{SEMANTIC_MODEL.name}</h3><p>{SEMANTIC_MODEL.description}</p><div className="nexus-model-facts"><span>Model <b>{SEMANTIC_MODEL.id}</b></span><span>Download <b>{SEMANTIC_MODEL.size}</b></span><span>Runtime <b>Transformers.js · ONNX · WASM</b></span><span>Tasks <b>Meaning search, transcript retrieval</b></span></div><div className="nexus-model-capabilities">{SEMANTIC_MODEL.strengths.map(item=><span key={item}>✓ {item}</span>)}</div><small>Limitations: {SEMANTIC_MODEL.limitations.join(" · ")}</small><div className="nexus-model-device"><b>Device compatibility</b><span>WebAssembly: {deviceInfo.webAssembly?"Available":"Unavailable"} · WebGPU: {deviceInfo.webGPU?"Available":"Not detected"} · Reported memory: {deviceInfo.deviceMemory?deviceInfo.deviceMemory+" GB":"Unknown"}</span><span>Browser storage: {modelStorageInfo}</span><small>{deviceInfo.note}</small></div>{semanticModelBusy&&<div className="nexus-model-progress"><i style={{width:semanticModelProgress+"%"}}/></div>}<p className="nexus-model-status">{semanticModelMessage}</p><button className="nexus-fabric-primary" disabled={semanticModelBusy||semanticModelReady||!deviceInfo.compatible} onClick={()=>void prepareSemanticModel()}>{semanticModelBusy?"Downloading model "+semanticModelProgress+"%":semanticModelReady?"Model active":"Download & activate model"}</button></section>
-      <section className="nexus-model-card"><div className="nexus-model-card-head"><span>VISUAL UNDERSTANDING</span><b>NOT INSTALLED</b></div><h3>Vision model slot</h3><p>Reserved for a downloadable vision-language model that can describe sampled frames and recognise relevant visual content. The current contrast-based frame analysis remains available and is not presented as object recognition.</p><small>No vision model is being downloaded or claimed as active in this milestone.</small></section>
+      <section className="nexus-model-card"><div className="nexus-model-card-head"><span>VISUAL UNDERSTANDING</span><b>{visionReady?"ACTIVE":"READY TO DOWNLOAD"}</b></div><h3>{VISUAL_MODEL.name}</h3><p>{VISUAL_MODEL.description}</p><div className="nexus-model-facts"><span>Model <b>{VISUAL_MODEL.id}</b></span><span>Size <b>{VISUAL_MODEL.size}</b></span><span>Runtime <b>{VISUAL_MODEL.runtime}</b></span><span>Licence <b>{VISUAL_MODEL.licence}</b></span></div><div className="nexus-model-device"><b>Device compatibility</b><span>WebGPU: {visionDeviceInfo.webGPU?"Available":"Not detected"} · Reported memory: {visionDeviceInfo.deviceMemory?visionDeviceInfo.deviceMemory+" GB":"Unknown"}</span><small>{visionDeviceInfo.note}</small></div>{visionBusy&&<div className="nexus-model-progress"><i style={{width:visionProgress+"%"}}/></div>}<p className="nexus-model-status">{visionMessage}</p><button className="nexus-fabric-primary" disabled={visionBusy||visionReady||!visionDeviceInfo.compatible} onClick={()=>void prepareVisualModel()}>{visionBusy?"Preparing model "+visionProgress+"%":visionReady?"Visual model active":"Download visual model"}</button><button disabled={!visionReady||visionBusy||!visualSamples.length} onClick={()=>void runVisualUnderstanding()}>Analyse sampled project frames</button><small>Runs locally through WebGPU. First download requires internet and storage. Project frames are not uploaded to a paid API. Unsupported or low-memory devices retain the existing frame measurements.</small></section>
       <section className="nexus-model-card"><div className="nexus-model-card-head"><span>STORY INTELLIGENCE</span><b>LOCAL ALGORITHMS</b></div><h3>Transcript and timeline analysis</h3><p>Available now: transcript segments, pauses, beat markers, timeline scene notes and editable caption layers. Deeper story summarisation and key-moment ranking will build on the embedding model next.</p></section>
     </div>}
     {tab==="quote" && <div className="nexus-fabric-body">
