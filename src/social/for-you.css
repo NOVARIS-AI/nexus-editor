@@ -31,3 +31,11 @@
 .nfy-profile-loading{font-size:10px!important;color:var(--nfy-muted)}
 .nfy-profile-topics{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:12px 0}
 .nfy-profile-topics span{padding:6px 9px;border:1px solid var(--nfy-line);border-radius:999px;background:#ffffff09;color:#dfc6ed;font-size:10px}
+
+
+/* Signed community video playback */
+.nfy-art.nfy-live-video{overflow:hidden;background:#070a12}
+.nfy-stream-player{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.nfy-video-state{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;text-align:center;color:#d8c2e8;background:radial-gradient(ellipse at 50% 30%,#3d2b51,#090b13 72%)}
+.nfy-video-state b{font-size:13px;color:#fff}
+.nfy-video-state small{max-width:260px;font-size:10px;line-height:1.55;color:#b8adbf}
