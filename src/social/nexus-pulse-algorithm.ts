@@ -89,10 +89,10 @@ export function rankNexusFeed<T extends RankedPost>(posts: T[], signals: FeedSig
       const preference = preferred.has(category) ? 14 : 0;
       const historyAffinity = Math.min(24, (historicalWeights[category] || 0) * 2.5);
       const creatorTopicMatch = (post.creatorTopics || []).reduce((total, topic) => {
-        const normalized = topic.trim().toLowerCase();
-        const matchesPreferred = [...preferred].some(item => item.toLowerCase() === normalized);
-        const matchesHistory = Object.entries(historicalWeights).some(([key, value]) => value > 0 && key.toLowerCase() === normalized);
-        return total + (matchesPreferred ? 5 : matchesHistory ? 3 : 0);
+        const topicCategory = inferPostCategory({ caption: topic, title: topic, tags: [topic], category: "Creative" });
+        const matchesPreferred = preferred.has(topicCategory);
+        const matchesHistory = (historicalWeights[topicCategory] || 0) > 0;
+        return total + (matchesPreferred ? 6 : matchesHistory ? 4 : 0);
       }, 0);
       const followScore = followed.has(post.handle) ? 8 : 0;
       const communitySignal = Math.min(10, Math.log1p(post.likes) * 1.2 + Math.log1p(post.comments) * 1.4);
