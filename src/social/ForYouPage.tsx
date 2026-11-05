@@ -168,7 +168,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     setter(items.includes(id) ? items.filter(x=>x!==id) : [...items,id]);
     requireAction(label);
   };
-  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
+  useEffect(() => {\n    setActiveIndex(index => Math.min(index, Math.max(0, filtered.length - 1)));\n  }, [filtered.length]);\n\n  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
 
