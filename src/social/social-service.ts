@@ -197,14 +197,51 @@ export async function createPostComment(postId: string, body: string) {
   fail(error);
 }
 
-export async function reportCommunityPost(postId: string, reason: "spam" | "harassment" | "hate" | "sexual_content" | "violence" | "self_harm" | "copyright" | "misinformation" | "other") {
+export type NexusReportReason = "spam" | "harassment" | "hate" | "sexual_content" | "violence" | "self_harm" | "copyright" | "misinformation" | "other";
+
+export async function reportCommunityPost(postId: string, reason: NexusReportReason, details = "") {
   if (!supabase) throw new Error("Supabase is not configured in this build.");
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error("Sign in to report content.");
   const { error } = await supabase.from("reports").insert({
-    reporter_id: auth.user.id, target_type: "post", target_id: postId, reason
+    reporter_id: auth.user.id, target_type: "post", target_id: postId, reason,
+    details: details.trim().slice(0, 2000)
   });
   fail(error);
+}
+
+export async function blockCommunityCreator(creatorId: string) {
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sign in to block a creator.");
+  if (auth.user.id === creatorId) throw new Error("You cannot block your own account.");
+  const { error } = await supabase.from("blocks").upsert(
+    { blocker_id: auth.user.id, blocked_id: creatorId },
+    { onConflict: "blocker_id,blocked_id" }
+  );
+  fail(error);
+  // Remove an existing follow in either direction so the block takes effect cleanly.
+  const { error: followError } = await supabase.from("follows").delete()
+    .or(`and(follower_id.eq.${auth.user.id},followed_id.eq.${creatorId}),and(follower_id.eq.${creatorId},followed_id.eq.${auth.user.id})`);
+  fail(followError);
+}
+
+export async function unblockCommunityCreator(creatorId: string) {
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sign in to unblock a creator.");
+  const { error } = await supabase.from("blocks").delete()
+    .eq("blocker_id", auth.user.id).eq("blocked_id", creatorId);
+  fail(error);
+}
+
+export async function loadMyBlockedCreators() {
+  if (!supabase) return [] as string[];
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [] as string[];
+  const { data, error } = await supabase.from("blocks").select("blocked_id").eq("blocker_id", auth.user.id);
+  fail(error);
+  return (data || []).map(row => row.blocked_id);
 }
 
 export async function loadMyFollowedCreators(creatorIds: string[]) {
