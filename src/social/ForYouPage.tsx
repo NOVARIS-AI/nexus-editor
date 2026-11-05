@@ -25,9 +25,9 @@ const DEMO_POSTS: FeedPost[] = [
 
 const formatCount = (n:number) => n >= 1_000_000 ? (n/1_000_000).toFixed(1).replace(/\\.0$/,"")+"M" : n >= 1000 ? (n/1000).toFixed(1).replace(/\\.0$/,"")+"K" : String(n);
 
-type Props = { onOpenStudio: () => void; onOpenTemplates: () => void; onRequireSignIn: () => void };
+type Props = { onOpenStudio: () => void; onOpenTemplates: () => void; onOpenSaved: () => void; onRequireSignIn: () => void };
 
-export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: Props) {
+export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequireSignIn }: Props) {
   const { signedIn } = useNexusAuth();
   const [activeTab,setActiveTab] = useState("For You");
   const [livePosts,setLivePosts] = useState<FeedPost[]>([]);
@@ -242,7 +242,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
       <div className="nfy-heading"><span className="nfy-mark">N</span><div><b>NEXUS <i>COMMUNITY</i></b><small>Discover what creators are making</small></div></div>
       <div className="nfy-head-actions">
         <label className="nfy-search"><Search size={16}/><input value={query} onChange={e=>{setQuery(e.target.value);setActiveIndex(0);}} placeholder="Search creators, ideas, tags"/></label>
-        <button className="nfy-create nfy-template-link" onClick={onOpenTemplates}><Clapperboard size={15}/> Templates</button><button className="nfy-create" onClick={onOpenStudio}><Plus size={16}/> Create</button>
+        <button className="nfy-create nfy-template-link" onClick={onOpenSaved}><Bookmark size={15}/> Saved</button><button className="nfy-create nfy-template-link" onClick={onOpenTemplates}><Clapperboard size={15}/> Templates</button><button className="nfy-create" onClick={onOpenStudio}><Plus size={16}/> Create</button>
       </div>
     </header>
 
