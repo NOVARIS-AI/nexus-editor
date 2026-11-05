@@ -228,7 +228,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     if (!recorder || !mimeType) throw new Error("This browser could not start an MP4 or WebM video export. Update Chrome, lower the export quality, or try a shorter edit.");
     const activeRecorder = recorder;
     const chunks: BlobPart[] = [];
-    recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+    activeRecorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
     let rejectRecording: (reason?: unknown) => void = () => {};
     let settled = false;
     const stopped = new Promise<Blob>((resolve, reject) => {
