@@ -7,7 +7,7 @@ const filterCss = (name?: string) => FILTER_CSS[name || "Original"] || "none";
 
 
 import {
-  Activity, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Check, ChevronDown, Clapperboard,
+  Activity, UserCircle, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Check, ChevronDown, Clapperboard,
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Settings,
   SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X,
@@ -45,10 +45,10 @@ import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
-import { ForYouPage } from "./social/ForYouPage";
+import { ForYouPage } from "./social/ForYouPage";\nimport { CreatorProfilePage } from "./social/CreatorProfilePage";
 import { PublishFlow } from "./social/PublishFlow";
 
-type Page = "home" | "for-you" | "editor" | "projects" | "templates" | "ai" | "settings";
+type Page = "home" | "for-you" | "profile" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
@@ -1936,7 +1936,7 @@ export default function App() {
   }
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
-    { id: "for-you" as Page, label: "For You", icon: Compass },
+    { id: "for-you" as Page, label: "For You", icon: Compass },\n    { id: "profile" as Page, label: "My Profile", icon: UserCircle },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
@@ -1967,10 +1967,10 @@ export default function App() {
         <div className="crumb"><span>Workspace</span><b>/</b><strong>{pageTitle}</strong></div>
         <label className="global-search"><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects, templates..."/><kbd>⌘ K</kbd></label>
         <button className="icon-button" aria-label="Notifications" onClick={() => setStatus("You're all caught up")}><Bell size={18}/><i/></button>
-        <button className="avatar top-avatar" onClick={() => setPage("settings")}>N</button>
+        <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
-      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}\n      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
