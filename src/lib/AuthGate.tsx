@@ -1,0 +1,95 @@
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { supabase, isSupabaseConfigured } from "./supabase";
+import "./auth-gate.css";
+
+type Props = { children: ReactNode };
+type Mode = "signin" | "signup" | "reset";
+
+export function AuthGate({ children }: Props) {
+  const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [guest, setGuest] = useState(() => localStorage.getItem("nexus-guest-mode") === "true");
+  const [mode, setMode] = useState<Mode>("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!supabase) { setReady(true); return; }
+    let alive = true;
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!alive) return;
+      setSignedIn(Boolean(data.session));
+      setReady(true);
+      if (error) setMessage(error.message);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+      if (session) { localStorage.removeItem("nexus-guest-mode"); setGuest(false); }
+    });
+    return () => { alive = false; data.subscription.unsubscribe(); };
+  }, []);
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!supabase) { setMessage("Supabase isn't connected in this environment yet. Add the Project URL and publishable key."); return; }
+    setBusy(true); setMessage("");
+    try {
+      if (mode === "reset") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+        if (error) throw error;
+        setMessage("Password reset email sent. Check your inbox.");
+      } else if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({
+          email, password, options: { data: { display_name: displayName.trim() || email.split("@")[0] } }
+        });
+        if (error) throw error;
+        setMessage(data.session ? "Account created. Welcome to NEXUS!" : "Account created. Check your email to confirm your address.");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Authentication could not be completed.");
+    } finally { setBusy(false); }
+  };
+
+  const oauth = async (provider: "google" | "apple") => {
+    if (!supabase) { setMessage("Connect Supabase first to enable social sign-in."); return; }
+    setBusy(true); setMessage("");
+    const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+    if (error) { setMessage(error.message); setBusy(false); }
+  };
+
+  const continueAsGuest = () => { localStorage.setItem("nexus-guest-mode", "true"); setGuest(true); };
+  if (!ready) return <div className="nexus-auth-loading"><div className="nexus-auth-mark">N</div><span>Preparing your creative space…</span></div>;
+  if (signedIn || guest) return <>{children}</>;
+
+  const configured = isSupabaseConfigured;
+  return <main className="nexus-auth-screen"><section className="nexus-auth-card">
+    <div className="nexus-auth-brand"><span className="nexus-auth-mark">N</span><span>NEXUS <b>STUDIO</b></span></div>
+    <div className="nexus-auth-eyebrow">YOUR CREATIVE WORLD</div>
+    <h1>{mode === "signup" ? "Create your space." : mode === "reset" ? "Reset your password." : "Create without limits."}</h1>
+    <p className="nexus-auth-intro">Edit, create and share your ideas with the NEXUS creator community.</p>
+    {mode !== "reset" && <div className="nexus-auth-socials">
+      <button type="button" onClick={() => oauth("google")} disabled={!configured || busy}>Continue with Google</button>
+      <button type="button" onClick={() => oauth("apple")} disabled={!configured || busy}>Continue with Apple</button>
+    </div>}
+    <div className="nexus-auth-divider"><span>or use email</span></div>
+    <form className="nexus-auth-form" onSubmit={submit}>
+      {mode === "signup" && <label>Display name<input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your creator name" autoComplete="name" /></label>}
+      <label>Email address<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
+      {mode !== "reset" && <label>Password<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" minLength={6} autoComplete={mode === "signup" ? "new-password" : "current-password"} required /></label>}
+      <button className="nexus-auth-primary" type="submit" disabled={busy || !configured}>{busy ? "Please wait…" : mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"}</button>
+    </form>
+    {mode === "signin" && <button className="nexus-auth-text-button" onClick={() => { setMode("reset"); setMessage(""); }}>Forgot password?</button>}
+    <div className="nexus-auth-switch">{mode === "reset" ? <button onClick={() => setMode("signin")}>Back to sign in</button> : mode === "signup" ? <>Already have an account? <button onClick={() => setMode("signin")}>Sign in</button></> : <>New to NEXUS? <button onClick={() => setMode("signup")}>Create account</button></>}</div>
+    {message && <p className="nexus-auth-message" role="status">{message}</p>}
+    {!configured && <p className="nexus-auth-note">Add your NEXUS Supabase Project URL and publishable key to enable accounts in this environment.</p>}
+    <button className="nexus-auth-guest" onClick={continueAsGuest}>Explore as a guest <span>→</span></button>
+    <p className="nexus-auth-legal">Guest browsing is open. Sign in to publish, follow, like, comment and save.</p>
+    <p className="nexus-auth-chatgpt">ChatGPT sign-in is not a standard Supabase OAuth provider and is not presented as a working login option.</p>
+  </section></main>;
+}
