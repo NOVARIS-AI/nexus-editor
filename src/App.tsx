@@ -139,6 +139,7 @@ export default function App() {
   const [exportProgress, setExportProgress] = useState(0);
   const exportAbortController = useRef<AbortController | null>(null);
   const [search, setSearch] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [templateCategory, setTemplateCategory] = useState("All");
   const [selectedTemplate, setSelectedTemplate] = useState<(typeof CREATIVE_TEMPLATES)[number] | null>(null);
   const [aiBrief, setAiBrief] = useState("");
@@ -1972,7 +1973,8 @@ export default function App() {
       <header className="top-header">
         <div className="mobile-brand"><span className="brand-mark">N</span><b>NEXUS EDITOR</b></div>
         <div className="crumb"><span>Workspace</span><b>/</b><strong>{pageTitle}</strong></div>
-        <label className="global-search"><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects, templates..."/><kbd>⌘ K</kbd></label>
+        <button className="mobile-search-toggle" type="button" aria-label={mobileSearchOpen ? "Close search" : "Open search"} aria-expanded={mobileSearchOpen} onClick={() => setMobileSearchOpen(value => !value)}>{mobileSearchOpen ? <X size={18}/> : <Search size={18}/>}</button>
+        <label className={"global-search" + (mobileSearchOpen ? " mobile-search-open" : "")}><Search size={16}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search projects, templates..."/><kbd>⌘ K</kbd></label>
         <button className="icon-button" aria-label="Notifications" onClick={() => setPage("notifications")}><Bell size={18}/></button>
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
