@@ -12,7 +12,7 @@ import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPos
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
   tags: string[]; category: string; title: string; subtitle: string; palette: string;
-  likes: number; comments: number; sound: string;
+  likes: number; comments: number; sound: string; authorId?: string; isLive?: boolean; createdAt?: string;
 };
 
 const DEMO_POSTS: FeedPost[] = [
@@ -67,8 +67,8 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
         }));
         setLivePosts(mapped);
         if (mapped.length) {
-          const interactions = await loadMyPostInteractions(mapped.map(post => post.id));
-          if (active) { setLiked(interactions.liked); setSaved(interactions.saved); }
+          const [interactions, followedIds] = await Promise.all([loadMyPostInteractions(mapped.map(post => post.id)), loadMyFollowedCreators([...new Set(mapped.map(post => post.authorId).filter((id): id is string => Boolean(id)))])]);
+          if (active) { setLiked(interactions.liked); setSaved(interactions.saved); setFollowed(mapped.filter(post => post.authorId && followedIds.includes(post.authorId)).map(post => post.handle)); }
           setNotice("Live community feed · Supabase connected");
         } else {
           setNotice(activeTab === "Following" ? "No posts from followed creators yet." : "No published community posts yet · sample previews below");
@@ -96,24 +96,45 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   ),[sourcePosts,category,activeTab,followed,query]);
 
   const requireAction = (label:string) => {
-    setNotice(label+" is a preview interaction. Connect the live NEXUS community service before it can be saved or shared publicly.");
+    setNotice(label+" is a preview interaction. Live community actions are only available on published posts.");
   };
   const toggleLocal = (items:string[], setter:(next:string[])=>void, id:string, label:string) => {
     if (!signedIn) { onRequireSignIn(); return; }
+    const post = sourcePosts.find(item => item.id === id || item.handle === id);
+    if (post?.isLive) {
+      const wasActive = items.includes(id);
+      const action = label === "Like" ? togglePostLike(post.id, wasActive) : label === "Save" ? togglePostSave(post.id, wasActive) : post.authorId ? toggleCreatorFollow(post.authorId, wasActive) : Promise.reject(new Error("Creator profile is unavailable."));
+      void action.then(() => {
+        setter(wasActive ? items.filter(x=>x!==id) : [...items,id]);
+        setNotice(label + (wasActive ? " removed." : " saved to your account."));
+        if (label === "Like") setLivePosts(old => old.map(item => item.id === post.id ? {...item,likes:item.likes+(wasActive?-1:1)} : item));
+      }).catch(error => setServiceError(error instanceof Error ? error.message : label + " failed."));
+      return;
+    }
     setter(items.includes(id) ? items.filter(x=>x!==id) : [...items,id]);
     requireAction(label);
   };
   const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
-  const profilePost = DEMO_POSTS.find(post=>post.handle===profileFor);
-  const commentPost = DEMO_POSTS.find(post=>post.id===commentsFor);
+  const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
+  const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
 
   const nextPost = (direction:number) => setActiveIndex(index=>Math.min(Math.max(0,index+direction),Math.max(0,filtered.length-1)));
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
     if (!signedIn) { onRequireSignIn(); return; }
-    setLocalComments(old=>({...old,[commentsFor]:[...(old[commentsFor]||[]),commentText.trim()]}));
-    setCommentText("");
-    requireAction("Comment");
+    const post = sourcePosts.find(item => item.id === commentsFor);
+    const body = commentText.trim();
+    if (post?.isLive) {
+      void createPostComment(commentsFor, body).then(async () => {
+        const rows = await loadPostComments(commentsFor);
+        setLiveComments(rows);
+        setLivePosts(old => old.map(item => item.id === commentsFor ? {...item,comments:item.comments+1} : item));
+        setCommentText(""); setNotice("Comment posted.");
+      }).catch(error => setServiceError(error instanceof Error ? error.message : "Comment failed."));
+      return;
+    }
+    setLocalComments(old=>({...old,[commentsFor]:[...(old[commentsFor]||[]),body]}));
+    setCommentText(""); requireAction("Comment");
   };
 
   return <section className="nexus-foryou">
