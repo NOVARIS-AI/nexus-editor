@@ -1,4 +1,4 @@
-export type CreatorPlatform="YouTube"|"TikTok"|"Instagram"|"Google video";
+export type CreatorPlatform="YouTube"|"TikTok"|"Instagram"|"Facebook"|"Google video";
 export function generateCreatorSeo(input:{projectName:string;brief:string;transcript?:string;platform:CreatorPlatform}){
  const clean=(s:string)=>s.replace(/\s+/g," ").replace(/[<>]/g,"").trim(),words=(s:string)=>s.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}'-]*/gu)||[],stop=new Set(["the","and","for","with","from","that","this","your","you","are","was","how","what","why","about","into","over","under","our","their","they","them","have","has","will","can","make","video","edit","project"]);
  const brief=clean(input.brief),name=clean(input.projectName)||"Untitled project",transcriptRaw=input.transcript||"",transcript=clean(transcriptRaw),frequency=new Map<string,number>();
