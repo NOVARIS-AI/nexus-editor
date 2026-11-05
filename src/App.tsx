@@ -444,32 +444,52 @@ export default function App() {
   function importMedia(files: FileList | File[] | null) {
     if (!files) return;
     const remaining = [...pendingProjectAssets];
-    const added: MediaAsset[] = Array.from(files).filter(f => /^(video|audio|image)\//.test(f.type)).map(file => {
+    const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/"));
+    if (!picked.length) { setStatus("Choose a supported photo, video or audio file."); return; }
+    const added: MediaAsset[] = picked.map(file => {
       const kind = file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image";
       const matchIndex = remaining.findIndex(item => item.name === file.name && item.kind === kind);
       const saved = matchIndex >= 0 ? remaining.splice(matchIndex, 1)[0] : undefined;
-      return {
-        ...(saved || {}),
-        id: saved?.id || uid(), name: file.name, kind,
-        duration: saved?.duration || (kind === "image" ? 5 : 0), mimeType: file.type,
-        file, objectUrl: URL.createObjectURL(file)
-      } as MediaAsset;
+      return { ...(saved || {}), id: saved?.id || uid(), name: file.name, kind, duration: saved?.duration || (kind === "image" ? 5 : 0), mimeType: file.type, file, objectUrl: URL.createObjectURL(file) } as MediaAsset;
     });
     setPendingProjectAssets(remaining);
     setAssets(old => [...old.filter(existing => !added.some(item => item.id === existing.id)), ...added]);
-    added.forEach(a => {
-      if (a.kind !== "image") {
-        const probe = document.createElement(a.kind);
-        probe.preload = "metadata"; probe.src = a.objectUrl!;
-        probe.onloadedmetadata = () => setAssets(old => old.map(x => x.id === a.id ? { ...x, duration: Number.isFinite(probe.duration) ? probe.duration : 5 } : x));
+    let visualStart = timelineDuration(clips);
+    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
+    const usedAudioTracks = new Set(clips.filter(clip => assets.find(media => media.id === clip.assetId)?.kind === "audio").map(clip => clip.trackId));
+    const nextClips: TimelineClip[] = added.map(item => {
+      let trackId = "video-1", start = visualStart;
+      if (item.kind === "audio") {
+        trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(clip => clip.trackId.startsWith("audio-")).length % audioTrackIds.length];
+        usedAudioTracks.add(trackId); start = Math.max(0, playhead);
+      } else visualStart += Math.max(0.5, item.duration || 5);
+      return { id: uid(), assetId: item.id, trackId, start, sourceIn: 0, sourceOut: Math.max(0.5, item.duration || 5), label: item.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
+    });
+    if (nextClips.length) {
+      setUndoStack(old => [...old.slice(-49), captureProjectSnapshot()]); setRedoStack([]);
+      setClips(old => [...old, ...nextClips]);
+      const focus = [...nextClips].reverse().find(clip => added.find(item => item.id === clip.assetId)?.kind !== "audio") || nextClips[nextClips.length - 1];
+      setSelected(focus.id); setPlayhead(focus.start);
+      const lastImage = [...added].reverse().find(item => item.kind === "image"); if (lastImage) setSelectedImageAssetId(lastImage.id);
+    }
+    added.forEach(item => {
+      if (item.kind !== "image") {
+        const probe = document.createElement(item.kind); probe.preload = "metadata";
+        probe.onloadedmetadata = () => {
+          const actualDuration = Number.isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 5;
+          setAssets(old => old.map(asset => asset.id === item.id ? { ...asset, duration: actualDuration } : asset));
+          setClips(old => old.map(clip => clip.assetId === item.id ? { ...clip, sourceOut: actualDuration } : clip));
+          probe.removeAttribute("src"); probe.load();
+        };
+        probe.onerror = () => setStatus("Imported " + item.name + ", but this device could not read its duration. Try a standard MP4, WebM, MP3 or WAV file.");
+        probe.src = item.objectUrl!; probe.load();
       }
     });
+    setPage("editor"); setEditorView("workspace"); setShowAttachmentPicker(false);
     if (pendingProjectAssets.length) {
       const linked = added.filter(item => pendingProjectAssets.some(saved => saved.id === item.id)).length;
-      setStatus(remaining.length ? linked + " project media file(s) relinked · " + remaining.length + " still needed" : "All project media relinked · your timeline is ready");
-    } else {
-      setStatus(added.length + " media file(s) imported");
-    }
+      setStatus(remaining.length ? linked + " project media file(s) relinked · " + remaining.length + " still needed" : "All project media relinked and placed on the timeline.");
+    } else setStatus(added.length + " media file(s) imported and added to the timeline.");
   }
   async function extractSelectedVideoAudio() {
     if (extractingAudio) return;
