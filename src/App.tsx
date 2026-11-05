@@ -1950,7 +1950,7 @@ export default function App() {
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
     { id: "profile" as Page, label: "My Profile", icon: UserCircle }
   ];
-  const pageTitle = nav.find(n => n.id === page)?.label || "Home";
+  const pageTitle = nav.find(n => n.id === page)?.label || ({ notifications: "Notifications", saved: "Saved videos", moderation: "Moderation Centre", appeals: "My Appeals", settings: "Settings", projects: "Projects", ai: "AI Studio" } as Partial<Record<Page,string>>)[page] || "Home";
   const recent = ["My Vlog Edit", "Tech Review", "Birthday Bash"];
   const templates = CREATIVE_TEMPLATES;
   const effectItems = [...FILTER_PRESETS.slice(0, 50).map(name => ({ name, category: "Film" })), ...CREATIVE_FILTERS];
@@ -1977,7 +1977,7 @@ export default function App() {
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
-      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onOpenSaved={() => setPage("saved")} onOpenNotifications={() => setPage("notifications")} onOpenSettings={() => setPage("settings")} onOpenAppeals={() => setPage("appeals")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onOpenSaved={() => setPage("saved")} onOpenNotifications={() => setPage("notifications")} onOpenSettings={() => setPage("settings")} onOpenAppeals={() => setPage("appeals")} onOpenAIStudio={() => setPage("ai")} onOpenModeration={() => setPage("moderation")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "moderation" && <ModerationCentre onBack={() => setPage("home")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
