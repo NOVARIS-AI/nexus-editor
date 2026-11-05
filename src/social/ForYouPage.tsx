@@ -7,7 +7,7 @@ import {
 import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
 import { isSupabaseConfigured } from "../lib/supabase";
-import { createPostComment, loadCommunityFeed, loadMyPostInteractions, loadPostComments, reportCommunityPost, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
+import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, reportCommunityPost, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
@@ -88,7 +88,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
     return () => { active = false; };
   }, [commentsFor, livePosts]);
 
-  const sourcePosts = livePosts.length ? livePosts : DEMO_POSTS;
+  const sourcePosts = livePosts.length ? livePosts : activeTab === "Following" ? [] : DEMO_POSTS;
   const filtered = useMemo(() => sourcePosts.filter(post =>
     (category === "All" || post.category === category) &&
     (activeTab !== "Following" || followed.includes(post.handle)) &&
