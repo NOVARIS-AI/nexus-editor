@@ -490,10 +490,10 @@ export default function App() {
   function importMedia(files: FileList | File[] | null) {
     if (!files) return;
     const remaining = [...pendingProjectAssets];
-    const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/"));
+    const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/") || /\\.(mp4|m4v|mov|webm|mkv|mp3|m4a|wav|ogg|aac|jpg|jpeg|png|webp|gif|bmp|heic|heif)$/i.test(file.name));
     if (!picked.length) { setStatus("Choose a supported photo, video or audio file."); return; }
     const added: MediaAsset[] = picked.map(file => {
-      const kind = file.type.startsWith("video/") ? "video" : file.type.startsWith("audio/") ? "audio" : "image";
+      const extension = file.name.split(".").pop()?.toLowerCase() || "";\n      const kind = file.type.startsWith("video/") || ["mp4","m4v","mov","webm","mkv"].includes(extension) ? "video" : file.type.startsWith("audio/") || ["mp3","m4a","wav","ogg","aac"].includes(extension) ? "audio" : "image";
       const matchIndex = remaining.findIndex(item => item.name === file.name && item.kind === kind);
       const saved = matchIndex >= 0 ? remaining.splice(matchIndex, 1)[0] : undefined;
       return { ...(saved || {}), id: saved?.id || uid(), name: file.name, kind, duration: saved?.duration || (kind === "image" ? 5 : 0), mimeType: file.type, file, objectUrl: URL.createObjectURL(file) } as MediaAsset;
@@ -503,7 +503,7 @@ export default function App() {
     let visualStart = timelineDuration(clips);
     const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
     const usedAudioTracks = new Set(clips.filter(clip => assets.find(media => media.id === clip.assetId)?.kind === "audio").map(clip => clip.trackId));
-    const nextClips: TimelineClip[] = added.map(item => {
+    const freshAssets = added.filter(item => !pendingProjectAssets.some(saved => saved.id === item.id));\n    const nextClips: TimelineClip[] = freshAssets.map(item => {
       let trackId = "video-1", start = visualStart;
       if (item.kind === "audio") {
         trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(clip => clip.trackId.startsWith("audio-")).length % audioTrackIds.length];
