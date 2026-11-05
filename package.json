@@ -10,7 +10,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "cap sync android",
     "android:open": "cap open android",
-    "verify:release": "node scripts/verify-release-assets.mjs"
+    "verify:release": "node scripts/verify-release-assets.mjs",
+    "android:prepare": "node scripts/prepare-android.mjs",
+    "android:build": "npm run build && npm run android:prepare && npm run android:sync && node scripts/generate-android-branding.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
