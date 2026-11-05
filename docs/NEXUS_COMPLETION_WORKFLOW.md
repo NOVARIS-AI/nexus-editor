@@ -102,3 +102,12 @@ The signature differentiator is **NEXUS Living Templates**: adapt scene slots an
 See [LIVING_TEMPLATES_SPEC.md](./LIVING_TEMPLATES_SPEC.md) for the detailed behavior, data model direction, privacy constraints, acceptance criteria and implementation sequence.
 
 This workstream is product-specified, not implemented. Do not mark Use Template or Living Templates complete until the UI, matching engine, correction controls, tests and mobile checks pass.
+
+
+## Workstream E — For You community frontend and publish handoff
+
+The first provider-independent frontend slice is committed: navigation, sample preview feed, discovery/search, local interaction previews, creator/profile sheets, gated sign-in handoff, and the Studio publish-preparation wizard.
+
+See [FORYOU_FRONTEND_IMPLEMENTATION.md](./FORYOU_FRONTEND_IMPLEMENTATION.md) for the exact implemented scope, explicit non-live limitations, and remaining production requirements.
+
+This is a frontend preview, not a live social network. Keep sample-content labels and publish-unavailable messaging until the dedicated NEXUS Supabase project, video provider, RLS, upload pipeline, moderation and end-to-end checks are complete.
