@@ -5,6 +5,8 @@ export type RankedPost = {
   caption: string;
   title: string;
   tags: string[];
+  creatorTopics?: string[];
+  authorId?: string;
   category: string;
   likes: number;
   comments: number;
@@ -18,6 +20,8 @@ export type FeedSignals = {
   hiddenPostIds?: string[];
   hiddenHandles?: string[];
   preferredCategories?: string[];
+  categoryWeights?: Record<string, number>;
+  hiddenAuthorIds?: string[];
 };
 
 const CATEGORY_TERMS: Record<string, string[]> = {
@@ -62,11 +66,13 @@ const hash = (value: string) => {
 export function rankNexusFeed<T extends RankedPost>(posts: T[], signals: FeedSignals, mode: "for-you" | "following" = "for-you"): T[] {
   const hiddenPosts = new Set(signals.hiddenPostIds || []);
   const hiddenCreators = new Set(signals.hiddenHandles || []);
+  const hiddenAuthors = new Set(signals.hiddenAuthorIds || []);
   const liked = new Set(signals.likedPostIds);
   const saved = new Set(signals.savedPostIds);
   const followed = new Set(signals.followedHandles);
   const interests = new Map<string, number>();
   const preferred = new Set(signals.preferredCategories || []);
+  const historicalWeights = signals.categoryWeights || {};
 
   for (const post of posts) {
     const category = inferPostCategory(post);
@@ -75,18 +81,25 @@ export function rankNexusFeed<T extends RankedPost>(posts: T[], signals: FeedSig
   }
 
   const ranked = posts
-    .filter(post => !hiddenPosts.has(post.id) && !hiddenCreators.has(post.handle))
+    .filter(post => !hiddenPosts.has(post.id) && !hiddenCreators.has(post.handle) && !(post.authorId && hiddenAuthors.has(post.authorId)))
     .map(post => {
       const category = inferPostCategory(post);
       const hours = ageInHours(post.createdAt);
       const freshness = 24 * Math.exp(-hours / 72);
       const affinity = Math.min(18, (interests.get(category) || 0) * 5);
-      const preference = preferred.has(category) ? 12 : 0;
+      const preference = preferred.has(category) ? 14 : 0;
+      const historyAffinity = Math.min(24, (historicalWeights[category] || 0) * 2.5);
+      const creatorTopicMatch = (post.creatorTopics || []).reduce((total, topic) => {
+        const normalized = topic.trim().toLowerCase();
+        const matchesPreferred = [...preferred].some(item => item.toLowerCase() === normalized);
+        const matchesHistory = Object.entries(historicalWeights).some(([key, value]) => value > 0 && key.toLowerCase() === normalized);
+        return total + (matchesPreferred ? 5 : matchesHistory ? 3 : 0);
+      }, 0);
       const followScore = followed.has(post.handle) ? 8 : 0;
       const communitySignal = Math.min(10, Math.log1p(post.likes) * 1.2 + Math.log1p(post.comments) * 1.4);
       const alreadySeenPenalty = liked.has(post.id) || saved.has(post.id) ? -3 : 0;
-      const exploration = (hash(post.id) % 1000) / 1000 * 5;
-      const score = freshness + affinity + preference + followScore + communitySignal + alreadySeenPenalty + exploration;
+      const exploration = (hash(post.id) % 1000) / 1000 * (preferred.size || Object.keys(historicalWeights).length ? 7 : 14);
+      const score = freshness + affinity + preference + historyAffinity + creatorTopicMatch + followScore + communitySignal + alreadySeenPenalty + exploration;
       return { post, score, category };
     })
     .sort((a, b) => b.score - a.score);
