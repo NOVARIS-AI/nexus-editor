@@ -7,7 +7,7 @@ import {
 import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
-import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadMyCreatorTopics, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, saveMyCreatorTopics, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
+import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadMyCreatorTopics, loadCreatorProfile, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, saveMyCreatorTopics, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost, type CreatorProfile } from "./social-service";
 import { inferPostCategory, rankNexusFeed } from "./nexus-pulse-algorithm";
 
 type FeedPost = {
@@ -57,6 +57,8 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [creatorTopicsDraft,setCreatorTopicsDraft] = useState("");
   const [creatorTopicsSaving,setCreatorTopicsSaving] = useState(false);
   const [creatorTopicsOpen,setCreatorTopicsOpen] = useState(false);
+  const [creatorProfile,setCreatorProfile] = useState<CreatorProfile|null>(null);
+  const [profileLoading,setProfileLoading] = useState(false);
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const touchStartY = useRef<number|null>(null);
 
@@ -161,6 +163,17 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
+
+  useEffect(() => {
+    if (!profileFor || !profilePost?.isLive) { setCreatorProfile(null); return; }
+    let active = true;
+    setProfileLoading(true);
+    loadCreatorProfile(profileFor)
+      .then(profile => { if (active) setCreatorProfile(profile); })
+      .catch(error => { if (active) setServiceError(error instanceof Error ? error.message : "Creator profile could not load."); })
+      .finally(() => { if (active) setProfileLoading(false); });
+    return () => { active = false; };
+  }, [profileFor, profilePost?.isLive]);
 
   useEffect(() => {
     if (!currentUserId) { setCreatorTopicsDraft(""); return; }
@@ -271,7 +284,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
       <form className="nfy-comment-compose" onSubmit={e=>{e.preventDefault();submitComment();}}><input value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder={commentPost.isLive ? "Write a comment…" : "Write a preview comment…"}/><button disabled={!commentText.trim()}><Send size={17}/></button></form>
     </section></div>}
 
-    {profileFor && profilePost && <div className="nfy-overlay" onClick={()=>setProfileFor(null)}><section className="nfy-profile-sheet" onClick={e=>e.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setProfileFor(null)}><X size={19}/></button><div className="nfy-profile-avatar">{profilePost.initials}</div><h3>{profilePost.creator}</h3><p>@{profilePost.handle}</p><div className="nfy-profile-stats"><span><b>{profilePost.isLive ? "Community" : "1"}</b> {profilePost.isLive ? "creator" : "sample post"}</span><span><b>{profilePost.isLive ? "Live" : "Preview"}</b> profile</span><span><b>Creator</b> account</span></div><p className="nfy-profile-bio">{profilePost.isLive ? "NEXUS community creator" : "A sample creator profile showing how NEXUS community pages will look."}</p>{profilePost.isLive && profilePost.authorId === currentUserId && <div className="nfy-creator-topics"><label htmlFor="nfy-creator-topics">Your creator topics</label><input id="nfy-creator-topics" value={creatorTopicsDraft} onChange={event=>setCreatorTopicsDraft(event.target.value)} placeholder="design, education, video editing"/><small>Separate up to 12 topics with commas. These help NEXUS recommend your posts to interested people.</small><button onClick={()=>void saveCreatorTopics()} disabled={creatorTopicsSaving}>{creatorTopicsSaving?"Saving…":"Save creator topics"}</button></div>}<button className="nfy-follow" onClick={()=>toggleLocal(followed,setFollowed,profilePost.handle,"Follow")}>{followed.includes(profilePost.handle)?"Following":"Follow creator"}</button></section></div>}
+    {profileFor && profilePost && <div className="nfy-overlay" onClick={()=>setProfileFor(null)}><section className="nfy-profile-sheet" onClick={e=>e.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setProfileFor(null)}><X size={19}/></button>{creatorProfile?.avatarUrl ? <img className="nfy-profile-avatar nfy-profile-photo" src={creatorProfile.avatarUrl} alt="" /> : <div className="nfy-profile-avatar">{profilePost.initials}</div>}<h3>{creatorProfile?.displayName || profilePost.creator}</h3><p>@{creatorProfile?.username || profilePost.handle}</p>{profileLoading && <p className="nfy-profile-loading">Loading creator profile…</p>}<div className="nfy-profile-stats"><span><b>{creatorProfile ? formatCount(creatorProfile.postCount) : profilePost.isLive ? "—" : "1"}</b> posts</span><span><b>{creatorProfile ? formatCount(creatorProfile.followerCount) : "—"}</b> followers</span><span><b>{creatorProfile ? "Creator" : "Preview"}</b> profile</span></div><p className="nfy-profile-bio">{creatorProfile?.bio || (profilePost.isLive ? "This creator has not added a bio yet." : "A sample creator profile showing how NEXUS community pages will look.")}</p>{creatorProfile?.creatorTopics?.length ? <div className="nfy-profile-topics">{creatorProfile.creatorTopics.map(topic=><span key={topic}>#{topic}</span>)}</div> : null}{profilePost.isLive && profilePost.authorId === currentUserId && <div className="nfy-creator-topics"><label htmlFor="nfy-creator-topics">Your creator topics</label><input id="nfy-creator-topics" value={creatorTopicsDraft} onChange={event=>setCreatorTopicsDraft(event.target.value)} placeholder="design, education, video editing"/><small>Separate up to 12 topics with commas. These help NEXUS recommend your work to interested people.</small><button onClick={()=>void saveCreatorTopics()} disabled={creatorTopicsSaving}>{creatorTopicsSaving?"Saving…":"Save creator topics"}</button></div>}<button className="nfy-follow" onClick={()=>toggleLocal(followed,setFollowed,profilePost.handle,"Follow")}>{followed.includes(profilePost.handle)?"Following":"Follow creator"}</button></section></div>}
 
     {creatorTopicsOpen && <div className="nfy-overlay" onClick={()=>setCreatorTopicsOpen(false)}><section className="nfy-profile-sheet" onClick={event=>event.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setCreatorTopicsOpen(false)}><X size={19}/></button><span className="nfy-kicker">NEXUS PULSE PERSONALISATION</span><h3>Your creator topics</h3><p>Choose up to 12 subjects you create around. NEXUS can use them to match your work with viewers interested in those topics.</p><div className="nfy-creator-topics"><label htmlFor="nfy-creator-topics-settings">Topics</label><input id="nfy-creator-topics-settings" value={creatorTopicsDraft} onChange={event=>setCreatorTopicsDraft(event.target.value)} placeholder="design, education, video editing"/><small>Separate topics with commas. Examples: graphic design, tutorials, music, gaming.</small><button onClick={()=>void saveCreatorTopics().then(saved=>{if(saved)setCreatorTopicsOpen(false);})} disabled={creatorTopicsSaving}>{creatorTopicsSaving?"Saving…":"Save my topics"}</button></div></section></div>}
 
