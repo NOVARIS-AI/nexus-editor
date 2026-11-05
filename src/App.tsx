@@ -231,7 +231,7 @@ export default function App() {
   function endAssistantDrag(event: ReactPointerEvent<HTMLElement>) {
     const drag = assistantDrag.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    assistantWasDragged.current = drag.moved;
+    assistantWasDragged.current = drag.kind === "launcher" && drag.moved;
     assistantDrag.current = null;
   }
   function toggleAssistantWindow() {
