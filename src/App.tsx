@@ -45,8 +45,9 @@ import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
+import { ForYouPage } from "./social/ForYouPage";
 
-type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
+type Page = "home" | "for-you" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
@@ -1916,6 +1917,7 @@ export default function App() {
   }
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
+    { id: "for-you" as Page, label: "For You", icon: Compass },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
@@ -1948,6 +1950,8 @@ export default function App() {
         <button className="icon-button" aria-label="Notifications" onClick={() => setStatus("You're all caught up")}><Bell size={18}/><i/></button>
         <button className="avatar top-avatar" onClick={() => setPage("settings")}>N</button>
       </header>
+
+      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
