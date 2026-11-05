@@ -4,7 +4,7 @@ export type ReferenceAnalysisLike = {
   visual?: { sampledFrames?: number; sceneChanges?: number[]; averageLuminance?: number };
   audio?: { rms?: number; silenceRatio?: number; beatCandidates?: number[] };
 };
-export type ReferenceRole = "style reference" | "structure reference" | "content reference" | "replacement image" | "replacement video" | "audio source" | "script or document" | "project media";
+export type ReferenceRole = "style reference" | "structure reference" | "reference video" | "content reference" | "replacement image" | "replacement video" | "audio source" | "script or document" | "project media";
 export type ReferenceAssetContext = {
   id: string; name: string; kind: string; role: ReferenceRole; duration?: number;
   analysis?: string[]; evidenceAvailable?: string[]; limitations?: string[];
@@ -41,7 +41,7 @@ export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: Re
       : asset.kind === "audio" ? "audio source"
       : explicitReplacement && asset.kind === "image" ? "replacement image"
       : explicitReplacement && asset.kind === "video" ? "replacement video"
-      : asset.kind === "video" && (explicitStructure || videos.length > 1) ? "structure reference"
+      : asset.kind === "video" && (explicitStructure || videos.length > 1) ? "reference video"
       : asset.kind === "image" && explicitStyle ? "style reference"
       : asset.kind === "image" ? "content reference"
       : asset.kind === "video" ? "content reference" : "project media";
@@ -70,7 +70,7 @@ export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: Re
 export function buildReferenceFusion(references: ReferenceAssetContext[], brief = ""): ReferenceFusion {
   const assignments = references.slice(0, 30).map((reference, index) => {
     const contributes = reference.role === "style reference" ? ["Palette, lighting, typography and visual treatment where visible"]
-      : reference.role === "structure reference" ? ["Shot order, pacing and framing only where sampled evidence supports it"]
+      : reference.role === "structure reference" || reference.role === "reference video" ? ["Shot order, pacing and framing only where sampled evidence supports it"]
       : reference.role === "replacement image" || reference.role === "replacement video" ? ["The replacement subject or source content requested by the user"]
       : reference.role === "audio source" ? ["Audio placement; transcript meaning only if transcript evidence is supplied"]
       : reference.role === "script or document" ? ["Written content only when extracted text is supplied"]
