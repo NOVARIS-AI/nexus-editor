@@ -1,5 +1,5 @@
 import type { MediaAsset, TimelineClip, TimelineTextLayer } from "../types";
-export type ExecutionOperation={kind:"add-title";text:string;start?:number;duration?:number;fontSize?:number;color?:string;clipId?:string}|{kind:"apply-look";filter:string;clipId?:string}|{kind:"apply-transition";transition:"fade"|"zoom"|"wipe"|"slide"|"blur";clipId?:string}|{kind:"split-clip";clipId:string;time:number};
+export type ExecutionOperation={kind:"add-title";text:string;start?:number;duration?:number;fontSize?:number;color?:string;fontFamily?:string;align?:"left"|"center"|"right";backgroundColor?:string;x?:number;y?:number;shadow?:boolean;animation?:"none"|"fade"|"pop";clipId?:string}|{kind:"apply-look";filter:string;clipId?:string}|{kind:"apply-transition";transition:"fade"|"zoom"|"wipe"|"slide"|"blur";clipId?:string}|{kind:"split-clip";clipId:string;time:number};
 export type ExecutionContext={assets:MediaAsset[];clips:TimelineClip[];textLayers:TimelineTextLayer[];selectedClipId?:string|null;playhead:number};
 export type ExecutionPlan={accepted:ExecutionOperation[];rejected:{operation:ExecutionOperation;reason:string}[];summary:string;requiresApproval:true};
 export function prepareExecutionPlan(operations:ExecutionOperation[],context:ExecutionContext):ExecutionPlan{
