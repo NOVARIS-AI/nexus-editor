@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bookmark, Check, ChevronDown, Compass, Flag, Heart, MessageCircle,
   MoreHorizontal, Play, Plus, Search, Send, Share2, Sparkles, Volume2, VolumeX,
@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
+import { isSupabaseConfigured } from "../lib/supabase";
+import { createPostComment, loadCommunityFeed, loadMyPostInteractions, loadPostComments, reportCommunityPost, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
@@ -27,6 +29,11 @@ type Props = { onOpenStudio: () => void; onOpenTemplates: () => void; onRequireS
 export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: Props) {
   const { signedIn } = useNexusAuth();
   const [activeTab,setActiveTab] = useState("For You");
+  const [livePosts,setLivePosts] = useState<FeedPost[]>([]);
+  const [feedLoading,setFeedLoading] = useState(false);
+  const [serviceError,setServiceError] = useState("");
+  const [liveComments,setLiveComments] = useState<Array<{id:string;body:string;author:string;handle:string;createdAt:string}>>([]);
+  const [commentLoading,setCommentLoading] = useState(false);
   const [category,setCategory] = useState("All");
   const [query,setQuery] = useState("");
   const [activeIndex,setActiveIndex] = useState(0);
@@ -43,11 +50,50 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [menuFor,setMenuFor] = useState<string|null>(null);
   const touchStartY = useRef<number|null>(null);
 
-  const filtered = useMemo(() => DEMO_POSTS.filter(post =>
+  useEffect(() => {
+    let active = true;
+    if (!isSupabaseConfigured) { setLivePosts([]); return; }
+    setFeedLoading(true); setServiceError("");
+    loadCommunityFeed(activeTab === "Following" ? "following" : "public")
+      .then(async (posts: CommunityPost[]) => {
+        if (!active) return;
+        const mapped: FeedPost[] = posts.map((post, index) => ({
+          id: post.id, authorId: post.authorId, isLive: true, createdAt: post.createdAt,
+          creator: post.creator, handle: post.handle, initials: post.initials,
+          caption: post.caption, tags: [], category: "Creative",
+          title: post.caption.trim().split(/\\s+/).slice(0, 5).join(" ").toUpperCase() || "A NEXUS CREATION",
+          subtitle: "Shared by the NEXUS community", palette: ["sunset","mint","violet","ocean"][index % 4],
+          likes: post.likes, comments: post.comments, sound: "Community post"
+        }));
+        setLivePosts(mapped);
+        if (mapped.length) {
+          const interactions = await loadMyPostInteractions(mapped.map(post => post.id));
+          if (active) { setLiked(interactions.liked); setSaved(interactions.saved); }
+          setNotice("Live community feed · Supabase connected");
+        } else {
+          setNotice(activeTab === "Following" ? "No posts from followed creators yet." : "No published community posts yet · sample previews below");
+        }
+      })
+      .catch(error => { if (active) setServiceError(error instanceof Error ? error.message : "Community feed could not load."); })
+      .finally(() => { if (active) setFeedLoading(false); });
+    return () => { active = false; };
+  }, [activeTab, signedIn]);
+
+  useEffect(() => {
+    if (!commentsFor || !livePosts.some(post => post.id === commentsFor)) { setLiveComments([]); return; }
+    let active = true; setCommentLoading(true);
+    loadPostComments(commentsFor).then(rows => { if (active) setLiveComments(rows); })
+      .catch(error => { if (active) setServiceError(error instanceof Error ? error.message : "Comments could not load."); })
+      .finally(() => { if (active) setCommentLoading(false); });
+    return () => { active = false; };
+  }, [commentsFor, livePosts]);
+
+  const sourcePosts = livePosts.length ? livePosts : DEMO_POSTS;
+  const filtered = useMemo(() => sourcePosts.filter(post =>
     (category === "All" || post.category === category) &&
     (activeTab !== "Following" || followed.includes(post.handle)) &&
     (post.caption+" "+post.title+" "+post.tags.join(" ")+" "+post.creator).toLowerCase().includes(query.toLowerCase())
-  ),[category,activeTab,followed,query]);
+  ),[sourcePosts,category,activeTab,followed,query]);
 
   const requireAction = (label:string) => {
     setNotice(label+" is a preview interaction. Connect the live NEXUS community service before it can be saved or shared publicly.");
@@ -81,7 +127,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
 
     <div className="nfy-tabs" role="tablist" aria-label="Feed type">
       {["For You","Following","Discover"].map(tab=><button key={tab} className={activeTab===tab?"active":""} onClick={()=>{setActiveTab(tab);setActiveIndex(0);}}>{tab}</button>)}
-      <span className="nfy-preview-tag"><Sparkles size={12}/> PREVIEW</span>
+      <span className="nfy-preview-tag"><Sparkles size={12}/> {livePosts.length ? "LIVE FEED" : "PREVIEW"}</span>
     </div>
 
     {activeTab==="Discover" && <div className="nfy-discover">
@@ -95,7 +141,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
           <div className="nfy-art-grain"/>
           <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
           <div className="nfy-art-copy"><span>VELTRONIX NEXUS · CREATOR PREVIEW</span><strong>{current.title}</strong><em>{current.subtitle}</em><small>EDITED IN NEXUS STUDIO</small></div>
-          <div className="nfy-demo-watermark">SAMPLE PREVIEW</div>
+          <div className="nfy-demo-watermark">{current.isLive ? "NEXUS COMMUNITY" : "SAMPLE PREVIEW"}</div>
           <button className="nfy-sound" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute preview":"Mute preview"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>
           <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
         </div>
@@ -107,7 +153,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
           </div>
           <p className="nfy-caption">{current.caption}</p>
           <div className="nfy-tags">{current.tags.map(tag=><button key={tag} onClick={()=>{setQuery(tag);setActiveTab("Discover");}}># {tag}</button>)}</div>
-          <div className="nfy-soundline"><Volume2 size={13}/><span>{current.sound}</span></div>
+          <div className="nfy-soundline"><Volume2 size={13}/><span>{current.sound}{current.createdAt ? " · "+new Date(current.createdAt).toLocaleDateString() : ""}</span></div>
         </div>
         <aside className="nfy-actions">
           <button aria-label={liked.includes(current.id)?"Unlike post":"Like post"} onClick={()=>toggleLocal(liked,setLiked,current.id,"Like")} className={liked.includes(current.id)?"is-liked":""}><span><Heart size={22} fill={liked.includes(current.id)?"currentColor":"none"}/></span><small>{formatCount(current.likes+(liked.includes(current.id)?1:0))}</small></button>
@@ -120,7 +166,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
       <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span>{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
     </div>
 
-    <div className="nfy-notice"><Sparkles size={14}/><span>{notice}</span><button onClick={()=>setNotice("Preview mode · sample posts only")} aria-label="Dismiss notice"><X size={14}/></button></div>
+    <div className="nfy-notice"><Sparkles size={14}/><span>{feedLoading ? "Loading community posts…" : serviceError ? serviceError : notice}</span><button onClick={()=>setNotice("Preview mode · sample posts only")} aria-label="Dismiss notice"><X size={14}/></button></div>
 
     <footer className="nfy-bottom">
       <button className="active"><Compass size={18}/><span>For You</span></button>
@@ -132,12 +178,12 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
 
     {commentsFor && commentPost && <div className="nfy-overlay" onClick={()=>setCommentsFor(null)}><section className="nfy-sheet" onClick={e=>e.stopPropagation()}>
       <header><div><b>Comments</b><small>{commentPost.comments+(localComments[commentsFor]?.length||0)} in this preview</small></div><button onClick={()=>setCommentsFor(null)}><X size={19}/></button></header>
-      <div className="nfy-comment-list"><div className="nfy-comment"><span className="nfy-avatar">NC</span><p><b>NEXUS Demo Creator</b><br/>Thanks for watching this sample edit!<small>Preview comment</small></p></div>{(localComments[commentsFor]||[]).map((comment,i)=><div className="nfy-comment" key={i}><span className="nfy-avatar">Y</span><p><b>Your preview comment</b><br/>{comment}<small>Only stored in this open preview</small></p></div>)}</div>
-      <form className="nfy-comment-compose" onSubmit={e=>{e.preventDefault();submitComment();}}><input value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder="Write a preview comment…"/><button disabled={!commentText.trim()}><Send size={17}/></button></form>
+      <div className="nfy-comment-list">{commentLoading && <p>Loading comments…</p>}{commentPost.isLive ? liveComments.map(comment=><div className="nfy-comment" key={comment.id}><span className="nfy-avatar">{comment.author.slice(0,2).toUpperCase()}</span><p><b>{comment.author} · @{comment.handle}</b><br/>{comment.body}<small>{new Date(comment.createdAt).toLocaleString()}</small></p></div>) : <div className="nfy-comment"><span className="nfy-avatar">NC</span><p><b>NEXUS Demo Creator</b><br/>Thanks for watching this sample edit!<small>Preview comment</small></p></div>}{!commentPost.isLive && (localComments[commentsFor]||[]).map((comment,i)=><div className="nfy-comment" key={i}><span className="nfy-avatar">Y</span><p><b>Your preview comment</b><br/>{comment}<small>Only stored in this open preview</small></p></div>)}</div>
+      <form className="nfy-comment-compose" onSubmit={e=>{e.preventDefault();submitComment();}}><input value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder={commentPost.isLive ? "Write a comment…" : "Write a preview comment…"}/><button disabled={!commentText.trim()}><Send size={17}/></button></form>
     </section></div>}
 
     {profileFor && profilePost && <div className="nfy-overlay" onClick={()=>setProfileFor(null)}><section className="nfy-profile-sheet" onClick={e=>e.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setProfileFor(null)}><X size={19}/></button><div className="nfy-profile-avatar">{profilePost.initials}</div><h3>{profilePost.creator}</h3><p>@{profilePost.handle}</p><div className="nfy-profile-stats"><span><b>1</b> sample post</span><span><b>Preview</b> followers</span><span><b>Creator</b> account</span></div><p className="nfy-profile-bio">A sample creator profile showing how NEXUS community pages will look.</p><button className="nfy-follow" onClick={()=>toggleLocal(followed,setFollowed,profilePost.handle,"Follow")}>{followed.includes(profilePost.handle)?"Following":"Follow creator"}</button></section></div>}
 
-    {reportFor && <div className="nfy-overlay" onClick={()=>setReportFor(null)}><section className="nfy-sheet nfy-report-sheet" onClick={e=>e.stopPropagation()}><header><b>Report preview content</b><button onClick={()=>setReportFor(null)}><X size={19}/></button></header><p>This is sample content, not a live public post. In the live platform, reports will be sent to the moderation queue.</p><button className="nfy-report-confirm" onClick={()=>{setNotice("Report flow previewed. Live moderation is not connected.");setReportFor(null);}}>Got it</button></section></div>}
+    {reportFor && <div className="nfy-overlay" onClick={()=>setReportFor(null)}><section className="nfy-sheet nfy-report-sheet" onClick={e=>e.stopPropagation()}><header><b>Report preview content</b><button onClick={()=>setReportFor(null)}><X size={19}/></button></header><p>This is sample content, not a live public post. In the live platform, reports will be sent to the moderation queue.</p><button className="nfy-report-confirm" onClick={()=>{ if (sourcePosts.find(post=>post.id===reportFor)?.isLive) { void reportCommunityPost(reportFor!, "other").then(()=>setNotice("Report sent to the moderation queue.")).catch(error=>setServiceError(error instanceof Error?error.message:"Report failed.")); } else setNotice("Report flow previewed. Live moderation is not connected."); setReportFor(null); }}>Got it</button></section></div>}
   </section>;
 }
