@@ -31,6 +31,7 @@ import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./edi
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext } from "./editor/reference-workflow";
+import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth } from "./editor/engine-jobs";
@@ -1286,8 +1287,9 @@ export default function App() {
     setAiReply("NEXUS AI Director is planning your scenes…");
     try {
       const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
-      const referenceWorkflow = buildReferenceContext(assets, mediaAnalyses);
-      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, visualSamples, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
+      const referenceWorkflow = buildReferenceContext(assets, mediaAnalyses, brief);
+      const promptUnderstanding = understandDirectorPrompt(brief);
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
