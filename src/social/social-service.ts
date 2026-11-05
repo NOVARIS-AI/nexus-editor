@@ -259,3 +259,13 @@ export async function saveMyCreatorTopics(topics: string[]) {
   fail(error);
   return normalized;
 }
+
+export async function loadMyCreatorTopics() {
+  if (!supabase) return [] as string[];
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [] as string[];
+  const { data, error } = await supabase.from("profiles")
+    .select("creator_topics").eq("id", auth.user.id).maybeSingle();
+  fail(error);
+  return data?.creator_topics || [];
+}
