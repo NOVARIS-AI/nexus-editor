@@ -2032,8 +2032,8 @@ export default function App() {
               </div></div></div>
             </div>
           </div>
-          {aiWorkspaceOpen && <section className="nexus-assistant-window" style={{ left: assistantPanelPosition.left, top: assistantPanelPosition.top }} onPointerDown={event=>beginAssistantDrag(event,"panel")} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag} role="dialog" aria-label="NEXUS AI assistant">
-            <header className="nexus-assistant-head">
+          {aiWorkspaceOpen && <section className="nexus-assistant-window" style={{ left: assistantPanelPosition.left, top: assistantPanelPosition.top }} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag} role="dialog" aria-label="NEXUS AI assistant">
+            <header className="nexus-assistant-head" onPointerDown={event=>beginAssistantDrag(event,"panel")}>
               <span className="nexus-assistant-mark"><Sparkles size={16}/></span>
               <span className="nexus-assistant-title"><b>NEXUS AI</b><small>{assistantBusy ? "Thinking through your project…" : selectedClip ? "Your selected clip is in context" : "Your creative coach"}</small></span>
               <button type="button" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close assistant"><X size={16}/></button>
