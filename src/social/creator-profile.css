@@ -5,3 +5,6 @@
 .ncp-hub-shortcuts button>span{grid-row:1/3;display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--nexus-accent-soft,rgba(166,106,197,.18));font-size:16px}
 .ncp-hub-shortcuts b{font-size:11px}.ncp-hub-shortcuts small{font-size:9px;opacity:.68;line-height:1.4}
 @media(max-width:420px){.ncp-hub-shortcuts{gap:6px}.ncp-hub-shortcuts button{padding:9px 7px;column-gap:6px}.ncp-hub-shortcuts b{font-size:10px}.ncp-hub-shortcuts small{font-size:8px}}
+
+.ncp-hub-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ncp-hub-shortcuts button:focus-visible{outline:2px solid var(--nexus-accent,#b78bd0);outline-offset:2px}
