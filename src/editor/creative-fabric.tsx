@@ -123,7 +123,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <p className="nexus-fabric-copy">Scene Intelligence reads your timeline structure, clip labels, generated-scene notes and timed text. It does not claim to visually understand footage; all analysis runs locally.</p>
       {!clips.length && <div className="nexus-fabric-empty">Add clips to the timeline and Scene Intelligence will map the story beats here.</div>}
       <div className="nexus-fabric-visual-scan">
-        <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key</small></div>
+        <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition is contrast-based, not subject recognition.</small></div>
         <button onClick={()=>void scanProjectVisuals()} disabled={visualScanBusy}>{visualScanBusy?"Scanning…":"Scan project frames"}</button>
         {visualScanMessage && <p>{visualScanMessage}</p>}
         {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
@@ -154,6 +154,12 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
           {visualAnalyses.filter(item=>item.assetId===clip.assetId&&item.visual).map(item=><div className="nexus-fabric-scene-analysis" key={item.assetId}>
             <span>{item.visual!.averageLuminance<0.28?"Low-light source":item.visual!.averageLuminance>0.76?"Bright source":"Balanced average brightness"}</span>
             <span>{item.visual!.sampledFrames} frame samples</span>
+            {item.visual!.composition&&<div className="nexus-fabric-composition">
+              <b>Composition Coach · contrast estimate</b>
+              <span>Visual-weight centre: {Math.round(item.visual!.composition.focusX)}% across · {Math.round(item.visual!.composition.focusY)}% down</span>
+              <span>Left/right balance: {Math.round(item.visual!.composition.leftRightBalance*100)}% · top/bottom balance: {Math.round(item.visual!.composition.topBottomBalance*100)}%</span>
+              <small>{Math.abs(item.visual!.composition.focusX-33)<12||Math.abs(item.visual!.composition.focusX-67)<12||Math.abs(item.visual!.composition.focusY-33)<12||Math.abs(item.visual!.composition.focusY-67)<12?"The contrast centre is near a rule-of-thirds guide. Check whether that placement supports the subject.":"The contrast centre sits away from the main thirds guides. Consider reframing only if it improves the story."} {Math.min(item.visual!.composition.leftRightBalance,item.visual!.composition.topBottomBalance)<.58?"The frame has noticeably uneven contrast weight; check whether the imbalance is intentional.":"Contrast weight is reasonably distributed across the frame."}</small>
+            </div>}
             {item.visual!.sceneChanges.length>0&&<span>{item.visual!.sceneChanges.length} possible visual change(s)</span>}
             {item.visual!.sceneChanges.slice(0,4).map((point,index)=><button key={index} onClick={()=>onSeekTo(clip.start+Math.max(0,point-clip.sourceIn)/(clip.speed||1))}>Review change {index+1} · {point.toFixed(1)}s</button>)}
           </div>)}
