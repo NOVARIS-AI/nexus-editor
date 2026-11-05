@@ -24,3 +24,10 @@
 .nfy-creator-topics small{font-size:11px;line-height:1.5;opacity:.72}
 .nfy-creator-topics button{justify-self:start;padding:9px 12px;border:0;border-radius:10px;background:var(--nexus-accent,#8b7cff);color:#fff;font:inherit;font-size:12px;font-weight:700}
 .nfy-creator-topics button:disabled{opacity:.55;cursor:wait}
+
+
+/* Live creator profile details */
+.nfy-profile-photo{object-fit:cover;border:1px solid var(--nfy-line)}
+.nfy-profile-loading{font-size:10px!important;color:var(--nfy-muted)}
+.nfy-profile-topics{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:12px 0}
+.nfy-profile-topics span{padding:6px 9px;border:1px solid var(--nfy-line);border-radius:999px;background:#ffffff09;color:#dfc6ed;font-size:10px}
