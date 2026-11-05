@@ -6,7 +6,6 @@ export type RankedPost = {
   title: string;
   tags: string[];
   creatorTopics?: string[];
-  authorId?: string;
   category: string;
   likes: number;
   comments: number;
