@@ -20,7 +20,10 @@ export function SavedPage({onBack,onRequireSignIn}:Props){
   const [loading,setLoading]=useState(false);
   const [busyId,setBusyId]=useState("");
   const [error,setError]=useState("");
-  const [notice,setNotice]=useState("");\n  const [previewPost,setPreviewPost]=useState<SavedLibraryPost|null>(null);\n  const [previewUrl,setPreviewUrl]=useState("");\n  const [previewLoading,setPreviewLoading]=useState(false);
+  const [notice,setNotice]=useState("");
+  const [previewPost,setPreviewPost]=useState<SavedLibraryPost|null>(null);
+  const [previewUrl,setPreviewUrl]=useState("");
+  const [previewLoading,setPreviewLoading]=useState(false);
 
   const refresh=useCallback(async()=>{
     if(!signedIn)return;
@@ -67,7 +70,13 @@ export function SavedPage({onBack,onRequireSignIn}:Props){
     catch(e){setError(e instanceof Error?e.message:"Could not unsave this post.");}
     finally{setBusyId("");}
   };
-  const openPreview=async(post:SavedLibraryPost)=>{\n    setPreviewPost(post);setPreviewUrl("");setPreviewLoading(true);setError("");\n    try{setPreviewUrl(await loadCommunityPlaybackUrl(post.id));}\n    catch(e){setError(e instanceof Error?e.message:"This saved video is not available to play right now.");}\n    finally{setPreviewLoading(false);}\n  };\n  const removeCollection=async(group:SavedCollection)=>{
+  const openPreview=async(post:SavedLibraryPost)=>{
+    setPreviewPost(post);setPreviewUrl("");setPreviewLoading(true);setError("");
+    try{setPreviewUrl(await loadCommunityPlaybackUrl(post.id));}
+    catch(e){setError(e instanceof Error?e.message:"This saved video is not available to play right now.");}
+    finally{setPreviewLoading(false);}
+  };
+  const removeCollection=async(group:SavedCollection)=>{
     if(!window.confirm("Delete “"+group.name+"”? Your saved posts will stay in your library."))return;
     setBusyId(group.id);setError("");
     try{await deleteSavedCollection(group.id);setCollections(old=>old.filter(item=>item.id!==group.id));setActiveCollection(null);setNotice("Collection deleted. Your saved posts are unchanged.");}
@@ -94,6 +103,7 @@ export function SavedPage({onBack,onRequireSignIn}:Props){
         {loading?<div className="nsl-empty">Loading your saved library…</div>:!visiblePosts.length?<div className="nsl-empty"><Bookmark size={30}/><h3>{selected?"This collection is empty":"Nothing saved yet"}</h3><p>{selected?"Add saved posts to this collection from your full library.":"When you save a community post, it will appear here. You can then organise it into collections."}</p></div>:<div className="nsl-grid">{visiblePosts.map(post=><article className="nsl-card" key={post.id}><button className="nsl-card-art" onClick={()=>void openPreview(post)} aria-label={"Play saved video by "+post.creator}><span><Bookmark size={19}/></span><small>{post.visibility==="private"?"PRIVATE":post.visibility==="followers"?"FOLLOWERS":"COMMUNITY"}</small><b>{post.creator}</b><i>▶ Play saved video</i></button><div className="nsl-card-body"><b>{post.creator}</b><small>@{post.handle} · Saved {new Date(post.savedAt).toLocaleDateString()}</small><p>{post.caption||"Saved community video"}</p>{selected?<button className="nsl-secondary" onClick={()=>void removeFromCollection(post.id)} disabled={busyId===post.id}><X size={14}/> Remove from collection</button>:<div className="nsl-card-actions"><select aria-label={"Add "+post.creator+" post to a collection"} defaultValue="" onChange={e=>{const value=e.target.value;e.currentTarget.value="";void addToCollection(post.id,value);}} disabled={!collections.length||busyId===post.id}><option value="">{collections.length?"Add to collection":"Create a collection first"}</option>{collections.filter(group=>!group.postIds.includes(post.id)).map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select><button onClick={()=>void unsave(post.id)} disabled={busyId===post.id} aria-label="Remove from saved"><Trash2 size={15}/></button></div>}</div></article>)}</div>}
       </main>
     </div>
-    {previewPost&&<div className="nsl-player-overlay" onClick={()=>{setPreviewPost(null);setPreviewUrl("");}}><section className="nsl-player-sheet" onClick={event=>event.stopPropagation()}><header><div><b>{previewPost.creator}</b><small>@{previewPost.handle}</small></div><button onClick={()=>{setPreviewPost(null);setPreviewUrl("");}} aria-label="Close player"><X size={19}/></button></header>{previewUrl?<iframe src={previewUrl} title={"Saved video by "+previewPost.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen/>:<div className="nsl-player-state">{previewLoading?"Preparing secure playback…":"Video could not be opened"}<small>{previewLoading?"":error||"Playback may be unavailable or the post may no longer be visible."}</small></div>}<p>{previewPost.caption}</p></section></div>}\n    <footer className="nsl-footnote"><Check size={14}/> Collections are private to your account. Removing a post from a collection does not unsave it.</footer>
+    {previewPost&&<div className="nsl-player-overlay" onClick={()=>{setPreviewPost(null);setPreviewUrl("");}}><section className="nsl-player-sheet" onClick={event=>event.stopPropagation()}><header><div><b>{previewPost.creator}</b><small>@{previewPost.handle}</small></div><button onClick={()=>{setPreviewPost(null);setPreviewUrl("");}} aria-label="Close player"><X size={19}/></button></header>{previewUrl?<iframe src={previewUrl} title={"Saved video by "+previewPost.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen/>:<div className="nsl-player-state">{previewLoading?"Preparing secure playback…":"Video could not be opened"}<small>{previewLoading?"":error||"Playback may be unavailable or the post may no longer be visible."}</small></div>}<p>{previewPost.caption}</p></section></div>}
+    <footer className="nsl-footnote"><Check size={14}/> Collections are private to your account. Removing a post from a collection does not unsave it.</footer>
   </section>;
 }
