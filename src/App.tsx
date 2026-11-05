@@ -45,7 +45,8 @@ import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
-import { ForYouPage } from "./social/ForYouPage";\nimport { CreatorProfilePage } from "./social/CreatorProfilePage";
+import { ForYouPage } from "./social/ForYouPage";
+import { CreatorProfilePage } from "./social/CreatorProfilePage";
 import { PublishFlow } from "./social/PublishFlow";
 
 type Page = "home" | "for-you" | "profile" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -1571,7 +1572,13 @@ export default function App() {
     });
     const plan = result.plan;
     setEngineReport(["Creative coach reviewed your current project", ...plan.assetNeeds.map(item => "Suggested asset: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
-    return plan.summary + (plan.editPlan.length ? "\n\nYour next steps:\n" + plan.editPlan.map((step,index) => (index+1) + ". " + step.action + " · " + step.target + ": " + step.details).join("\n") : "") + (plan.userReferenceNeeded ? "\n\nA reference photo or video would help represent your subject accurately." : "");
+    return plan.summary + (plan.editPlan.length ? "
+
+Your next steps:
+" + plan.editPlan.map((step,index) => (index+1) + ". " + step.action + " · " + step.target + ": " + step.details).join("
+") : "") + (plan.userReferenceNeeded ? "
+
+A reference photo or video would help represent your subject accurately." : "");
   }
   async function runAICommand(message?: string) {
     const rawRequest = (message ?? aiBrief).trim();
@@ -1604,7 +1611,12 @@ export default function App() {
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
-        respond(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
+        respond(plan.summary + "
+
+" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("
+") + (plan.userReferenceNeeded ? "
+
+A reference photo/video is needed to represent you accurately." : ""));
         setEngineReport(["AI Director ready", ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
       } catch (error) {
         respond(error instanceof Error ? error.message : "NEXUS AI Director is unavailable. Local editor commands remain available.");
@@ -1660,9 +1672,14 @@ export default function App() {
           hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const applied = applyReferencePlanToTimeline(result.plan, referenceContext);
-        if (!applied) respond(result.plan.summary + "\n\n" +
-          result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
-          "\n\nThe reference plan is ready. Add replacement media to build the editable timeline.");
+        if (!applied) respond(result.plan.summary + "
+
+" +
+          result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("
+") +
+          "
+
+The reference plan is ready. Add replacement media to build the editable timeline.");
         setEngineReport(["AI Director ready", ...referenceContext.map(item => item.role + ": " + item.name), ...result.plan.assetNeeds.map(item => "Needed: " + item.kind + " — " + item.query), "Timeline draft: " + (applied ? "created from available replacement media" : "waiting for replacement media")]);
       } catch (error) {
         respond(error instanceof Error ? error.message : "I could not prepare the reference-based editing plan. Your media remains unchanged.");
@@ -1936,7 +1953,8 @@ export default function App() {
   }
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
-    { id: "for-you" as Page, label: "For You", icon: Compass },\n    { id: "profile" as Page, label: "My Profile", icon: UserCircle },
+    { id: "for-you" as Page, label: "For You", icon: Compass },
+    { id: "profile" as Page, label: "My Profile", icon: UserCircle },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
@@ -1970,7 +1988,8 @@ export default function App() {
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
-      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}\n      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
@@ -2062,7 +2081,8 @@ export default function App() {
               {alignmentGuides.x&&<div aria-hidden="true" style={{position:"absolute",top:0,bottom:0,left:"50%",width:1,background:"#38bdf8",zIndex:30,pointerEvents:"none",boxShadow:"0 0 5px #38bdf8"}}/>}{alignmentGuides.y&&<div aria-hidden="true" style={{position:"absolute",left:0,right:0,top:"50%",height:1,background:"#38bdf8",zIndex:30,pointerEvents:"none",boxShadow:"0 0 5px #38bdf8"}}/>}
               {previewAsset?.kind==="audio" && previewAsset.objectUrl && <audio ref={audioPreview} src={previewAsset.objectUrl} controls muted={muteClip || !!previewClip?.muted} style={{width:"90%",maxWidth:420}}/>}
             </div>
-            {selectedOverlayIds.length>1&&<div className="editor-transport" style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}><b style={{fontSize:11,marginRight:6}}>ALIGN {selectedOverlayIds.length} LAYERS</b>{[{id:"left",label:"Left"},{id:"center-x",label:"Centre X"},{id:"right",label:"Right"},{id:"top",label:"Top"},{id:"center-y",label:"Middle"},{id:"bottom",label:"Bottom"}].map(item=><button key={item.id} onClick={()=>alignSelectedOverlays(item.id as "left"|"center-x"|"right"|"top"|"center-y"|"bottom")}>{item.label}</button>)}<button onClick={()=>setSelectedOverlayIds([])}>Clear selection</button></div>}\n            {selectedImageLayer && (()=>{const layer=imageLayers.find(item=>item.id===selectedImageLayer);return layer?<div className="editor-transport image-layer-controls"><span>IMAGE LAYER</span><label>Start (s) <input type="number" min="0" max={Math.max(0,duration)} step="0.1" value={layer.start} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({start:Math.max(0,Math.min(duration,Number(e.target.value)||0))})}/></label><label>Duration (s) <input type="number" min="0.1" max="600" step="0.1" value={layer.duration} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({duration:Math.max(0.1,Math.min(600,Number(e.target.value)||0.1))})}/></label><label>X <input type="range" min="0" max="100" value={layer.x} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({x:Number(e.target.value)})}/></label><label>Y <input type="range" min="0" max="100" value={layer.y} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({y:Number(e.target.value)})}/></label><label>Scale <input type="range" min="0.1" max="2.5" step="0.05" value={layer.scale} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({scale:Number(e.target.value)})}/></label><label>Rotation <input type="range" min="-180" max="180" value={layer.rotation} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({rotation:Number(e.target.value)})}/></label><label>Opacity <input type="range" min="0" max="1" step="0.05" value={layer.opacity} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({opacity:Number(e.target.value)})}/></label><button onClick={()=>reorderSelectedImageLayer(-1)}>Back</button><button onClick={()=>reorderSelectedImageLayer(1)}>Forward</button><button onClick={()=>updateSelectedImageLayer({visible:!layer.visible})}>{layer.visible?"Hide":"Show"}</button><button onClick={()=>updateSelectedImageLayer({locked:!layer.locked})}>{layer.locked?"Unlock":"Lock"}</button><button disabled={layer.locked||generationBusy!==null} onClick={regenerateSelectedImageLayer}>Regenerate / replace</button><button disabled={layer.locked} onClick={()=>{recordProjectHistory();setImageLayers(old=>old.filter(item=>item.id!==layer.id));setSelectedImageLayer(null);}}>Delete</button></div>:null;})()}<div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
+            {selectedOverlayIds.length>1&&<div className="editor-transport" style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}><b style={{fontSize:11,marginRight:6}}>ALIGN {selectedOverlayIds.length} LAYERS</b>{[{id:"left",label:"Left"},{id:"center-x",label:"Centre X"},{id:"right",label:"Right"},{id:"top",label:"Top"},{id:"center-y",label:"Middle"},{id:"bottom",label:"Bottom"}].map(item=><button key={item.id} onClick={()=>alignSelectedOverlays(item.id as "left"|"center-x"|"right"|"top"|"center-y"|"bottom")}>{item.label}</button>)}<button onClick={()=>setSelectedOverlayIds([])}>Clear selection</button></div>}
+            {selectedImageLayer && (()=>{const layer=imageLayers.find(item=>item.id===selectedImageLayer);return layer?<div className="editor-transport image-layer-controls"><span>IMAGE LAYER</span><label>Start (s) <input type="number" min="0" max={Math.max(0,duration)} step="0.1" value={layer.start} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({start:Math.max(0,Math.min(duration,Number(e.target.value)||0))})}/></label><label>Duration (s) <input type="number" min="0.1" max="600" step="0.1" value={layer.duration} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({duration:Math.max(0.1,Math.min(600,Number(e.target.value)||0.1))})}/></label><label>X <input type="range" min="0" max="100" value={layer.x} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({x:Number(e.target.value)})}/></label><label>Y <input type="range" min="0" max="100" value={layer.y} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({y:Number(e.target.value)})}/></label><label>Scale <input type="range" min="0.1" max="2.5" step="0.05" value={layer.scale} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({scale:Number(e.target.value)})}/></label><label>Rotation <input type="range" min="-180" max="180" value={layer.rotation} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({rotation:Number(e.target.value)})}/></label><label>Opacity <input type="range" min="0" max="1" step="0.05" value={layer.opacity} disabled={layer.locked} onChange={e=>updateSelectedImageLayer({opacity:Number(e.target.value)})}/></label><button onClick={()=>reorderSelectedImageLayer(-1)}>Back</button><button onClick={()=>reorderSelectedImageLayer(1)}>Forward</button><button onClick={()=>updateSelectedImageLayer({visible:!layer.visible})}>{layer.visible?"Hide":"Show"}</button><button onClick={()=>updateSelectedImageLayer({locked:!layer.locked})}>{layer.locked?"Unlock":"Lock"}</button><button disabled={layer.locked||generationBusy!==null} onClick={regenerateSelectedImageLayer}>Regenerate / replace</button><button disabled={layer.locked} onClick={()=>{recordProjectHistory();setImageLayers(old=>old.filter(item=>item.id!==layer.id));setSelectedImageLayer(null);}}>Delete</button></div>:null;})()}<div className="editor-transport"><button onClick={()=>{if(video.current){video.current.currentTime=Math.max(0,video.current.currentTime-1);setPlayhead(Math.max(0,playhead-1));}}}>−1s</button><button className="editor-play" onClick={()=>{if(video.current){if(video.current.paused)void video.current.play();else video.current.pause();}}}><Play size={17} fill="currentColor"/></button><button onClick={()=>{if(video.current){video.current.currentTime+=1;setPlayhead(video.current.currentTime);}}}>+1s</button><span>{clock(playhead)} / {clock(duration)}</span></div>
           </div>
           <div className="editor-timeline-zone">
             <div className="editor-timeline-head"><div><b>Timeline</b><small>{clock(playhead)} / {clock(duration)}</small></div><div className="editor-timeline-actions"><button onClick={()=>setTimelineZoom(v=>Math.max(24,v-12))} title="Zoom out">−</button><button onClick={()=>setTimelineZoom(v=>Math.min(140,v+12))} title="Zoom in">＋</button><button onClick={()=>{const viewport=timelineScrollRef.current;if(viewport){setTimelineZoom(Math.max(24,Math.min(140,(viewport.clientWidth-65)/Math.max(duration,10))));viewport.scrollTo({left:0,behavior:"smooth"});}}} title="Fit full timeline">Fit</button><button onClick={split} title="Split"><Scissors size={16}/></button><button disabled={!selectedClip} onClick={()=>{applyClipChange(clips.filter(c=>c.id!==selected), "Clip deleted");setSelected(null);}} title="Delete"><Trash2 size={16}/></button><button onClick={undoEdit} disabled={!undoStack.length} title="Undo"><ArrowLeft size={16}/></button><button onClick={redoEdit} disabled={!redoStack.length} title="Redo"><Command size={16}/></button></div></div>
