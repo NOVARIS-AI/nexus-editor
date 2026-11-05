@@ -219,19 +219,22 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (!MediaRecorder.isTypeSupported(candidate)) continue;
       try {
         recorder = new MediaRecorder(canvasStream, { mimeType: candidate, videoBitsPerSecond, ...(audioBitsPerSecond ? { audioBitsPerSecond } : {}) });
-        mimeType = candidate;
-        break;
-      } catch { /* Some mobile browsers advertise a codec but reject its recorder configuration. Try the next supported format. */ }
+      } catch {
+        try { recorder = new MediaRecorder(canvasStream, { mimeType: candidate }); }
+        catch { /* Some mobile browsers advertise a codec but reject its recorder configuration. Try the next supported format. */ }
+      }
+      if (recorder) { mimeType = candidate; break; }
     }
     if (!recorder || !mimeType) throw new Error("This browser could not start an MP4 or WebM video export. Update Chrome, lower the export quality, or try a shorter edit.");
+    const activeRecorder = recorder;
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
     let rejectRecording: (reason?: unknown) => void = () => {};
     let settled = false;
     const stopped = new Promise<Blob>((resolve, reject) => {
       rejectRecording = reason => { if (!settled) { settled = true; reject(reason); } };
-      recorder.onerror = () => rejectRecording(new Error("The browser stopped the export unexpectedly."));
-      recorder.onstop = () => { if (!settled) { settled = true; resolve(new Blob(chunks, { type: mimeType })); } };
+      activeRecorder.onerror = () => rejectRecording(new Error("The browser stopped the export unexpectedly."));
+      activeRecorder.onstop = () => { if (!settled) { settled = true; resolve(new Blob(chunks, { type: mimeType })); } };
     });
     const keyframesByClip = new Map(input.clips.map(clip => [clip.id, [...(clip.keyframes || [])].filter(frame => Number.isFinite(frame.time)).sort((a, b) => a.time - b.time)]));
     const animatedValues = (clip: TimelineClip, time: number) => {
@@ -473,7 +476,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       }
       if (time >= input.duration) {
         activeVideos.forEach(v => v.pause()); audioNodes.forEach(({element}) => element.pause());
-        recorder.stop(); canvasStream?.getTracks().forEach(track => track.stop()); return;
+        activeRecorder.stop(); canvasStream?.getTracks().forEach(track => track.stop()); return;
       }
       raf = requestAnimationFrame(draw);
       } catch (error) {
@@ -481,8 +484,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         activeVideos.forEach(video => video.pause());
         audioNodes.forEach(({element}) => element.pause());
         rejectRecording(error instanceof Error ? error : new Error("The export renderer encountered an unexpected error."));
-        if (recorder.state !== "inactive") {
-          try { recorder.stop(); } catch {}
+        if (activeRecorder.state !== "inactive") {
+          try { activeRecorder.stop(); } catch {}
         }
       }
     };
@@ -491,11 +494,11 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       cancelAnimationFrame(raf);
       activeVideos.forEach(video => video.pause());
       audioNodes.forEach(({element}) => element.pause());
-      if (recorder.state !== "inactive") { try { recorder.stop(); } catch {} }
+      if (activeRecorder.state !== "inactive") { try { activeRecorder.stop(); } catch {} }
     };
     if (audioContext) await audioContext.resume();
     throwIfAborted();
-    recorder.start(250);
+    activeRecorder.start(250);
     input.signal?.addEventListener("abort", abortExport, { once: true });
     draw();
     let result: Blob;
