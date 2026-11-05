@@ -1269,3 +1269,35 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
     min-height:60px;
   }
 }
+
+
+/* NEXUS mobile editor polish: solid surfaces, clear preview/timeline hierarchy, and compact controls. */
+@media (max-width: 700px) {
+  .editor-fullscreen { background:#090a0f; color:#f5f6fa; }
+  .editor-topbar,.editor-timeline-zone,.editor-bottom-tools.nexus-tool-stack { background:#15171d; border-color:#292d36; }
+  .editor-topbar { gap:6px; }
+  .editor-project-title small { color:#9da4b2; }
+  .editor-preview-zone { background:#090a0f; }
+  .editor-preview-meta { width:100%; }
+  .editor-preview-meta > span { color:#aab2c0; letter-spacing:.08em; }
+  .preview-meta-actions select,.preview-meta-actions button:not(.preview-add-media) { display:none!important; }
+  .preview-add-media { min-height:34px; border-radius:9px; background:#202630; color:#e8edf5; border:1px solid #343d4b; }
+  .editor-preview-frame { background:#050609; border:1px solid #273342; border-radius:5px; box-shadow:0 10px 30px #0007; }
+  .editor-timeline-zone { border-top:1px solid #2a303a; }
+  .editor-timeline-head b { color:#f4f6fa; }
+  .editor-timeline-head small,.editor-lane-labels small { color:#9aa4b2; }
+  .editor-bottom-tools.nexus-tool-stack { border-top:1px solid #2b3039; }
+  .editor-tool-dock { justify-content:flex-start!important; overflow-x:auto!important; }
+  .editor-tool-dock button { flex:0 0 58px!important; min-width:58px!important; color:#c4cbd5; }
+  .editor-tool-dock button.active { color:#27c6df!important; background:#18313a!important; }
+  .nexus-model-card h3,.nexus-model-card>p,.nexus-model-facts,.nexus-model-device,.nexus-model-card>small { display:none!important; }
+  .nexus-model-card { background:#151922; border:1px solid #303846; }
+  .nexus-fabric-copy { color:#b7c0ce; }
+}
+@media (max-width: 390px) {
+  .editor-topbar { padding-left:6px!important; padding-right:6px!important; }
+  .editor-project-title { min-width:0; }
+  .editor-project-title b { max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .editor-top-icon { padding:6px!important; }
+  .editor-export-entry { padding:7px 9px!important; }
+}
