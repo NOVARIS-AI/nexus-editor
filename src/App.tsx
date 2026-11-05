@@ -52,12 +52,16 @@ type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImage
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
 const readLocalDraft = readRecoverableDraft;
 const themes = [
-  { id: "violet", name: "Midnight Violet", colors: ["#a923ed", "#5d42ff", "#00bfe9"] },
-  { id: "ocean", name: "Ocean Blue", colors: ["#168cff", "#2855e8", "#20d5e8"] },
-  { id: "emerald", name: "Emerald Green", colors: ["#10b981", "#087f69", "#7ee6b7"] },
-  { id: "sunset", name: "Sunset Orange", colors: ["#ff8a32", "#e34b38", "#ffc15c"] },
-  { id: "rose", name: "Rose Pink", colors: ["#f04486", "#bd347d", "#ff9ab8"] },
-  { id: "crimson", name: "Crimson Red", colors: ["#ef4444", "#b91c3c", "#ff8b73"] }
+  { id: "royal-wine", name: "Royal Wine", colors: ["#28101D", "#70233E", "#B84B68", "#F0B7C4"] },
+  { id: "golden-hour", name: "Golden Hour", colors: ["#342316", "#80512C", "#D39A4C", "#F7E5B8"] },
+  { id: "lavender-mist", name: "Lavender Mist", colors: ["#292333", "#625276", "#A99AC7", "#EEE8F5"] },
+  { id: "mint-crystal", name: "Mint Crystal", colors: ["#142B29", "#34766C", "#8DD4C0", "#E5F8F0"] },
+  { id: "ruby-noir", name: "Ruby Noir", colors: ["#21141B", "#762A45", "#D44C70", "#E8C5D0"] },
+  { id: "copper-flame", name: "Copper Flame", colors: ["#38201D", "#98513B", "#D98961", "#F4D0AD"] },
+  { id: "jade-palace", name: "Jade Palace", colors: ["#102C24", "#26745B", "#79BDA0", "#E2F1D9"] },
+  { id: "sakura", name: "Sakura", colors: ["#351A2B", "#A33D70", "#E58EB3", "#FFF0F5"] },
+  { id: "champagne-blush", name: "Champagne Blush", colors: ["#39232B", "#986477", "#D9A99E", "#F6E6D5"] },
+  { id: "aurora-orchid", name: "Aurora Orchid", colors: ["#24112D", "#713B79", "#C17CCB", "#F3D8F5"] }
 ] as const;
 const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\'/g, "&apos;");
 const clock = (n: number) => {
@@ -160,8 +164,15 @@ export default function App() {
   const [engineAvailability, setEngineAvailability] = useState<{brain:{configured:boolean;model?:string};engines:Record<string,{configured:boolean;provider:string;fallback:string}>} | null>(null);
   const [workerHealth, setWorkerHealth] = useState<NexusWorkerHealth | null>(null);
   const [darkMode, setDarkMode] = useState(true);
-  const [theme, setTheme] = useState(() => localStorage.getItem("nexus-editor-theme") || "violet");
-  function changeTheme(id: string) { setTheme(id); localStorage.setItem("nexus-editor-theme", id); }
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("nexus-editor-theme");
+    return themes.some(item => item.id === saved) ? saved as typeof themes[number]["id"] : "royal-wine";
+  });
+  function changeTheme(id: string) {
+    if (!themes.some(item => item.id === id)) return;
+    setTheme(id);
+    localStorage.setItem("nexus-editor-theme", id);
+  }
   const mediaInput = useRef<HTMLInputElement>(null);
   const audioInput = useRef<HTMLInputElement>(null);
   const filesInput = useRef<HTMLInputElement>(null);
