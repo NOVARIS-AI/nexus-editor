@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft, Bookmark, Check, ChevronDown, Compass, Flag, Heart, MessageCircle,
   MoreHorizontal, Play, Plus, Search, Send, Share2, Sparkles, Volume2, VolumeX,
@@ -41,6 +41,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [reportFor,setReportFor] = useState<string|null>(null);
   const [notice,setNotice] = useState("Preview mode · sample posts only");
   const [menuFor,setMenuFor] = useState<string|null>(null);
+  const touchStartY = useRef<number|null>(null);
 
   const filtered = useMemo(() => DEMO_POSTS.filter(post =>
     (category === "All" || post.category === category) &&
@@ -89,7 +90,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
     </div>}
 
     <div className="nfy-stage">
-      {current ? <article className="nfy-post" key={current.id}>
+      {current ? <article className="nfy-post" key={current.id} onTouchStart={event=>{touchStartY.current=event.changedTouches[0]?.clientY??null;}} onTouchEnd={event=>{if(touchStartY.current!==null){const delta=touchStartY.current-(event.changedTouches[0]?.clientY??touchStartY.current);if(Math.abs(delta)>45)nextPost(delta>0?1:-1);touchStartY.current=null;}}}>
         <div className={"nfy-art nfy-"+current.palette}>
           <div className="nfy-art-grain"/>
           <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
