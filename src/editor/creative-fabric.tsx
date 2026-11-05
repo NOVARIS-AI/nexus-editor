@@ -4,7 +4,7 @@ import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } 
 import { captureVisualSamples, type VisualSample } from "./visual-sampling";
 import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
 
-export type FabricOperation = { kind: "add-title"; text: string } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
+export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
@@ -15,6 +15,41 @@ type Props = {
 };
 type DNA = { purpose: string; audience: string; style: string; palette: string; rules: string };
 const blankDNA: DNA = { purpose: "", audience: "", style: "Cinematic", palette: "Project colours", rules: "" };
+
+type SemanticHit = { id: string; title: string; kind: string; time: number; score: number; detail: string };
+const semanticGroups: Record<string,string[]> = {
+  explanation: ["explain","explaining","teach","teaching","lesson","tutorial","how","guide","demonstration","main point","core message","message"],
+  hook: ["hook","opening","intro","attention","start","first","stop scrolling","headline"],
+  conclusion: ["conclusion","closing","ending","finish","final","summary","takeaway","call to action","cta"],
+  evidence: ["evidence","proof","example","result","demonstrate","show","case study","fact"],
+  emotion: ["emotion","emotional","feeling","heart","inspiring","inspiration","motivation","encouragement","hope"],
+  faith: ["faith","wisdom","prayer","scripture","spiritual","gospel","church","belief","god","apostle"],
+  product: ["product","business","brand","feature","showcase","sell","offer","service","review"],
+  music: ["music","song","audio","beat","rhythm","sound","voice","speech","narration"]
+};
+function semanticTerms(query: string) {
+  const words=query.toLowerCase().match(/[a-z0-9']+/g)||[];
+  const expanded=new Set(words);
+  for(const [concept,terms] of Object.entries(semanticGroups)) if(terms.some(term=>query.toLowerCase().includes(term))) { expanded.add(concept); terms.forEach(term=>expanded.add(term)); }
+  return [...expanded].filter(word=>word.length>2);
+}
+function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[]) : SemanticHit[] {
+  const terms=semanticTerms(query); if(!terms.length)return [];
+  const records:SemanticHit[]=[
+    ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
+    ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
+    ...assets.map(asset=>({id:asset.id,title:asset.name,kind:asset.kind==="audio"?"Audio source":"Media source",time:clips.find(clip=>clip.assetId===asset.id)?.start||0,detail:asset.name+" "+asset.kind}))
+  ];
+  return records.map(record=>{const hay=(record.title+" "+record.detail+" "+record.kind).toLowerCase();const matched=terms.filter(term=>hay.includes(term));const exact=matched.filter(term=>query.toLowerCase().includes(term)).length;return {...record,score:matched.length+exact*1.5};}).filter(item=>item.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
+}
+function understandQuote(value: string) {
+  const q=value.toLowerCase();
+  if(/faith|god|prayer|christ|scripture|wisdom|apostle|spirit/.test(q)) return {message:"Faith & wisdom",tone:"Reverent, thoughtful and assured",font:"Georgia",size:58,color:"#fff4d6",background:"rgba(12,18,35,0.72)",look:"Warm",transition:"fade" as const,layout:"Centred editorial"};
+  if(/never give up|keep going|rise|courage|strong|overcome|dream|believe|hope|success/.test(q)) return {message:"Encouragement",tone:"Confident and uplifting",font:"Arial",size:62,color:"#ffffff",background:"rgba(10,14,28,0.62)",look:"Cinematic",transition:"zoom" as const,layout:"Bold centre"};
+  if(/love|heart|care|kind|family|friend/.test(q)) return {message:"Connection",tone:"Warm and human",font:"Georgia",size:54,color:"#fff5ed",background:"rgba(48,24,32,0.58)",look:"Warm",transition:"fade" as const,layout:"Soft editorial"};
+  if(/time|think|life|truth|learn|knowledge|choice|change/.test(q)) return {message:"Reflection",tone:"Calm and contemplative",font:"Georgia",size:56,color:"#f4f0e8",background:"rgba(13,18,28,0.68)",look:"Matte",transition:"fade" as const,layout:"Quiet centre"};
+  return {message:"Core message",tone:"Clear and deliberate",font:"Arial",size:58,color:"#ffffff",background:"rgba(10,14,28,0.64)",look:"Cinematic",transition:"fade" as const,layout:"Readable centre"};
+}
 
 function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], images: TimelineImageLayer[]) {
   const nodes = [
@@ -67,7 +102,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"whatif">("map");
-  const [intent, setIntent] = useState("");
+  const [intent, setIntent] = useState("");\n  const [semanticQuery, setSemanticQuery] = useState("");\n  const [quoteText, setQuoteText] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
     try { return { ...blankDNA, ...JSON.parse(localStorage.getItem("nexus-fabric-dna:"+projectName)||"{}") }; } catch { return blankDNA; }
   });
@@ -95,7 +130,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally { setVisualScanBusy(false); }
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
-  const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
+  const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);\n  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers),[semanticQuery,assets,clips,textLayers]);\n  const quoteDesign = useMemo(()=>understandQuote(quoteText),[quoteText]);
   const operations = useMemo<FabricOperation[]>(()=>{
     if(!intent.trim()) return [];
     const q=intent.toLowerCase(); const result:FabricOperation[]=[];
@@ -103,14 +138,14 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     if(/cinematic|film|movie|dramatic/.test(q)) result.push({kind:"apply-look",filter:"Cinematic"});
     else if(/warm|golden|sunset/.test(q)) result.push({kind:"apply-look",filter:"Warm"});
     else if(/black.?and.?white|monochrome|noir/.test(q)) result.push({kind:"apply-look",filter:"B&W"});
-    if(/transition|smooth|fade/.test(q)) result.push({kind:"apply-transition",transition:"fade"});
+    if(/transition|smooth|fade|emotional|reflect|calm|faith|wisdom|inspir/.test(q)) result.push({kind:"apply-transition",transition: /energetic|bold|hook|attention/.test(q)?"zoom":"fade"});
     return result;
   },[intent,dna.purpose,projectName]);
   const saveDNA = () => { try { localStorage.setItem("nexus-fabric-dna:"+projectName,JSON.stringify(dna)); setSaved(true); } catch { setSaved(false); } };
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
     <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",whatif:"What-if"})[k]}</button>)}</nav>
+    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",whatif:"What-if"})[k]}</button>)}</nav>
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
@@ -188,6 +223,18 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <button className="nexus-fabric-primary" onClick={saveDNA}><Check size={15}/> {saved?"DNA saved on this device":"Save project DNA"}</button>
     </div>}
     {tab==="intent" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Describe the result you want. Fabric turns it into a transparent, reviewable plan using the tools already in NEXUS.</p><textarea className="nexus-fabric-intent" value={intent} onChange={e=>setIntent(e.target.value)} placeholder="Make this a powerful 30-second wisdom quote video with a cinematic opening, readable message and calm ending…"/>{plan.length>0&&<div className="nexus-fabric-plan"><b>Proposed creative direction</b>{plan.map((s,i)=><div key={i}><span>{i+1}</span>{s}</div>)}<small>Target: {selectedClipId?"selected clip":"all eligible clips"} · Nothing changes until you approve.</small>{operations.length>0?<><div className="nexus-fabric-operation-list"><b>Ready-to-apply operations</b>{operations.map((op,i)=><span key={i}>{op.kind==="add-title"?"Add editable title: "+op.text:op.kind==="apply-look"?"Apply "+op.filter+" look":"Apply "+op.transition+" transitions"}</span>)}</div><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan(operations);setApproved(true);}}><Check size={15}/> {approved?"Apply again":"Approve & apply to timeline"}</button></>:<small>This request currently produces guidance only. Ask for a title, cinematic look or transition to create supported actions.</small>}</div>}</div>}
+    {tab==="semantic" && <div className="nexus-fabric-body">
+      <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. This first semantic layer expands related concepts across scene notes, clip labels, text and asset names. It runs locally and does not inspect speech or recognise objects inside footage.</p>
+      <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
+      <div className="nexus-fabric-semantic-results">{semanticQuery.trim()?semanticHits.map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · relevance {hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item's name or type."}</p></div><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make semantic search richer.</div>}</div>
+      <small className="nexus-fabric-scene-note">Current version: concept expansion + local text matching. True embedding-based search and automatic speech understanding are future engine upgrades, not claimed as active.</small>
+    </div>}
+    {tab==="quote" && <div className="nexus-fabric-body">
+      <p className="nexus-fabric-copy">Quote Intelligence reads the wording you provide, estimates its message category and proposes a typography, tone and visual treatment. It preserves the exact quote text.</p>
+      <label>Paste your quote<textarea className="nexus-fabric-quote-input" value={quoteText} onChange={e=>setQuoteText(e.target.value)} placeholder="Paste the exact quote here…"/></label>
+      {quoteText.trim()&&<div className="nexus-fabric-quote-card"><span>MESSAGE PROFILE</span><b>{quoteDesign.message}</b><p>{quoteDesign.tone}</p><div className="nexus-fabric-quote-preview" style={{fontFamily:quoteDesign.font,fontSize:"clamp(18px,5vw,28px)",color:quoteDesign.color,background:quoteDesign.background,textAlign:"center"}}>{quoteText}</div><div className="nexus-fabric-quote-specs"><span>Typeface: {quoteDesign.font}</span><span>Layout: {quoteDesign.layout}</span><span>Suggested look: {quoteDesign.look}</span><span>Transition: {quoteDesign.transition}</span></div><small>Preview is a design direction. Check the actual canvas and text-safe zone before export.</small><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan([{kind:"add-title",text:quoteText,fontSize:quoteDesign.size,fontFamily:quoteDesign.font,color:quoteDesign.color,backgroundColor:quoteDesign.background,align:"center",x:50,y:50,duration:Math.max(5,Math.min(12,quoteText.trim().split(/\\s+/).length/2.4)),shadow:true,animation:"fade"},{kind:"apply-look",filter:quoteDesign.look,...(selectedClipId?{clipId:selectedClipId}:{})},{kind:"apply-transition",transition:quoteDesign.transition,...(selectedClipId?{clipId:selectedClipId}:{})}]);setApproved(true);}}><Check size={15}/> Apply quote treatment to timeline</button></div>}
+      <small className="nexus-fabric-scene-note">Message category and styling are heuristic suggestions, not a claim to know the author's intention. You can edit the resulting text layer and undo the operation.</small>
+    </div>}
     {tab==="whatif" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Explore different creative directions without replacing your current edit.</p><div className="nexus-fabric-universes">{["Cinematic","Documentary","Bold social","Minimal"].map(v=><button key={v} className={universe===v?"active":""} onClick={()=>setUniverse(v)}>{v}</button>)}</div><div className="nexus-fabric-universe-card"><WandSparkles size={22}/><b>{universe} universe</b><p>{({Cinematic:"Use contrast, deliberate pacing and a strong visual payoff. Preserve the core story and quote wording.",Documentary:"Prioritise natural footage, clear context, restrained transitions and an honest visual tone.","Bold social":"Prioritise an immediate hook, strong type hierarchy, short beats and high mobile readability.",Minimal:"Reduce effects and competing layers; let one image and one clear message carry the scene."})[universe]}</p><small>This is a direction preview, not a generated duplicate or a change to your timeline.</small></div></div>}
     <footer className="nexus-fabric-footer"><span>Existing tools remain in control</span><button onClick={onClose}>Return to editor <ArrowRight size={14}/></button></footer>
   </aside>;
