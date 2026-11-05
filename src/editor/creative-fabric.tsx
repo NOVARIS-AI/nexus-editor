@@ -141,6 +141,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
         const seconds=Math.max(0,end-clip.start);
         const suggested=role==="Hook"?"Bold social":role==="Closing"?"Warm":role==="Core message"?"Cinematic":"Documentary";
         const sceneSamples=visualSamples.filter(sample=>sample.assetId===clip.assetId);
+        const orderedClips=[...clips].sort((a,b)=>a.start-b.start);
+        const previousClip=index>0?orderedClips[index-1]:null;
+        const currentVisual=visualAnalyses.find(item=>item.assetId===clip.assetId)?.visual;
+        const previousVisual=previousClip?visualAnalyses.find(item=>item.assetId===previousClip.assetId)?.visual:undefined;
+        const luminanceDelta=currentVisual&&previousVisual?Math.abs(currentVisual.averageLuminance-previousVisual.averageLuminance):0;
         return <article className="nexus-fabric-scene" key={clip.id}>
           <div className="nexus-fabric-scene-top"><span>SCENE {String(index+1).padStart(2,"0")}</span><b>{role}</b><small>{seconds.toFixed(1)}s</small></div>
           <strong>{clip.aiScene?.title||clip.label||"Untitled scene"}</strong>
@@ -152,6 +157,11 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
             {item.visual!.sceneChanges.length>0&&<span>{item.visual!.sceneChanges.length} possible visual change(s)</span>}
             {item.visual!.sceneChanges.slice(0,4).map((point,index)=><button key={index} onClick={()=>onSeekTo(clip.start+Math.max(0,point-clip.sourceIn)/(clip.speed||1))}>Review change {index+1} · {point.toFixed(1)}s</button>)}
           </div>)}
+          {currentVisual&&previousVisual&&<div className={"nexus-fabric-continuity "+(luminanceDelta>=0.22?"notice":"steady")}>
+            <b>{luminanceDelta>=0.22?"Brightness jump to review":"Brightness continuity"}</b>
+            <span>{Math.round(previousVisual.averageLuminance*100)}% → {Math.round(currentVisual.averageLuminance*100)}% average luminance · {Math.round(luminanceDelta*100)} point difference</span>
+            <small>{luminanceDelta>=0.22?"The adjacent source frames differ noticeably in average brightness. Check the preview and adjust exposure if the cut feels abrupt.":"The measured average brightness is relatively close to the previous analysed scene."}</small>
+          </div>}
           <div className="nexus-fabric-scene-meta"><span>{attachedText.length} text layer(s)</span><span>{clip.aiScene?"Generated scene notes":"Timeline-based inference"}</span></div>
           <div className="nexus-fabric-scene-actions">
             <button onClick={()=>onApplyPlan([{kind:"apply-look",filter:suggested==="Warm"?"Warm":suggested==="Documentary"?"Matte":suggested==="Bold social"?"Vivid":"Cinematic",clipId:clip.id}])}>Apply {suggested} look</button>
