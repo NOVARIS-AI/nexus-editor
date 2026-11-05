@@ -1,4 +1,4 @@
-import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "./_shared";
+import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "../../server/social-api";
 
 export default async function handler(req: any, res: any) {
   if (!methodOnly(req, res, "GET")) return;
@@ -13,7 +13,7 @@ export default async function handler(req: any, res: any) {
     if (!/^[0-9a-f-]{36}$/i.test(mediaAssetId)) return sendJson(res, 400, { error: "A valid media asset ID is required." });
 
     const rows = await supabaseRest(
-      "media_assets?select=id,owner_id,provider,provider_asset_id,upload_state& id=eq.".replace(" ", "") + encodeURIComponent(mediaAssetId) + "&owner_id=eq." + encodeURIComponent(user.id)
+      "media_assets?select=id,owner_id,provider,provider_asset_id,upload_state&id=eq." + encodeURIComponent(mediaAssetId) + "&owner_id=eq." + encodeURIComponent(user.id)
     );
     const asset = rows?.[0];
     if (!asset) return sendJson(res, 404, { error: "This upload was not found for your account." });
