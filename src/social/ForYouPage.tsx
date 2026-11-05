@@ -109,10 +109,10 @@ export function ForYouPage({ onOpenStudio, onRequireSignIn }: Props) {
           <div className="nfy-soundline"><Volume2 size={13}/><span>{current.sound}</span></div>
         </div>
         <aside className="nfy-actions">
-          <button onClick={()=>toggleLocal(liked,setLiked,current.id,"Like")} className={liked.includes(current.id)?"is-liked":""}><span><Heart size={22} fill={liked.includes(current.id)?"currentColor":"none"}/></span><small>{formatCount(current.likes+(liked.includes(current.id)?1:0))}</small></button>
-          <button onClick={()=>setCommentsFor(current.id)}><span><MessageCircle size={22}/></span><small>{formatCount(current.comments+(localComments[current.id]?.length||0))}</small></button>
-          <button onClick={()=>toggleLocal(saved,setSaved,current.id,"Save")} className={saved.includes(current.id)?"is-saved":""}><span><Bookmark size={21} fill={saved.includes(current.id)?"currentColor":"none"}/></span><small>{saved.includes(current.id)?"Saved":"Save"}</small></button>
-          <button onClick={()=>{setMenuFor(menuFor===current.id?null:current.id);}}><span><MoreHorizontal size={22}/></span><small>More</small></button>
+          <button aria-label={liked.includes(current.id)?"Unlike post":"Like post"} onClick={()=>toggleLocal(liked,setLiked,current.id,"Like")} className={liked.includes(current.id)?"is-liked":""}><span><Heart size={22} fill={liked.includes(current.id)?"currentColor":"none"}/></span><small>{formatCount(current.likes+(liked.includes(current.id)?1:0))}</small></button>
+          <button aria-label="Open comments" onClick={()=>setCommentsFor(current.id)}><span><MessageCircle size={22}/></span><small>{formatCount(current.comments+(localComments[current.id]?.length||0))}</small></button>
+          <button aria-label={saved.includes(current.id)?"Remove saved post":"Save post"} onClick={()=>toggleLocal(saved,setSaved,current.id,"Save")} className={saved.includes(current.id)?"is-saved":""}><span><Bookmark size={21} fill={saved.includes(current.id)?"currentColor":"none"}/></span><small>{saved.includes(current.id)?"Saved":"Save"}</small></button>
+          <button aria-label="More post actions" onClick={()=>{setMenuFor(menuFor===current.id?null:current.id);}}><span><MoreHorizontal size={22}/></span><small>More</small></button>
           {menuFor===current.id&&<div className="nfy-more-menu"><button onClick={()=>{setReportFor(current.id);setMenuFor(null);}}><Flag size={14}/> Report preview</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
         </aside>
       </article> : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
