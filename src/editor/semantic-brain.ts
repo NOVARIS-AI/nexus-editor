@@ -21,7 +21,8 @@ export type ModelProgress = { status?: string; file?: string; progress?: number;
 export function getSemanticDeviceInfo() {
   const nav = navigator as Navigator & { deviceMemory?: number; gpu?: unknown };
   const memory = nav.deviceMemory;
-  const storage = navigator.storage?.estimate ? "available" : "unavailable";
+  const storageManager = (navigator as unknown as { storage?: { estimate?: () => Promise<unknown> } }).storage;
+  const storage = typeof storageManager?.estimate === "function" ? "available" : "unavailable";
   const wasm = typeof WebAssembly !== "undefined";
   return {
     deviceMemory: memory,
