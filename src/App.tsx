@@ -134,6 +134,7 @@ export default function App() {
   const exportAbortController = useRef<AbortController | null>(null);
   const [search, setSearch] = useState("");
   const [templateCategory, setTemplateCategory] = useState("All");
+  const [selectedTemplate, setSelectedTemplate] = useState<(typeof CREATIVE_TEMPLATES)[number] | null>(null);
   const [aiBrief, setAiBrief] = useState("");
   const [fabricDirectorContext, setFabricDirectorContext] = useState<Record<string, unknown> | null>(null);
   const [aiReply, setAiReply] = useState("I can guide the editor and run a few supported actions. Try “split this clip”, “mute clip”, “add text”, or “change ratio to 16:9”.");
@@ -1911,6 +1912,22 @@ export default function App() {
     setPlayhead(0); setPage("editor"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
     setStatus("“" + template.name + "” applied: editable title, subtitle and footer layers added. Import your footage or photos, then replace the placeholder text.");
   }
+  function startTemplateProject(template: typeof CREATIVE_TEMPLATES[number]) {
+    const duration = template.seconds;
+    const layers: TimelineTextLayer[] = [
+      { id: uid(), trackId: "text-1", start: 0, duration, text: template.title, color: "#ffffff", fontSize: 58, fontFamily: "Arial", x: 50, y: 34, align: "center", shadow: true, animation: "pop", backgroundColor: "transparent", padding: 8 },
+      { id: uid(), trackId: "text-1", start: 0.35, duration: Math.max(1, duration - 0.35), text: template.subtitle, color: "#ffffff", fontSize: 29, fontFamily: "Arial", x: 50, y: 52, align: "center", shadow: true, animation: "fade", backgroundColor: "transparent", padding: 8 },
+      { id: uid(), trackId: "text-1", start: 0.7, duration: Math.max(1, duration - 0.7), text: template.footer, color: template.accent, fontSize: 19, fontFamily: "Arial", x: 50, y: 84, align: "center", shadow: true, animation: "fade", backgroundColor: "transparent", padding: 6 }
+    ];
+    setProjectName(template.name); setAspectRatio(template.ratio);
+    setClips([]); setTextLayers(layers); setImageLayers([]); setSelected(null);
+    setSelectedTextLayer(layers[0].id); setSelectedImageLayer(null); setSelectedImageAssetId(""); setSelectedOverlayIds([]);
+    setUndoStack([]); setRedoStack([]); setTrackStates(defaultTracks.map(track => ({ ...track, locked: false })));
+    setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setTimelineZoom(60);
+    setOverlayText(template.title); setTextColor("#ffffff"); setTextSize(58); setTextFont("Arial");
+    setPage("editor"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
+    setStatus("New “" + template.name + "” project created. Your imported media remains available in the media library; add it to the new timeline when ready.");
+  }
   function applyCreativeEffect(effect: typeof CREATIVE_EFFECTS[number]) {
     if (!selectedClip) { setStatus("Select a video or image clip before applying an effect."); return; }
     updateSelectedClip(effect.patch);
@@ -2114,7 +2131,7 @@ export default function App() {
 
       {page === "projects" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIONS</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("editor"); }}><Plus size={16}/> New project</button></div><div className="project-filter"><button className="filter-active">All projects</button><button>Videos</button><button>Drafts</button><span>{recent.length} projects</span></div><div className="project-grid">{recent.filter(n => n.toLowerCase().includes(search.toLowerCase())).map((name, i) => <button className="project-tile" key={name} onClick={() => { setProjectName(name); setPage("editor"); }}><div className={"recent-art art-" + i}><span>PROJECT / 0{i + 1}</span></div><div><b>{name}</b><small>Local project · {i === 0 ? "Today" : i === 1 ? "Yesterday" : "2 days ago"}</small></div></button>)}</div></section>}
 
-      {page === "templates" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">A LITTLE CREATIVE INSPIRATION</div><h1>Explore templates</h1><p>Choose a starting point for your next story.</p></div></div><div className="category-tabs">{["All", "Lifestyle", "Gaming", "Business", "Product", "Education", "Creator", "Events", "Sports"].map(c => <button key={c} className={templateCategory === c ? "tab-active" : ""} onClick={() => setTemplateCategory(c)}>{c}</button>)}</div><div className="template-grid">{filteredTemplates.map(t => <button className="template-card" key={t.name} onClick={() => applyCreativeTemplate(t)}><div className={"template-art " + t.color} style={{background:t.gradient}}><span className="template-play"><Play size={18} fill="currentColor"/></span><small>{t.length}</small></div><div><b>{t.name}</b><small>{t.type} · {t.ratio} · {t.filter}</small></div></button>)}</div></section>}
+      {page === "templates" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">A LITTLE CREATIVE INSPIRATION</div><h1>Explore templates</h1><p>Choose a starting point for your next story.</p></div></div><div className="category-tabs">{["All", "Lifestyle", "Gaming", "Business", "Product", "Education", "Creator", "Events", "Sports"].map(c => <button key={c} className={templateCategory === c ? "tab-active" : ""} onClick={() => setTemplateCategory(c)}>{c}</button>)}</div><div className="template-grid">{filteredTemplates.map(t => <button className="template-card" key={t.name} onClick={() => setSelectedTemplate(t)}><div className={"template-art " + t.color} style={{background:t.gradient}}><span className="template-play"><Play size={18} fill="currentColor"/></span><small>{t.length}</small></div><div><b>{t.name}</b><small>{t.type} · {t.ratio} · {t.filter}</small></div></button>)}</div></section>}
 
 
 
@@ -2139,6 +2156,13 @@ export default function App() {
             <div className="theme-options">{themes.map(t => <button key={t.id} className={theme === t.id ? "theme-option selected" : "theme-option"} onClick={() => changeTheme(t.id)} aria-pressed={theme === t.id}><span className="theme-swatches">{t.colors.map((color, i) => <i key={i} style={{ background: color }} />)}</span><span className="theme-option-name">{t.name}</span>{theme === t.id && <Check size={15} className="theme-check" />}</button>)}</div>
           </div>
           <div className="setting-row"><span><b>Workspace storage</b><small>Projects and media remain on this device.</small></span><span className="setting-value">Local</span></div><div className="setting-row"><span><b>Project format</b><small>Portable NEXUS project metadata.</small></span><span className="setting-value">.nexusproj</span></div><div className="about-card"><span className="brand-mark">N</span><div><b>NEXUS EDITOR</b><small>VELTRONIX NEXUS · Creative workspace</small></div></div></div></div></section>}
+      {selectedTemplate && <div className="nexus-template-preview-overlay" onClick={() => setSelectedTemplate(null)}><section className="nexus-template-preview" role="dialog" aria-modal="true" aria-label={selectedTemplate.name + " template preview"} onClick={event => event.stopPropagation()}>
+        <button className="nexus-template-preview-close" onClick={() => setSelectedTemplate(null)} aria-label="Close template preview"><X size={19}/></button>
+        <div className={"nexus-template-preview-art " + selectedTemplate.color} style={{background:selectedTemplate.gradient}}><span>{selectedTemplate.type.toUpperCase()} TEMPLATE</span><b>{selectedTemplate.title}</b><small>{selectedTemplate.subtitle}</small></div>
+        <div className="nexus-template-preview-copy"><div className="eyebrow">TEMPLATE PREVIEW</div><h2>{selectedTemplate.name}</h2><p>{selectedTemplate.type} · {selectedTemplate.length} · {selectedTemplate.ratio} · {selectedTemplate.filter}</p><div className="nexus-template-preview-slots"><span>01 · Opening title</span><span>02 · Main story</span><span>03 · Closing message</span></div><p className="nexus-template-preview-note">All text layers stay editable. You can add your own footage, photos, audio and effects in Studio.</p>
+          <div className="nexus-template-preview-actions"><button className="outline-button" onClick={() => { applyCreativeTemplate(selectedTemplate); setSelectedTemplate(null); }}>Use in current project</button><button className="gradient-button" onClick={() => { if ((clips.length || textLayers.length || imageLayers.length) && !window.confirm("Start a new template project? Your current timeline will be cleared, but imported media stays in the media library.")) return; startTemplateProject(selectedTemplate); setSelectedTemplate(null); }}>Start new project <ArrowRight size={15}/></button></div>
+        </div>
+      </section></div>}
       {publishFlowOpen && <PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} />}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
