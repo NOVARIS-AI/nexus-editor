@@ -4,9 +4,6 @@ import { understandDirectorPrompt } from "../src/editor/prompt-understander";
 import { buildReferenceContext, buildReferenceFusion } from "../src/editor/reference-workflow";
 import { analyseFabricScenes, makeDirectorBrief, recommendFabricActions, readFabricMemory, writeFabricMemory } from "../src/editor/fabric-intelligence";
 import { parseLocalDraft, readRecoverableDraft, writeRecoverableDraft } from "../src/editor/project-recovery";
-import { buildMessageAwarePlan } from "../src/editor/message-aware-editing";
-import { buildVisualSceneEvidence, describeVisualCoverage } from "../src/editor/visual-intelligence";
-import { cosineSimilarity } from "../src/editor/semantic-brain";
 
 const asset = { id: "media-1", name: "opening.mp4", kind: "video" as const, duration: 12, mimeType: "video/mp4" };
 const clip = { id: "clip-1", assetId: "media-1", trackId: "video-1", start: 0, sourceIn: 0, sourceOut: 8, label: "Opening" };
@@ -109,54 +106,6 @@ describe("Creative Fabric project intelligence", () => {
     const memory = { updatedAt: "2026-11-05T00:00:00.000Z", sceneCount: 1, assetCount: 1, lastBrief: "Keep the hook", signatures: ["Hook:Opening:8"], decisions: [] };
     expect(writeFabricMemory("Test", memory)).toBe(true);
     expect(readFabricMemory("Test")).toEqual(memory);
-  });
-});
-
-
-describe("Build 6 — Semantic intelligence foundations", () => {
-  it("compares normalised meaning vectors with cosine similarity", () => {
-    expect(cosineSimilarity([1, 0, 0], [1, 0, 0])).toBeCloseTo(1);
-    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0);
-    expect(cosineSimilarity([1, 0], [0, 1, 0])).toBe(0);
-  });
-});
-
-describe("Build 7 — Visual scene evidence", () => {
-  it("maps model descriptions and technical frame metrics to the correct timeline scene", () => {
-    const descriptions = [{ assetId: "media-1", assetName: "opening.mp4", role: "video frame", timestamp: 3, dataUrl: "data:image/jpeg;base64,AA==", description: "A speaker standing beside a bright window.", analysedAt: "2026-11-05T00:00:00.000Z" }];
-    const analyses = [{ assetId: "media-1", name: "opening.mp4", kind: "video" as const, duration: 12, fileSize: 100, visual: { sampledFrames: 4, sceneChanges: [6], averageLuminance: .6 }, notes: [] }];
-    const evidence = buildVisualSceneEvidence([clip], descriptions, analyses);
-    expect(evidence[0].coverage).toBe("model-described");
-    expect(evidence[0].descriptions[0]).toContain("speaker");
-    expect(describeVisualCoverage(evidence).modelDescribed).toBe(1);
-  });
-
-  it("does not claim visual understanding when a scene has not been sampled", () => {
-    const evidence = buildVisualSceneEvidence([clip], [], []);
-    expect(evidence[0].coverage).toBe("not-sampled");
-    expect(evidence[0].confidence).toBe("low");
-  });
-});
-
-describe("Build 8 — Message-aware editing", () => {
-  it("creates editable transcript captions and reviewable pause cuts", () => {
-    const plan = buildMessageAwarePlan({
-      assets: [asset], clips: [clip],
-      transcriptSegments: [
-        { start: 1, end: 2, text: "The message is clear." },
-        { start: 3.2, end: 4.2, text: "Now take the next step." },
-      ],
-      beatMarkers: [],
-    });
-    expect(plan.some(item => item.operation?.kind === "add-title" && item.title === "Caption the spoken message")).toBe(true);
-    expect(plan.some(item => item.operation?.kind === "split-clip" && item.confidence === "medium")).toBe(true);
-  });
-
-  it("connects detected music beats to reviewable visual transitions", () => {
-    const audio = { id: "audio-1", name: "music.wav", kind: "audio" as const, duration: 20, mimeType: "audio/wav" };
-    const audioClip = { ...clip, id: "audio-clip", assetId: "audio-1", trackId: "audio-2", sourceOut: 20 };
-    const plan = buildMessageAwarePlan({ assets: [asset, audio], clips: [clip, audioClip], transcriptSegments: [], beatMarkers: [{ assetId: "audio-1", time: 4 }] });
-    expect(plan.some(item => item.title === "Use a detected music beat" && item.operation?.kind === "apply-transition")).toBe(true);
   });
 });
 

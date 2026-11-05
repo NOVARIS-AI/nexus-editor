@@ -15,69 +15,6 @@ let extractor: FeaturePipeline | null = null;
 let loading: Promise<FeaturePipeline> | null = null;
 let loadedAt = 0;
 const embeddingCache = new Map<string, number[]>();
-const memoryEmbeddingCache = new Map<string, number[]>();
-const CACHE_DB = "nexus-semantic-embeddings-v1";
-let cacheDatabase: Promise<IDBDatabase | null> | null = null;
-
-function openEmbeddingDatabase(): Promise<IDBDatabase | null> {
-  if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  if (!cacheDatabase) cacheDatabase = new Promise(resolve => {
-    try {
-      const request = indexedDB.open(CACHE_DB, 1);
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains("vectors")) db.createObjectStore("vectors", { keyPath: "key" });
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => resolve(null);
-      request.onblocked = () => resolve(null);
-    } catch { resolve(null); }
-  });
-  return cacheDatabase;
-}
-
-function embeddingKey(text: string) {
-  let hash = 2166136261;
-  for (let i = 0; i < text.length; i++) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619); }
-  return "minilm-q8-v1:" + (hash >>> 0).toString(16) + ":" + text.length;
-}
-
-async function readPersistentEmbedding(text: string): Promise<number[] | null> {
-  const db = await openEmbeddingDatabase();
-  if (!db) return null;
-  return new Promise(resolve => {
-    try {
-      const request = db.transaction("vectors", "readonly").objectStore("vectors").get(embeddingKey(text));
-      request.onsuccess = () => resolve(Array.isArray(request.result?.vector) ? request.result.vector : null);
-      request.onerror = () => resolve(null);
-    } catch { resolve(null); }
-  });
-}
-
-async function writePersistentEmbedding(text: string, vector: number[]) {
-  const db = await openEmbeddingDatabase();
-  if (!db) return;
-  await new Promise<void>(resolve => {
-    try {
-      const store = db.transaction("vectors", "readwrite").objectStore("vectors");
-      store.put({ key: embeddingKey(text), vector, savedAt: Date.now() });
-      const count = store.count();
-      count.onsuccess = () => {
-        if (count.result > 700) {
-          const cursor = store.openCursor();
-          let excess = count.result - 600;
-          cursor.onsuccess = () => {
-            const item = cursor.result;
-            if (!item || excess <= 0) return;
-            item.delete(); excess--; item.continue();
-          };
-        }
-      };
-      resolve();
-    } catch { resolve(); }
-  });
-}
-
 
 export type ModelProgress = { status?: string; file?: string; progress?: number; loaded?: number; total?: number };
 
@@ -125,17 +62,10 @@ export async function embedText(text: string): Promise<number[]> {
   const clean = text.trim().slice(0, 1200);
   const cached = embeddingCache.get(clean);
   if (cached) return cached;
-  const persisted = await readPersistentEmbedding(clean);
-  if (persisted?.length) {
-    if (embeddingCache.size >= 500) embeddingCache.delete(embeddingCache.keys().next().value as string);
-    embeddingCache.set(clean, persisted);
-    return persisted;
-  }
   const output = await extractor(clean, { pooling: "mean", normalize: true });
   const vector = Array.from(output.data, Number);
   if (embeddingCache.size >= 500) embeddingCache.delete(embeddingCache.keys().next().value as string);
   embeddingCache.set(clean, vector);
-  void writePersistentEmbedding(clean, vector);
   return vector;
 }
 
