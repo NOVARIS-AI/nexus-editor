@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "NEXUS Studio",
+  "short_name": "NEXUS",
+  "description": "A mobile-first creative editing workspace.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#080c16",
+  "theme_color": "#080c16",
+  "icons": [
+    {
+      "src": "/nexus-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/nexus-mark-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

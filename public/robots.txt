@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /private/
+Sitemap: https://nexuseditor-omega.vercel.app/sitemap.xml

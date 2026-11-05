@@ -9,7 +9,8 @@
     "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "cap sync android",
-    "android:open": "cap open android"
+    "android:open": "cap open android",
+    "verify:release": "node scripts/verify-release-assets.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",

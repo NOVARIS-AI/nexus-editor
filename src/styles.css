@@ -881,3 +881,5 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-vision-description b{font-size:9px;letter-spacing:.05em;color:var(--accent-c)}
 .nexus-fabric-vision-description p{margin:0;font-size:11px;line-height:1.55;color:var(--text)}
 @media(max-width:460px){.nexus-fabric-vision-actions{align-items:flex-start;flex-direction:column}.nexus-fabric-vision-actions button{width:100%}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}.nexus-ai-seo-details{margin:10px 0;border:1px solid rgba(120,150,190,.2);border-radius:12px;padding:10px}.nexus-ai-seo-details>summary{cursor:pointer;font-weight:700;padding:6px}.nexus-creator-seo{display:grid;gap:10px;padding-top:10px}.nexus-creator-seo textarea{width:100%;min-height:64px;resize:vertical}.nexus-creator-seo .nexus-effect-group{display:grid;gap:8px}@media(max-width:640px){.nexus-creator-seo{gap:8px}.nexus-ai-seo-details{margin:8px 0}}

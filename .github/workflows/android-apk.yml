@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "src/**"
+      - "public/**"
+      - "scripts/**"
       - "native-engine-plugin/**"
       - "docs/ANDROID_APK.md"
       - "package.json"
@@ -42,7 +44,7 @@ jobs:
       - name: Build web editor
         run: npm run build
       - name: Generate Android project and sync native plugins
-        run: npx cap add android && npx cap sync android
+        run: npx cap add android && node scripts/generate-android-branding.mjs && npx cap sync android
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
