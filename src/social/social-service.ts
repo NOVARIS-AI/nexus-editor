@@ -13,6 +13,7 @@ export type CommunityPost = {
   creatorTopics: string[];
   visibility: "public" | "followers" | "private";
   createdAt: string;
+  mediaAssetId: string | null;
 };
 
 const fail = (error: { message: string } | null) => {
@@ -35,8 +36,8 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
   }
 
   let query = supabase.from("posts")
-    .select("id,author_id,caption,topics,visibility,created_at")
-    .eq("status", "ready").eq("moderation_state", "approved");
+    .select("id,author_id,caption,topics,visibility,created_at,media_asset_id")
+    .eq("status", "ready").eq("moderation_state", "approved").not("media_asset_id", "is", null);
   if (!authorIds) query = query.eq("visibility", "public");
   if (authorIds) query = query.in("author_id", authorIds);
   query = query.order("published_at", { ascending: false, nullsFirst: false })
@@ -71,7 +72,8 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
       likes: likeCounts.get(post.id) || 0,
       comments: commentCounts.get(post.id) || 0,
       visibility: post.visibility as CommunityPost["visibility"],
-      createdAt: post.created_at
+      createdAt: post.created_at,
+      mediaAssetId: post.media_asset_id || null
     };
   });
 }
@@ -308,4 +310,18 @@ export async function loadMyCreatorTopics() {
     .select("creator_topics").eq("id", auth.user.id).maybeSingle();
   fail(error);
   return data?.creator_topics || [];
+}
+
+export async function loadCommunityPlaybackUrl(postId: string): Promise<string> {
+  const headers: Record<string, string> = {};
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) headers.Authorization = "Bearer " + data.session.access_token;
+  }
+  const response = await fetch("/api/social/playback-token?postId=" + encodeURIComponent(postId), {
+    method: "GET", headers, cache: "no-store"
+  });
+  const result = await response.json().catch(() => ({})) as { playerUrl?: string; error?: string };
+  if (!response.ok || !result.playerUrl) throw new Error(result.error || "This community video could not be opened.");
+  return result.playerUrl;
 }
