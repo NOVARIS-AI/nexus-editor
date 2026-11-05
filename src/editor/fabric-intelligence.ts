@@ -28,7 +28,8 @@ export function analyseFabricScenes(
   assets: MediaAsset[],
   clips: TimelineClip[],
   textLayers: TimelineTextLayer[],
-  analyses: MediaAnalysis[]
+  analyses: MediaAnalysis[],
+  visualDescriptions: { assetId: string; timestamp?: number; description: string }[] = []
 ): FabricSceneInsight[] {
   const ordered = [...clips].sort((a, b) => a.start - b.start);
   return ordered.map((clip, index) => {
@@ -37,7 +38,8 @@ export function analyseFabricScenes(
     const texts = textLayers.filter(layer => layer.start < end && layer.start + layer.duration > clip.start);
     const asset = assets.find(item => item.id === clip.assetId);
     const analysis = analyses.find(item => item.assetId === clip.assetId);
-    const context = [clip.label, clip.aiScene?.title, clip.aiScene?.visual, clip.aiScene?.narration, ...texts.map(layer => layer.text)].filter(Boolean).join(" ");
+    const visualContext = visualDescriptions.filter(item => item.assetId === clip.assetId).map(item => item.description);
+    const context = [clip.label, clip.aiScene?.title, clip.aiScene?.visual, clip.aiScene?.narration, ...texts.map(layer => layer.text), ...visualContext].filter(Boolean).join(" ");
     const lower = context.toLowerCase();
     const role = /hook|intro|opening|attention|stop scrolling/.test(lower) || index === 0 ? "Hook"
       : /closing|conclusion|subscribe|follow|call to action|takeaway/.test(lower) || index === ordered.length - 1 ? "Closing"
@@ -49,6 +51,7 @@ export function analyseFabricScenes(
     if (texts.length) strengths.push("Timed message layer supports this scene");
     if (clip.aiScene?.visual) strengths.push("Scene has a written visual brief");
     if (analysis?.visual?.sampledFrames) strengths.push("Real frames sampled locally");
+    if (visualContext.length) strengths.push("Vision model described " + visualContext.length + " sampled frame(s)");
     if (duration >= 2 && duration <= 8) strengths.push("Duration sits in a flexible short-form range");
     if (!texts.length && role === "Core message") risks.push("Core message has no overlapping text layer");
     if (duration < 1.2) risks.push("Very short scene; verify the cut is intentional");
@@ -57,7 +60,7 @@ export function analyseFabricScenes(
     if (analysis?.visual?.sceneChanges.length) strengths.push(analysis.visual.sceneChanges.length + " possible visual change point(s) in source");
     const clarity = Math.max(10, Math.min(100, 42 + (texts.length ? 18 : 0) + (clip.aiScene?.visual ? 14 : 0) + (clip.aiScene?.narration ? 10 : 0) + (analysis?.visual?.sampledFrames ? 10 : 0) - risks.length * 12));
     const momentum = Math.max(10, Math.min(100, 55 + (role === "Hook" ? 18 : 0) + (role === "Closing" ? 8 : 0) + (duration < 2 ? -14 : duration > 12 ? -12 : 8) + (index > 0 && clip.start > ordered[index - 1].start + Math.max(0, (ordered[index - 1].sourceOut - ordered[index - 1].sourceIn) / (ordered[index - 1].speed || 1)) + .25 ? -18 : 0)));
-    const confidence = clip.aiScene?.visual || texts.length || analysis?.visual?.sampledFrames ? "medium" : "low";
+    const confidence = visualContext.length ? "high" : clip.aiScene?.visual || texts.length || analysis?.visual?.sampledFrames ? "medium" : "low";
     const nextAction = risks[0] || (role === "Hook" ? "Check that the first frame communicates the subject immediately" : role === "Closing" ? "Make the final message and call to action easy to remember" : "Compare this scene's visual rhythm with the scenes around it");
     return { clipId: clip.id, title: clip.aiScene?.title || clip.label || "Untitled scene", role, duration, clarity, momentum, confidence, strengths, risks, nextAction, context };
   });
