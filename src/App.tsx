@@ -1561,6 +1561,8 @@ export default function App() {
       clipCount: clips.length,
       selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, duration: clipDuration(selectedClip), filter: selectedClip.filter, fit: selectedClip.fit, aiScene: selectedClip.aiScene?.title || null } : null,
       timelineSummary: { imageLayers: imageLayers.length, textLayers: textLayers.length, duration, playhead },
+      conversation: aiChatMessages.slice(-8).map(message => ({ role: message.role, content: message.text })),
+      editorCapabilities: aiContextSummary, currentStatus: status,
       activeTool, activeSubtool, aspectRatio
     });
     const plan = result.plan;
@@ -1592,7 +1594,9 @@ export default function App() {
           clipCount: clips.length, selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, duration: clipDuration(selectedClip), filter: selectedClip.filter, fit: selectedClip.fit, aiScene: selectedClip.aiScene?.title || null } : null,
           selectedImageLayer: (() => { const layer=imageLayers.find(item=>item.id===selectedImageLayer); const media=layer?assets.find(item=>item.id===layer.assetId):undefined; return layer?{id:layer.id,assetName:media?.name||"Missing image asset",role:layer.fit==="cover"?"background":"overlay or sticker",start:layer.start,duration:layer.duration,x:layer.x,y:layer.y,scale:layer.scale,opacity:layer.opacity,visible:layer.visible,locked:layer.locked}:null; })(),
           selectedTextLayer: (() => { const layer=textLayers.find(item=>item.id===selectedTextLayer); return layer?{id:layer.id,text:layer.text.slice(0,180),start:layer.start,duration:layer.duration,x:layer.x,y:layer.y,visible:layer.visible,locked:layer.locked}:null; })(),
-          timelineSummary: { imageLayers:imageLayers.length, textLayers:textLayers.length, duration },
+          timelineSummary: { imageLayers:imageLayers.length, textLayers:textLayers.length, duration, playhead },
+          conversation: aiChatMessages.slice(-8).map(message => ({ role: message.role, content: message.text })),
+          editorCapabilities: aiContextSummary, currentStatus: status,
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
