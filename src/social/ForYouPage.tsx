@@ -6,8 +6,8 @@ import {
 } from "lucide-react";
 import "./for-you.css";
 import { useNexusAuth } from "../lib/AuthGate";
-import { isSupabaseConfigured } from "../lib/supabase";
-import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
+import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import { createPostComment, loadCommunityFeed, loadMyFollowedCreators, loadMyPostInteractions, loadPostComments, loadPulseInterestWeights, loadPulsePreferences, reportCommunityPost, saveMyCreatorTopics, savePulsePreferences, toggleCreatorFollow, togglePostLike, togglePostSave, type CommunityPost } from "./social-service";
 import { inferPostCategory, rankNexusFeed } from "./nexus-pulse-algorithm";
 
 type FeedPost = {
@@ -53,11 +53,15 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const [mutedCreators,setMutedCreators] = useState<string[]>([]);
   const [preferredCategories,setPreferredCategories] = useState<string[]>([]);
   const [categoryWeights,setCategoryWeights] = useState<Record<string,number>>({});
+  const [currentUserId,setCurrentUserId] = useState<string|null>(null);
+  const [creatorTopicsDraft,setCreatorTopicsDraft] = useState("");
+  const [creatorTopicsSaving,setCreatorTopicsSaving] = useState(false);
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const touchStartY = useRef<number|null>(null);
 
   useEffect(() => {
     let active = true;
+    if (supabase) void supabase.auth.getUser().then(({data})=>{if(active)setCurrentUserId(data.user?.id || null);});
     setPulsePreferencesReady(false);
     if (!signedIn || !isSupabaseConfigured) {
       setPreferredCategories([]); setNotInterested([]); setMutedCreators([]); setCategoryWeights({});
@@ -156,6 +160,21 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
 
+  useEffect(() => {
+    if (!profilePost?.isLive || profilePost.authorId !== currentUserId) return;
+    setCreatorTopicsDraft(profilePost.creatorTopics.join(", "));
+  }, [profilePost?.authorId, currentUserId]);
+
+  const saveCreatorTopics = async () => {
+    setCreatorTopicsSaving(true);
+    try {
+      const topics = await saveMyCreatorTopics(creatorTopicsDraft.split(","));
+      setLivePosts(old => old.map(post => post.authorId === currentUserId ? {...post, creatorTopics: topics} : post));
+      setNotice("Your creator topics have been updated. NEXUS Pulse can now match your work with interested viewers.");
+    } catch (error) { setServiceError(error instanceof Error ? error.message : "Creator topics could not be saved."); }
+    finally { setCreatorTopicsSaving(false); }
+  };
+
   const nextPost = (direction:number) => setActiveIndex(index=>Math.min(Math.max(0,index+direction),Math.max(0,filtered.length-1)));
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
@@ -241,7 +260,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onRequireSignIn }: P
       <form className="nfy-comment-compose" onSubmit={e=>{e.preventDefault();submitComment();}}><input value={commentText} onChange={e=>setCommentText(e.target.value)} placeholder={commentPost.isLive ? "Write a comment…" : "Write a preview comment…"}/><button disabled={!commentText.trim()}><Send size={17}/></button></form>
     </section></div>}
 
-    {profileFor && profilePost && <div className="nfy-overlay" onClick={()=>setProfileFor(null)}><section className="nfy-profile-sheet" onClick={e=>e.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setProfileFor(null)}><X size={19}/></button><div className="nfy-profile-avatar">{profilePost.initials}</div><h3>{profilePost.creator}</h3><p>@{profilePost.handle}</p><div className="nfy-profile-stats"><span><b>{profilePost.isLive ? "Community" : "1"}</b> {profilePost.isLive ? "creator" : "sample post"}</span><span><b>{profilePost.isLive ? "Live" : "Preview"}</b> profile</span><span><b>Creator</b> account</span></div><p className="nfy-profile-bio">{profilePost.isLive ? "NEXUS community creator" : "A sample creator profile showing how NEXUS community pages will look."}</p><button className="nfy-follow" onClick={()=>toggleLocal(followed,setFollowed,profilePost.handle,"Follow")}>{followed.includes(profilePost.handle)?"Following":"Follow creator"}</button></section></div>}
+    {profileFor && profilePost && <div className="nfy-overlay" onClick={()=>setProfileFor(null)}><section className="nfy-profile-sheet" onClick={e=>e.stopPropagation()}><button className="nfy-sheet-close" onClick={()=>setProfileFor(null)}><X size={19}/></button><div className="nfy-profile-avatar">{profilePost.initials}</div><h3>{profilePost.creator}</h3><p>@{profilePost.handle}</p><div className="nfy-profile-stats"><span><b>{profilePost.isLive ? "Community" : "1"}</b> {profilePost.isLive ? "creator" : "sample post"}</span><span><b>{profilePost.isLive ? "Live" : "Preview"}</b> profile</span><span><b>Creator</b> account</span></div><p className="nfy-profile-bio">{profilePost.isLive ? "NEXUS community creator" : "A sample creator profile showing how NEXUS community pages will look."}</p>{profilePost.isLive && profilePost.authorId === currentUserId && <div className="nfy-creator-topics"><label htmlFor="nfy-creator-topics">Your creator topics</label><input id="nfy-creator-topics" value={creatorTopicsDraft} onChange={event=>setCreatorTopicsDraft(event.target.value)} placeholder="design, education, video editing"/><small>Separate up to 12 topics with commas. These help NEXUS recommend your posts to interested people.</small><button onClick={()=>void saveCreatorTopics()} disabled={creatorTopicsSaving}>{creatorTopicsSaving?"Saving…":"Save creator topics"}</button></div>}<button className="nfy-follow" onClick={()=>toggleLocal(followed,setFollowed,profilePost.handle,"Follow")}>{followed.includes(profilePost.handle)?"Following":"Follow creator"}</button></section></div>}
 
     {reportFor && <div className="nfy-overlay" onClick={()=>setReportFor(null)}><section className="nfy-sheet nfy-report-sheet" onClick={e=>e.stopPropagation()}><header><b>Report preview content</b><button onClick={()=>setReportFor(null)}><X size={19}/></button></header><p>This is sample content, not a live public post. In the live platform, reports will be sent to the moderation queue.</p><button className="nfy-report-confirm" onClick={()=>{ if (sourcePosts.find(post=>post.id===reportFor)?.isLive) { void reportCommunityPost(reportFor!, "other").then(()=>setNotice("Report sent to the moderation queue.")).catch(error=>setServiceError(error instanceof Error?error.message:"Report failed.")); } else setNotice("Report flow previewed. Live moderation is not connected."); setReportFor(null); }}>Got it</button></section></div>}
   </section>;
