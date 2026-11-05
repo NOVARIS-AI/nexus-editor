@@ -762,3 +762,21 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-composition b{font-size:11px;letter-spacing:.04em;color:#8ce6ef}
 .nexus-fabric-composition span{font-size:11px;color:var(--text-secondary,#aab4c5)}
 .nexus-fabric-composition small{font-size:10px;line-height:1.45;color:var(--text-muted,#8994a8)}
+
+/* NEXUS Semantic Intelligence */
+.nexus-fabric-semantic-search,.nexus-fabric-body>label{display:flex;flex-direction:column;gap:8px}
+.nexus-fabric-semantic-search input,.nexus-fabric-quote-input{width:100%;box-sizing:border-box;border:1px solid var(--border,rgba(255,255,255,.14));border-radius:12px;padding:12px;background:rgba(255,255,255,.045);color:inherit;font:inherit}
+.nexus-fabric-semantic-results{display:grid;gap:9px;margin-top:12px}
+.nexus-fabric-semantic-results article{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.025)}
+.nexus-fabric-semantic-results article>div{min-width:0;display:grid;gap:4px}
+.nexus-fabric-semantic-results article b{font-size:13px;overflow-wrap:anywhere}
+.nexus-fabric-semantic-results article small,.nexus-fabric-semantic-results article p{font-size:11px;opacity:.72;margin:0}
+.nexus-fabric-semantic-results article button{flex-shrink:0}
+.nexus-fabric-quote-input{min-height:112px;resize:vertical}
+.nexus-fabric-quote-card{display:grid;gap:10px;padding:14px;border:1px solid var(--border,rgba(255,255,255,.14));border-radius:14px}
+.nexus-fabric-quote-card>span{font-size:10px;letter-spacing:.12em;opacity:.65}
+.nexus-fabric-quote-preview{padding:24px 16px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}
+.nexus-fabric-quote-specs{display:flex;flex-wrap:wrap;gap:7px}
+.nexus-fabric-quote-specs span{font-size:11px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
+.nexus-fabric-quote-card>small{font-size:11px;opacity:.72}
+@media(max-width:520px){.nexus-fabric-semantic-results article{align-items:flex-start;flex-direction:column}.nexus-fabric-semantic-results article button{width:100%}}
