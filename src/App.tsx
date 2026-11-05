@@ -1975,7 +1975,7 @@ export default function App() {
       </header>
 
       {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
-      {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       {page === "home" && <section className="page-content">
