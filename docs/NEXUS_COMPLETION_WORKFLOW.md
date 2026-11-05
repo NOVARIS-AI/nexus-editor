@@ -73,3 +73,21 @@ Create one approved brand mark and derive all platform assets from the same mast
 - Keep baseline SEO implementation free; do not add paid APIs or services without explicit approval.
 - Google Search Console verification, indexing and rankings are external outcomes and must not be reported as complete without evidence.
 - The app icon must be visually reviewed and approved before final release.
+
+## Workstream C — Public For You creator platform (hybrid)
+
+The public creator community is an additive product workstream, not a replacement for Studio. Guests can browse public videos; authentication is required for publishing and social interactions. The approved architecture separates application identity/data, trusted API orchestration and dedicated video delivery.
+
+See [SOCIAL_PLATFORM_HYBRID_ARCHITECTURE.md](./SOCIAL_PLATFORM_HYBRID_ARCHITECTURE.md) for the repository audit, proposed data model, upload lifecycle, feed/playback design, authentication, moderation, privacy, cost guardrails, phased implementation and acceptance criteria.
+
+Sequence this after the current editor foundations are preserved:
+1. Confirm Supabase and Cloudflare Stream account readiness and current quotas.
+2. Implement identity, database migrations and RLS.
+3. Implement profiles and social primitives.
+4. Implement secure video upload/webhooks and publish-from-Studio handoff.
+5. Implement guest-accessible For You feed and adaptive playback.
+6. Complete moderation, privacy, rights and abuse controls before enabling public uploads.
+7. Add recommendations/analytics only after feed reliability and privacy checks.
+8. Run web/Android integration, security, load and cost tests before an explicitly approved release.
+
+This workstream is planned, not yet implemented. Do not mark it complete based on the architecture document alone.
