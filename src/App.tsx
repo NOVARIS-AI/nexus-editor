@@ -46,6 +46,7 @@ import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
 import { ForYouPage } from "./social/ForYouPage";
+import { PublishFlow } from "./social/PublishFlow";
 
 type Page = "home" | "for-you" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -127,6 +128,7 @@ export default function App() {
   const [exportFps, setExportFps] = useState("30 FPS");
   const [exportPreset, setExportPreset] = useState("TikTok / Reels / Shorts");
   const [exportBusy, setExportBusy] = useState(false);
+  const [publishFlowOpen, setPublishFlowOpen] = useState(false);
   const [masterOutputGain, setMasterOutputGain] = useState(0.9);
   const [exportProgress, setExportProgress] = useState(0);
   const exportAbortController = useRef<AbortController | null>(null);
@@ -2005,6 +2007,7 @@ export default function App() {
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
           <button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
+          <button className="editor-top-icon" onClick={()=>setPublishFlowOpen(true)} title="Prepare a community post"><Share2 size={16}/><span>Publish</span></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
          {creativeFabricOpen && <Suspense fallback={<div className="nexus-ai-inline">Loading Creative Fabric…</div>}><CreativeFabricPanel projectName={projectName} aspectRatio={aspectRatio} assets={assets} clips={clips} textLayers={textLayers} imageLayers={imageLayers} transcriptSegments={transcriptionSegments} beatMarkers={beatMarkers} selectedClipId={selectedClip?.id} onSeekTo={(time:number)=>setPlayhead(time)} onSendToDirector={(brief:string,context?:Record<string,unknown>)=>{setAiBrief(brief);setFabricDirectorContext(context||null);setAiWorkspaceOpen(true);setStatus("Creative Fabric scene intelligence and structured project evidence sent to NEXUS AI Director.");}} onApplyPlan={(operations: FabricOperation[])=>{if(!operations.length)return;const execution=prepareExecutionPlan(operations,{assets,clips,textLayers,selectedClipId:selectedClip?.id,playhead});if(!execution.accepted.length){setStatus("AI execution review: "+execution.rejected.map(item=>item.reason).join(" "));return;}recordProjectHistory();for(const op of execution.accepted){if(op.kind==="split-clip"){const target=clips.find(item=>item.id===op.clipId);if(target){const [left,right]=splitTimelineClipAtTime(target,op.time);setClips(old=>old.flatMap(item=>item.id===target.id?[left,right]:[item]));setSelected(right.id);setPlayhead(right.start);}}else if(op.kind==="add-title"){const layer:TimelineTextLayer={id:uid(),trackId:trackStates.find(track=>track.kind==="overlay"&&!track.locked)?.id||"text-1",start:op.start??playhead,duration:op.duration||5,text:op.text,color:op.color||"#ffffff",fontSize:op.fontSize||64,fontFamily:op.fontFamily||"Arial",x:op.x??50,y:op.y??42,align:op.align||"center",backgroundColor:op.backgroundColor||"transparent",padding:12,shadow:op.shadow??true,animation:op.animation||"fade"};setTextLayers(old=>[...old,layer]);setSelectedTextLayer(layer.id);setActiveTool("text");}else if(op.kind==="apply-look"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,filter:op.filter}:clip));}else if(op.kind==="apply-transition"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,transitionIn:Math.max(clip.transitionIn||0,0.45),transitionOut:Math.max(clip.transitionOut||0,0.45),transitionStyle:op.transition}:clip));}}setStatus("AI execution engine applied "+execution.accepted.length+" approved operation(s). "+(execution.rejected.length?execution.rejected.length+" invalid operation(s) were skipped. ":"")+"Use Undo to reverse the changes.");}} onClose={()=>setCreativeFabricOpen(false)}/></Suspense>}
@@ -2136,6 +2139,7 @@ export default function App() {
             <div className="theme-options">{themes.map(t => <button key={t.id} className={theme === t.id ? "theme-option selected" : "theme-option"} onClick={() => changeTheme(t.id)} aria-pressed={theme === t.id}><span className="theme-swatches">{t.colors.map((color, i) => <i key={i} style={{ background: color }} />)}</span><span className="theme-option-name">{t.name}</span>{theme === t.id && <Check size={15} className="theme-check" />}</button>)}</div>
           </div>
           <div className="setting-row"><span><b>Workspace storage</b><small>Projects and media remain on this device.</small></span><span className="setting-value">Local</span></div><div className="setting-row"><span><b>Project format</b><small>Portable NEXUS project metadata.</small></span><span className="setting-value">.nexusproj</span></div><div className="about-card"><span className="brand-mark">N</span><div><b>NEXUS EDITOR</b><small>VELTRONIX NEXUS · Creative workspace</small></div></div></div></div></section>}
+      {publishFlowOpen && <PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} />}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
   </div>;
