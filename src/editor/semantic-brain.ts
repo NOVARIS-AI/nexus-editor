@@ -25,7 +25,7 @@ export function getSemanticDeviceInfo() {
   const wasm = typeof WebAssembly !== "undefined";
   return {
     deviceMemory: memory,
-    webGPU: !!nav.gpu,
+    webGPU: Boolean((navigator as unknown as { gpu?: unknown }).gpu),
     webAssembly: wasm,
     storage,
     compatible: wasm && (memory === undefined || memory >= 2),
