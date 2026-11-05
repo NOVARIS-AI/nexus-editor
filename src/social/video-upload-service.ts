@@ -60,3 +60,25 @@ export async function uploadVideoForReview(
 
   return { assetId: payload.assetId, postId: payload.postId };
 }
+
+export type CommunityUploadStatus = {
+  uploadState: "pending" | "uploading" | "processing" | "ready" | "failed" | "blocked" | "removed" | "unknown";
+  postStatus: string;
+  moderationState: "pending" | "approved" | "rejected";
+};
+
+export async function getVideoUploadStatus(postId: string): Promise<CommunityUploadStatus> {
+  if (!supabase) throw new Error("NEXUS sign-in is not configured in this build.");
+  const { data, error } = await supabase.auth.getSession();
+  if (error) throw new Error(error.message);
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Sign in again to check this upload.");
+  const response = await fetch("/api/social/upload-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ postId })
+  });
+  const result = await response.json().catch(() => ({})) as CommunityUploadStatus & { error?: string };
+  if (!response.ok) throw new Error(result.error || "Could not check upload status.");
+  return result;
+}
