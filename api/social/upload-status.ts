@@ -22,7 +22,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const video = await cloudflareRequest("/stream/" + encodeURIComponent(asset.provider_asset_id), { method: "GET", headers: { "Content-Type": "application/json" } });
-    const ready = video?.readyToStream === true;
+    const ready = video?.readyToStream === true && video?.status?.state === "ready" && Number(video?.status?.pctComplete) >= 100;
     const failed = video?.status?.state === "error";
     const state = failed ? "failed" : ready ? "ready" : "processing";
     const patch: Record<string, unknown> = { upload_state: state };
@@ -36,11 +36,17 @@ export default async function handler(req: any, res: any) {
     await supabaseRest("media_assets?id=eq." + encodeURIComponent(mediaAssetId) + "&owner_id=eq." + encodeURIComponent(user.id), {
       method: "PATCH", body: JSON.stringify(patch)
     });
+    if (ready || failed) {
+      await supabaseRest("posts?media_asset_id=eq." + encodeURIComponent(mediaAssetId) + "&author_id=eq." + encodeURIComponent(user.id), {
+        method: "PATCH",
+        body: JSON.stringify({ status: ready ? "processing" : "failed", moderation_state: "pending" })
+      });
+    }
     return sendJson(res, 200, {
       mediaAssetId, state, readyToStream: ready,
       durationMs: patch.duration_ms || null, width: patch.width || null, height: patch.height || null,
       message: ready
-        ? "Video processing is complete. Your post remains a private draft until moderation and publishing are approved."
+        ? "Video processing is complete. Your post remains private until moderation approval."
         : failed ? "The video provider reported a processing error." : "Your video is still processing."
     });
   } catch (error) {
