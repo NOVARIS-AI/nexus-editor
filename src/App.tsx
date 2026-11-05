@@ -45,7 +45,8 @@ import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
-import { ForYouPage } from "./social/ForYouPage";\nimport { CreatorProfilePage } from "./social/CreatorProfilePage";
+import { ForYouPage } from "./social/ForYouPage";
+import { CreatorProfilePage } from "./social/CreatorProfilePage";
 import { PublishFlow } from "./social/PublishFlow";
 
 type Page = "home" | "for-you" | "profile" | "editor" | "projects" | "templates" | "ai" | "settings";
