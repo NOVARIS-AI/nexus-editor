@@ -5,6 +5,10 @@ begin;
 alter table public.posts
   add column if not exists moderation_state text not null default 'pending';
 
+alter table public.media_assets
+  add column if not exists provider_ready_at timestamptz,
+  add column if not exists thumbnail_url text;
+
 alter table public.posts
   drop constraint if exists posts_moderation_state_check;
 alter table public.posts
