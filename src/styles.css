@@ -1301,3 +1301,11 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
   .editor-top-icon { padding:6px!important; }
   .editor-export-entry { padding:7px 9px!important; }
 }
+
+
+/* Internal implementation metadata is not part of the customer-facing editor. */
+.nexus-model-card h3,
+.nexus-model-card > p,
+.nexus-model-facts,
+.nexus-model-device,
+.nexus-model-card > small { display:none!important; }
