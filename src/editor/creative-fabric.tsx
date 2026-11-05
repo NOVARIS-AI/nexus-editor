@@ -123,7 +123,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <p className="nexus-fabric-copy">Scene Intelligence reads your timeline structure, clip labels, generated-scene notes and timed text. It does not claim to visually understand footage; all analysis runs locally.</p>
       {!clips.length && <div className="nexus-fabric-empty">Add clips to the timeline and Scene Intelligence will map the story beats here.</div>}
       <div className="nexus-fabric-visual-scan">
-        <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition is contrast-based, not subject recognition.</small></div>
+        <div><b>Visual contact sheet</b><small>Sample real frames locally — no upload or API key. Composition and text-safe-zone suggestions are contrast-based, not subject recognition.</small></div>
         <button onClick={()=>void scanProjectVisuals()} disabled={visualScanBusy}>{visualScanBusy?"Scanning…":"Scan project frames"}</button>
         {visualScanMessage && <p>{visualScanMessage}</p>}
         {visualSamples.length>0 && <div className="nexus-fabric-sample-grid">{visualSamples.map((sample,index)=><article key={sample.assetId+"-"+index}>
@@ -158,6 +158,8 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
               <b>Composition Coach · contrast estimate</b>
               <span>Visual-weight centre: {Math.round(item.visual!.composition.focusX)}% across · {Math.round(item.visual!.composition.focusY)}% down</span>
               <span>Left/right balance: {Math.round(item.visual!.composition.leftRightBalance*100)}% · top/bottom balance: {Math.round(item.visual!.composition.topBottomBalance*100)}%</span>
+              <span>Suggested text-safe zone: {item.visual!.composition.quietZone.replace("-"," ")} · visual busyness {Math.round(item.visual!.composition.quietZoneBusyness*100)}%</span>
+              <small>{item.visual!.composition.quietZoneBusyness<.18?"This area appears relatively calm in the sampled frame; test text contrast before placing typography.":"No clearly quiet region was found. Consider a subtle text backing or gradient, then check readability on the preview."}</small>
               <small>{Math.abs(item.visual!.composition.focusX-33)<12||Math.abs(item.visual!.composition.focusX-67)<12||Math.abs(item.visual!.composition.focusY-33)<12||Math.abs(item.visual!.composition.focusY-67)<12?"The contrast centre is near a rule-of-thirds guide. Check whether that placement supports the subject.":"The contrast centre sits away from the main thirds guides. Consider reframing only if it improves the story."} {Math.min(item.visual!.composition.leftRightBalance,item.visual!.composition.topBottomBalance)<.58?"The frame has noticeably uneven contrast weight; check whether the imbalance is intentional.":"Contrast weight is reasonably distributed across the frame."}</small>
             </div>}
             {item.visual!.sceneChanges.length>0&&<span>{item.visual!.sceneChanges.length} possible visual change(s)</span>}
