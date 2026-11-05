@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck } from "lucide-react";
 import "./publish-flow.css";
-import { uploadVideoForReview } from "./video-upload-service";
+import { getVideoUploadStatus, uploadVideoForReview } from "./video-upload-service";
 
 type Props = { projectName:string; onClose:()=>void };
 type Visibility = "public"|"followers"|"private";
@@ -56,6 +56,37 @@ export function PublishFlow({projectName,onClose}:Props) {
       setMessage(error instanceof Error?error.message:"Upload failed. Your Studio project remains unchanged.");
     }finally{setUploadBusy(false);}
   };
+  useEffect(()=>{
+    if(!uploadComplete||!uploadPostId)return;
+    let stopped=false;
+    let timer:number|undefined;
+    let attempts=0;
+    const check=async()=>{
+      attempts++;
+      try{
+        const status=await getVideoUploadStatus(uploadPostId);
+        if(stopped)return;
+        if(status.uploadState==="failed"||status.postStatus==="failed"){
+          setMessage("The video could not be processed. Your Studio project and local draft are still safe.");
+          return;
+        }
+        if(status.moderationState==="approved"&&status.postStatus==="ready"){
+          setMessage("Your video has passed review and is now published.");
+          return;
+        }
+        if(status.uploadState==="ready"){
+          setMessage("Video processing is complete. Your post is waiting for moderation approval and is not public yet.");
+        }
+      }catch(error){
+        if(attempts>=4&&!stopped)setMessage(error instanceof Error?error.message:"Upload status could not be refreshed.");
+      }
+      if(!stopped&&attempts<24)timer=window.setTimeout(check, statusDelay());
+    };
+    const statusDelay=()=>attempts>1?15000:7000;
+    void check();
+    return ()=>{stopped=true;if(timer)window.clearTimeout(timer);};
+  },[uploadComplete,uploadPostId]);
+
   const saveDraft=()=>{
     const draft={projectName,caption,visibility,allowComments,allowRemix,cover,updatedAt:new Date().toISOString(),status:"local-draft"};
     try {
