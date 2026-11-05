@@ -1043,8 +1043,12 @@ export default function App() {
     if (exportBusy) return;
     if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
     const fps = Number.parseInt(exportFps, 10) || 30;
-    const size = getExportDimensions(aspectRatio, exportQuality);
     const mobileProfile=getMobilePerformanceProfile({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:(navigator as Navigator & {deviceMemory?:number}).deviceMemory});
+    const requestedSize = getExportDimensions(aspectRatio, exportQuality);
+    const safeQuality = mobileProfile.tier === "compact" && requestedSize.width * requestedSize.height > 3_700_000 ? mobileProfile.recommendedExport : exportQuality;
+    const size = getExportDimensions(aspectRatio, safeQuality);
+    const safeQualityNote = safeQuality !== exportQuality ? "Export quality was adjusted to " + safeQuality + " for this device's available memory. " : "";
+    if (safeQuality !== exportQuality) setExportQuality(safeQuality);
     const qualityFindings=inspectProjectQuality({assets,clips,imageLayers,textLayers,tracks:trackStates,duration,exportWidth:size.width,exportHeight:size.height});
     const qualityState=qualitySummary(qualityFindings);
     if(!qualityState.ready){const blockers=qualityFindings.filter(item=>item.severity==="error").map(item=>item.title+": "+item.detail);setStatus("Export blocked by project quality checks: "+blockers.join(" "));setEngineReport(blockers);return;}
@@ -1055,7 +1059,7 @@ export default function App() {
     const controller = new AbortController();
     exportAbortController.current = controller;
     setExportBusy(true); setExportProgress(0);
-    setStatus("Preparing media, audio mix and graphics layers for export…");
+    setStatus(safeQualityNote + "Preparing media, audio mix and graphics layers for export…");
     try {
       const blob = await renderTimeline({
         assets, clips, textLayers, imageLayers, tracks: trackStates.map(track=>({...track,...(trackMix[track.id]||{})})), width: size.width, height: size.height, fps, masterGain: masterOutputGain,
