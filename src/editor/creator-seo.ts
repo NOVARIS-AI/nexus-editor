@@ -5,6 +5,6 @@ export function generateCreatorSeo(input:{projectName:string;brief:string;transc
  for(const w of words(brief+" "+transcript))if(w.length>2&&!stop.has(w))frequency.set(w,(frequency.get(w)||0)+1);
  const keywords=[...frequency].sort((a,b)=>b[1]-a[1]).slice(0,12).map(x=>x[0]),title=clean((brief||name).replace(/[.!?]+$/,"")).slice(0,input.platform==="TikTok"?80:100)||name;
  const description=clean([brief||name,transcript?"Key message: "+transcript.slice(0,320):"", "Explore "+(keywords.slice(0,5).join(", ")||name)+".","Created with NEXUS Studio."].filter(Boolean).join("\n\n")).slice(0,input.platform==="TikTok"?2200:4500);
- const chapters=[...transcriptRaw.matchAll(/(?:^|\s)(\d{1,2}):(\d{2})\s+([^\n]{3,90})/g)].filter(m=>Number(m[2])<60).map(m=>({time:Number(m[1])+":"+m[2],label:clean(m[3])}));
+ const chapters=[...transcriptRaw.matchAll(/(?:^|\n)(\d{1,2}):(\d{2})\s+([^\n]{3,90})/g)].filter(m=>Number(m[2])<60).map(m=>({time:Number(m[1])+":"+m[2],label:clean(m[3])}));
  return {title,description,keywords,hashtags:keywords.slice(0,6).map(w=>"#"+w.replace(/[^\p{L}\p{N}_]/gu,"")),chapters,thumbnailText:title.slice(0,42),altText:"Video about "+(brief||name),notes:[!brief?"Add a clear project brief to improve specificity.": "",!transcript?"No transcript supplied; chapter suggestions are unavailable.":"", "Suggestions use only project name, brief and transcript. They do not guarantee ranking or reach."].filter(Boolean)};
 }
