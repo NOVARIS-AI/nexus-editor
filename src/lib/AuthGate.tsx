@@ -1,9 +1,13 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import "./auth-gate.css";
 
 type Props = { children: ReactNode };
 type Mode = "signin" | "signup" | "reset";
+
+type NexusAuthState = { signedIn:boolean; guest:boolean };
+const NexusAuthContext = createContext<NexusAuthState>({ signedIn:false, guest:false });
+export const useNexusAuth = () => useContext(NexusAuthContext);
 
 export function AuthGate({ children }: Props) {
   const [ready, setReady] = useState(false);
@@ -96,8 +100,8 @@ export function AuthGate({ children }: Props) {
     setMessage("");
   };
   if (!ready) return <div className="nexus-auth-loading"><div className="nexus-auth-mark">N</div><span>Preparing your creative space…</span></div>;
-  if (signedIn) return <>{children}<button className="nexus-auth-access" onClick={signOut}>Sign out</button></>;
-  if (guest) return <>{children}<button className="nexus-auth-access" onClick={returnToAccount}>Sign in / Create account</button></>;
+  if (signedIn) return <NexusAuthContext.Provider value={{signedIn,guest:false}}>{children}<button className="nexus-auth-access" onClick={signOut}>Sign out</button></NexusAuthContext.Provider>;
+  if (guest) return <NexusAuthContext.Provider value={{signedIn:false,guest:true}}>{children}<button className="nexus-auth-access" onClick={returnToAccount}>Sign in / Create account</button></NexusAuthContext.Provider>;
 
   const configured = isSupabaseConfigured;
   return <main className="nexus-auth-screen"><section className="nexus-auth-card">
