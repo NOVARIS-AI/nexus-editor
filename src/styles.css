@@ -780,3 +780,11 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .nexus-fabric-quote-specs span{font-size:11px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,.06)}
 .nexus-fabric-quote-card>small{font-size:11px;opacity:.72}
 @media(max-width:520px){.nexus-fabric-semantic-results article{align-items:flex-start;flex-direction:column}.nexus-fabric-semantic-results article button{width:100%}}
+
+.nexus-fabric-semantic-tools{display:grid;gap:12px;margin-top:16px}
+.nexus-fabric-semantic-tools section{display:grid;gap:8px;padding:12px;border:1px solid var(--border,rgba(255,255,255,.13));border-radius:12px}
+.nexus-fabric-semantic-tools section>b{font-size:13px}
+.nexus-fabric-semantic-tools section>small,.nexus-fabric-semantic-tools section>p{font-size:11px;opacity:.7;margin:0}
+.nexus-fabric-semantic-tools article{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.07)}
+.nexus-fabric-semantic-tools article span{font-size:11px;min-width:0;overflow-wrap:anywhere}
+.nexus-fabric-semantic-tools article button{flex-shrink:0}
