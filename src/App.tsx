@@ -36,6 +36,7 @@ import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import { CreativeFabricPanel, type FabricOperation } from "./editor/creative-fabric";
+import { WorkspaceSetup } from "./editor/workspace-setup";
 
 type Page = "home" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -58,6 +59,9 @@ const clock = (n: number) => {
 
 export default function App() {
   const [page, setPage] = useState<Page>("home");
+  const [workspaceSetupVisible, setWorkspaceSetupVisible] = useState(() => !["complete","skipped"].includes(localStorage.getItem("nexus-workspace-setup") || ""));
+  const finishWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "complete"); setWorkspaceSetupVisible(false); };
+  const skipWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "skipped"); setWorkspaceSetupVisible(false); };
   const [recoveryDraft] = useState<LocalDraft | null>(() => readLocalDraft());
   const [draftSaveStatus, setDraftSaveStatus] = useState(recoveryDraft ? "Recovered draft · re-import media" : "Autosave ready");
   const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
@@ -1742,6 +1746,7 @@ export default function App() {
   const filteredTemplates = templates.filter(t => (templateCategory === "All" || t.type === templateCategory) && t.name.toLowerCase().includes(search.toLowerCase()));
 
   return <div className={darkMode ? "nexus-shell" : "nexus-shell light"} data-theme={theme}>
+    {workspaceSetupVisible && <WorkspaceSetup onComplete={finishWorkspaceSetup} onSkip={skipWorkspaceSetup}/> }
     <aside className="sidebar">
       <button className="brand-lockup" onClick={() => setPage("home")}><span className="brand-mark">N</span><span className="brand-words">NEXUS<strong>EDITOR</strong></span></button>
       <div className="side-caption">WORKSPACE</div>
@@ -1942,6 +1947,7 @@ export default function App() {
           </div>
             <div className="setting-row"><span><b>Worker diagnostics</b><small>{workerHealth?.checkedAt ? "Last checked " + new Date(workerHealth.checkedAt).toLocaleTimeString() : "Run a fresh connection check before generating."}</small></span><button className="outline-button" onClick={() => { setWorkerHealth(null); checkNexusWorker().then(setWorkerHealth).catch(error => setWorkerHealth({ ok:false, status:"unavailable", message:error instanceof Error ? error.message : "Worker health check failed.", checkedAt:Date.now() })); }}>Check connection</button></div>
           <h2>Speech transcription engines</h2><p>Choose a local engine for privacy or the online provider for cloud transcription.</p>
+          <div className="setting-row"><span><b>First-time workspace setup</b><small>Automatically download and cache required offline AI resources. Retry after a failed or skipped download.</small></span><button className="outline-button" onClick={()=>{setWorkspaceSetupVisible(true);setPage("settings");}}>Run setup again</button></div>
           <div className="setting-row"><span><b>Engine</b><small>Whisper and Vosk run in your browser after their models are available.</small></span><select value={transcriptionEngine} onChange={e=>setTranscriptionEngine(e.target.value as "whisper"|"vosk"|"groq")}><option value="whisper">Offline Whisper · Tiny</option><option value="vosk">Offline Vosk</option><option value="groq">Online API · Groq</option></select></div>
           <div className="setting-row"><span><b>Selected media</b><small>{asset?.name || "No selected audio/video clip"}</small></span><button onClick={()=>setPage("editor")}>Open editor</button></div>
           <button className="gradient-button" disabled={transcriptionBusy} onClick={runTranscription}>{transcriptionBusy ? "Transcribing…" : "Transcribe selected media"}</button>
