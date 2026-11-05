@@ -162,3 +162,14 @@ export async function reportCommunityPost(postId: string, reason: "spam" | "hara
   });
   fail(error);
 }
+
+export async function loadMyFollowedCreators(creatorIds: string[]) {
+  if (!supabase || !creatorIds.length) return [] as string[];
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return [] as string[];
+  const { data, error } = await supabase.from("follows")
+    .select("followed_id").eq("follower_id", auth.user.id)
+    .eq("status", "accepted").in("followed_id", creatorIds);
+  fail(error);
+  return (data || []).map(row => row.followed_id);
+}
