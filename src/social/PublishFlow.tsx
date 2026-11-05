@@ -11,7 +11,7 @@ export function PublishFlow({projectName,onClose}:Props) {
   const [visibility,setVisibility]=useState<Visibility>("public");
   const [allowComments,setAllowComments]=useState(true);
   const [allowRemix,setAllowRemix]=useState(false);
-  const [cover,setCover]=useState("Auto cover");
+  const cover="Auto cover";
   const [saved,setSaved]=useState(false);
   const [message,setMessage]=useState("");
   const saveDraft=()=>{
