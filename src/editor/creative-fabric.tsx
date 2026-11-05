@@ -3,6 +3,7 @@ import { Activity, ArrowRight, Check, GitBranch, Lightbulb, Sparkles, WandSparkl
 import type { MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer } from "../types";
 import { captureVisualSamples, type VisualSample } from "./visual-sampling";
 import { analyzeMediaAsset, type MediaAnalysis } from "./engines";
+import { SEMANTIC_MODEL, getSemanticDeviceInfo, isSemanticModelLoaded, loadSemanticModel, rankBySemanticSimilarity } from "./semantic-brain";
 
 export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string };
 type Props = {
@@ -36,15 +37,15 @@ function semanticTerms(query: string) {
   for(const [concept,terms] of Object.entries(semanticGroups)) if(terms.some(term=>query.toLowerCase().includes(term))) { expanded.add(concept); terms.forEach(term=>expanded.add(term)); }
   return [...expanded].filter(word=>word.length>2);
 }
-function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[]) : SemanticHit[] {
-  const terms=semanticTerms(query); if(!terms.length)return [];
+function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[], includeAll=false) : SemanticHit[] {
+  const terms=semanticTerms(query); if(!terms.length&&!includeAll)return [];
   const records:(Omit<SemanticHit,"score">)[]=[
     ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
     ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
     ...transcript.map((segment,index)=>({id:"transcript-"+index,title:segment.text.slice(0,76),kind:"Spoken transcript",time:segment.start,detail:segment.text})),
     ...assets.map(asset=>({id:asset.id,title:asset.name,kind:asset.kind==="audio"?"Audio source":"Media source",time:clips.find(clip=>clip.assetId===asset.id)?.start||0,detail:asset.name+" "+asset.kind}))
   ];
-  return records.map(record=>{const hay=(record.title+" "+record.detail+" "+record.kind).toLowerCase();const matched=terms.filter(term=>hay.includes(term));const exact=matched.filter(term=>query.toLowerCase().includes(term)).length;return {...record,score:matched.length+exact*1.5};}).filter(item=>item.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
+  return records.map(record=>{const hay=(record.title+" "+record.detail+" "+record.kind).toLowerCase();const matched=terms.filter(term=>hay.includes(term));const exact=matched.filter(term=>query.toLowerCase().includes(term)).length;return {...record,score:matched.length+exact*1.5};}).filter(item=>includeAll||item.score>0).sort((a,b)=>b.score-a.score).slice(0,160);
 }
 function understandQuote(value: string) {
   const q=value.toLowerCase();
@@ -105,9 +106,16 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 }
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
-  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"quote"|"whatif">("map");
+  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"models"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
+  const [semanticModelReady,setSemanticModelReady]=useState(isSemanticModelLoaded());
+  const [semanticModelBusy,setSemanticModelBusy]=useState(false);
+  const [semanticModelProgress,setSemanticModelProgress]=useState(0);
+  const [semanticModelMessage,setSemanticModelMessage]=useState("Not downloaded · optional local model");
+  const [semanticSearchBusy,setSemanticSearchBusy]=useState(false);
+  const [semanticResults,setSemanticResults]=useState<(SemanticHit & {semanticScore:number})[]>([]);
+  const [semanticSearchMode,setSemanticSearchMode]=useState<"keyword"|"embedding">("keyword");
   const [quoteText, setQuoteText] = useState("");
   const [dna, setDna] = useState<DNA>(() => {
     try { return { ...blankDNA, ...JSON.parse(localStorage.getItem("nexus-fabric-dna:"+projectName)||"{}") }; } catch { return blankDNA; }
@@ -138,6 +146,27 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
   const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments),[semanticQuery,assets,clips,textLayers,transcriptSegments]);
+  const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,transcriptSegments,true),[assets,clips,textLayers,transcriptSegments]);
+  const deviceInfo = useMemo(()=>getSemanticDeviceInfo(),[]);
+  const prepareSemanticModel = async () => {
+    if(semanticModelBusy||semanticModelReady)return;
+    setSemanticModelBusy(true);setSemanticModelProgress(0);setSemanticModelMessage("Downloading quantised embedding model…");
+    try {
+      await loadSemanticModel(event=>{if(typeof event.progress==="number")setSemanticModelProgress(Math.round(event.progress));if(event.file)setSemanticModelMessage("Preparing "+event.file.split("/").pop());});
+      setSemanticModelReady(true);setSemanticModelProgress(100);setSemanticModelMessage("Loaded in this session. Model files are cached by the browser when storage permits.");
+    } catch(error) {setSemanticModelMessage(error instanceof Error?error.message:"Model could not be loaded. Keyword search remains available.");}
+    finally {setSemanticModelBusy(false);}
+  };
+  const runSemanticSearch = async () => {
+    if(!semanticQuery.trim())return;
+    if(!semanticModelReady){setSemanticSearchMode("keyword");return;}
+    setSemanticSearchBusy(true);setSemanticSearchMode("embedding");
+    try {
+      const ranked=await rankBySemanticSimilarity(semanticQuery,semanticCorpus.map(hit=>({ ...hit, text:[hit.title,hit.detail,hit.kind].filter(Boolean).join(". ") })));
+      setSemanticResults(ranked.map(({text:_text,...hit})=>hit));
+    } catch(error) {setSemanticSearchMode("keyword");setSemanticModelMessage(error instanceof Error?error.message:"Semantic search failed; using keyword fallback.");}
+    finally {setSemanticSearchBusy(false);}
+  };
   const beatMoments = useMemo(()=>beatMarkers.flatMap(marker=>clips.filter(clip=>clip.assetId===marker.assetId && marker.time>=clip.sourceIn && marker.time<=clip.sourceOut).map(clip=>({time:clip.start+(marker.time-clip.sourceIn)/(clip.speed||1),asset:assets.find(a=>a.id===marker.assetId)?.name||"Audio",sourceTime:marker.time}))).sort((a,b)=>a.time-b.time).slice(0,16),[beatMarkers,clips,assets]);
   const pauseMoments = useMemo(()=>transcriptSegments.slice(1).flatMap((segment,index)=>{const previous=transcriptSegments[index];const gap=segment.start-previous.end;return gap>=0.8?[{time:previous.end,gap,text:previous.text+" → "+segment.text}]:[];}).slice(0,12),[transcriptSegments]);
   const quoteDesign = useMemo(()=>understandQuote(quoteText),[quoteText]);
@@ -156,7 +185,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
     <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
     <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
+    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","models","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",models:"Model Centre",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
@@ -237,11 +266,18 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     {tab==="semantic" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. This local semantic layer searches scene notes, captions, asset names and available transcription segments. It expands related concepts; it does not yet recognise objects or actions inside raw footage.</p>
       <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
-      <div className="nexus-fabric-semantic-results">{semanticQuery.trim()?semanticHits.map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · relevance {hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item's name or type."}</p></div><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make semantic search richer.</div>}</div>
-      <small className="nexus-fabric-scene-note">Search covers {transcriptSegments.length} available spoken segment(s). Meaning matching uses local concept expansion and text matching; it does not infer speech that has not been transcribed.</small>      <div className="nexus-fabric-semantic-tools">
+      <div className="nexus-fabric-semantic-actions"><button onClick={()=>void runSemanticSearch()} disabled={!semanticQuery.trim()||semanticSearchBusy||!semanticModelReady}>{semanticSearchBusy?"Understanding meaning…":"Search by meaning"}</button><span>{semanticModelReady?"Embedding model active":"Keyword fallback active"}</span></div><div className="nexus-fabric-semantic-results">{semanticQuery.trim()?(semanticSearchMode==="embedding"?semanticResults:semanticHits).map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · {semanticSearchMode==="embedding"?"semantic similarity "+("semanticScore" in hit?hit.semanticScore.toFixed(3):""):"keyword relevance "+hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item name or type."}</p></div><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&semanticSearchMode==="embedding"&&!semanticResults.length&&!semanticSearchBusy&&<div className="nexus-fabric-empty">No project records were available to compare yet.</div>}{semanticQuery.trim()&&semanticSearchMode==="keyword"&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make search richer.</div>}</div>
+      <small className="nexus-fabric-scene-note">Search covers {transcriptSegments.length} available spoken segment(s). Keyword fallback uses local concept expansion. When the embedding model is active, results use vector similarity across project text and transcripts. Neither mode invents speech that has not been transcribed.</small>      <div className="nexus-fabric-semantic-tools">
         <section><b>Natural pause candidates</b><small>Potential edit points from transcript gaps (0.8 seconds or longer). Review the audio before trimming.</small>{pauseMoments.length?pauseMoments.map((item,index)=><article key={"pause-"+index}><span>{item.gap.toFixed(1)}s pause · {item.text.slice(0,110)}</span><button onClick={()=>onSeekTo(item.time)}>Review cut</button></article>):<p>No long transcript pauses detected yet. Transcribe an audio/video source to populate this.</p>}</section>
         <section><b>Music beat moments</b><small>Detected beat markers mapped from source-audio time to timeline time where the audio asset is used.</small>{beatMoments.length?beatMoments.map((item,index)=><article key={"beat-"+index}><span>{item.asset} · timeline {item.time.toFixed(2)}s</span><button onClick={()=>onSeekTo(item.time)}>Go to beat</button></article>):<p>No mapped beat markers yet. Run local beat analysis on an audio asset.</p>}</section>
       </div>
+    </div>}
+
+    {tab==="models" && <div className="nexus-fabric-body">
+      <p className="nexus-fabric-copy">Manage optional local intelligence models. Downloads are initiated by you, cached by the browser where supported and run on this device. No paid API or account key is used.</p>
+      <section className="nexus-model-card"><div className="nexus-model-card-head"><span>TEXT EMBEDDINGS</span><b>{semanticModelReady?"ACTIVE":"OPTIONAL DOWNLOAD"}</b></div><h3>{SEMANTIC_MODEL.name}</h3><p>{SEMANTIC_MODEL.description}</p><div className="nexus-model-facts"><span>Model <b>{SEMANTIC_MODEL.id}</b></span><span>Download <b>{SEMANTIC_MODEL.size}</b></span><span>Runtime <b>Transformers.js · ONNX · WASM</b></span><span>Tasks <b>Meaning search, transcript retrieval</b></span></div><div className="nexus-model-capabilities">{SEMANTIC_MODEL.strengths.map(item=><span key={item}>✓ {item}</span>)}</div><small>Limitations: {SEMANTIC_MODEL.limitations.join(" · ")}</small><div className="nexus-model-device"><b>Device compatibility</b><span>WebAssembly: {deviceInfo.webAssembly?"Available":"Unavailable"} · WebGPU: {deviceInfo.webGPU?"Available":"Not detected"} · Reported memory: {deviceInfo.deviceMemory?deviceInfo.deviceMemory+" GB":"Unknown"}</span><small>{deviceInfo.note}</small></div>{semanticModelBusy&&<div className="nexus-model-progress"><i style={{width:semanticModelProgress+"%"}}/></div>}<p className="nexus-model-status">{semanticModelMessage}</p><button className="nexus-fabric-primary" disabled={semanticModelBusy||semanticModelReady||!deviceInfo.compatible} onClick={()=>void prepareSemanticModel()}>{semanticModelBusy?"Downloading model "+semanticModelProgress+"%":semanticModelReady?"Model active":"Download & activate model"}</button></section>
+      <section className="nexus-model-card"><div className="nexus-model-card-head"><span>VISUAL UNDERSTANDING</span><b>NOT INSTALLED</b></div><h3>Vision model slot</h3><p>Reserved for a downloadable vision-language model that can describe sampled frames and recognise relevant visual content. The current contrast-based frame analysis remains available and is not presented as object recognition.</p><small>No vision model is being downloaded or claimed as active in this milestone.</small></section>
+      <section className="nexus-model-card"><div className="nexus-model-card-head"><span>STORY INTELLIGENCE</span><b>LOCAL ALGORITHMS</b></div><h3>Transcript and timeline analysis</h3><p>Available now: transcript segments, pauses, beat markers, timeline scene notes and editable caption layers. Deeper story summarisation and key-moment ranking will build on the embedding model next.</p></section>
     </div>}
     {tab==="quote" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Quote Intelligence reads the wording you provide, estimates its message category and proposes a typography, tone and visual treatment. It preserves the exact quote text.</p>
