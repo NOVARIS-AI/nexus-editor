@@ -1531,6 +1531,23 @@ export default function App() {
     setAiReply("I built an editable reference-inspired sequence with " + sceneCount + " visual scenes, " + textAdditions.length + " timed title layers and " + audioAdditions.length + " imported audio track(s). Scene durations, transition styles and title positions use the AI's approximate reference observations where available. Audio cue offsets are suggestions, not verified beat detection. Review the draft; it is not a finished export.");
     return true;
   }
+  async function requestCoachAdvice(brief: string) {
+    const visualSamples = assets.length ? await captureVisualSamples(assets, 8) : [];
+    const result = await askNexusDirector(brief, {
+      projectName,
+      assetCount: assets.length,
+      assets: assets.map(item => ({ name: item.name, kind: item.kind, source: item.source?.type })),
+      referenceWorkflow: buildReferenceContext(assets, mediaAnalyses),
+      visualSamples,
+      clipCount: clips.length,
+      selectedClip: selectedClip ? { id: selectedClip.id, label: selectedClip.label, trackId: selectedClip.trackId, start: selectedClip.start, duration: clipDuration(selectedClip), filter: selectedClip.filter, fit: selectedClip.fit, aiScene: selectedClip.aiScene?.title || null } : null,
+      timelineSummary: { imageLayers: imageLayers.length, textLayers: textLayers.length, duration, playhead },
+      activeTool, activeSubtool, aspectRatio
+    });
+    const plan = result.plan;
+    setEngineReport(["Creative coach reviewed your current project", ...plan.assetNeeds.map(item => "Suggested asset: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
+    return plan.summary + (plan.editPlan.length ? "\n\nYour next steps:\n" + plan.editPlan.map((step,index) => (index+1) + ". " + step.action + " · " + step.target + ": " + step.details).join("\n") : "") + (plan.userReferenceNeeded ? "\n\nA reference photo or video would help represent your subject accurately." : "");
+  }
   async function runAICommand(message?: string) {
     const rawRequest = (message ?? aiBrief).trim();
     const request = rawRequest.toLowerCase();
@@ -1748,9 +1765,10 @@ export default function App() {
     const toolNames: Record<string, string> = { edit: "edit", audio: "audio", text: "text", overlay: "overlay", effects: "effects", captions: "captions", filters: "filters", adjust: "adjust", media: "media", stickers: "stickers", background: "background", ratio: "ratio", export: "export" };
     const requestedTool = Object.keys(toolNames).find(name => new RegExp("\b" + name + "\b").test(request));
     if (/\b(guide me|what next|help|how do i|how to)\b/.test(request)) {
-      if (!selectedClip) { respond("First import a photo or video, add it to the timeline, then select its clip. I’ll guide you using the selected clip and active tool."); return; }
-      setActiveTool("edit"); setActiveSubtool("select");
-      respond("Your clip “" + selectedClip.label + "” is selected. The playhead is at " + clock(playhead) + ". Choose a tool from the bottom dock; for a clean cut, move the playhead inside the clip and tap Split. I’ve highlighted Edit for you.");
+      if (!assets.length) { respond("Let's start by importing a photo or video. Once it appears on your timeline, I can inspect the project and coach the next steps."); return; }
+      respond("I’m checking your media, timeline and current editing step so I can give you project-specific guidance…");
+      try { respond(await requestCoachAdvice(rawRequest)); }
+      catch (error) { respond(error instanceof Error ? error.message + " I can still guide you through the controls available in this editor." : "The creative coach could not connect just now. I can still help with supported editing actions."); }
       return;
     }
     if (/\b(split|cut)\b/.test(request)) {
@@ -1811,13 +1829,20 @@ export default function App() {
       respond("Opened the " + requestedTool + " tools in the editor. Its available controls are shown above the bottom dock. Some advanced operations are still under development.");
       return;
     }
-    if (/\b(improve|better|suggest)\b/.test(request)) {
-      respond(selectedClip ? "For “" + selectedClip.label + "”, start by trimming any unwanted beginning/end, keep cuts aligned to the beat, then balance the audio. I can execute split, mute/unmute, speed, clip volume, fades, timed text creation and ratio changes; advanced operations still need their own connected engine." : "Import and select a clip first. Then I can give advice based on that clip and your timeline.");
+    if (/\b(improve|better|suggest|review|critique|feedback)\b/.test(request)) {
+      if (!assets.length) { respond("Import a photo or video first, then I can review the actual project rather than guessing."); return; }
+      respond("I’m reviewing the edit and looking for the most useful improvements…");
+      try { respond(await requestCoachAdvice(rawRequest)); }
+      catch (error) { respond(error instanceof Error ? error.message : "I could not reach the creative coach. Try again when the connection is available."); }
       return;
     }
     if (/\bundo\b/.test(request)) { undoEdit(); respond("Undo command sent. Check the timeline to confirm the restored edit."); return; }
     if (/\bredo\b/.test(request)) { redoEdit(); respond("Redo command sent. Check the timeline to confirm the edit."); return; }
-    respond("I can run supported local editor actions without a generation worker: split or delete the selected clip, mute/unmute its exported audio, set speed (for example “speed 2x”), set volume (for example “volume 80%”), apply fades (for example “fade in 2 seconds”), add timed text, change the canvas ratio, analyse media, or guide the next edit.");
+    respond("Let me think through that with your current project in mind…");
+    try { respond(await requestCoachAdvice(rawRequest)); }
+    catch (error) {
+      respond((error instanceof Error ? error.message + " " : "") + "I can still apply supported edits such as splitting or deleting a selected clip, changing speed or volume, adding timed text, changing the canvas ratio, and creating original sound effects. Tell me what you want to achieve and I’ll suggest the best available route.");
+    }
   }
   async function openProject(file?: File) {
     if (!file) return;
