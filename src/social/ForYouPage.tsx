@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import {
   ArrowLeft, Bookmark, Check, ChevronDown, Compass, Flag, Heart, MessageCircle,
   MoreHorizontal, Play, Plus, Search, Send, Share2, Sparkles, Volume2, VolumeX,
-  X, Clapperboard, UserPlus, Video
+  X, UserPlus
 } from "lucide-react";
 import "./for-you.css";
 
