@@ -147,6 +147,7 @@ export default function App() {
   const [assistantPanelPosition, setAssistantPanelPosition] = useState({ left: 12, top: 100 });
   const assistantDrag = useRef<{ kind: "launcher" | "panel"; pointerId: number; startX: number; startY: number; left: number; top: number; moved: boolean } | null>(null);
   const assistantWasDragged = useRef(false);
+  const assistantMessagesRef = useRef<HTMLDivElement>(null);
   const [creativeFabricOpen, setCreativeFabricOpen] = useState(false);
   const [aiWorkflowStage, setAiWorkflowStage] = useState<"idea" | "planning" | "review" | "editing">("idea");
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Hi, I’m your NEXUS creative assistant. Ask me a question, tell me what you’re trying to make, or ask me to improve the edit. I’ll use your current project as context and guide you step by step." }]);
@@ -208,7 +209,8 @@ export default function App() {
     } else {
       setAssistantLauncherPosition(position => ({ ...position, top: Math.max(90, window.innerHeight - 88) }));
     }
-  }, [aiWorkspaceOpen]);
+  }, [aiWorkspaceOpen, assistantPanelPosition.top]);
+  useEffect(() => { if (aiWorkspaceOpen && assistantMessagesRef.current) assistantMessagesRef.current.scrollTop = assistantMessagesRef.current.scrollHeight; }, [aiChatMessages, assistantBusy, aiWorkspaceOpen]);
   function beginAssistantDrag(event: ReactPointerEvent<HTMLElement>, kind: "launcher" | "panel") {
     if (kind === "panel" && (event.target as HTMLElement).closest("button,input,textarea")) return;
     const point = kind === "launcher" ? assistantLauncherPosition : assistantPanelPosition;
@@ -2045,7 +2047,7 @@ export default function App() {
               <span className="nexus-assistant-title"><b>NEXUS AI</b><small>{assistantBusy ? "Thinking through your project…" : selectedClip ? "Your selected clip is in context" : "Your creative coach"}</small></span>
               <button type="button" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close assistant"><X size={16}/></button>
             </header>
-            <div className="nexus-assistant-messages">
+            <div className="nexus-assistant-messages" ref={assistantMessagesRef}>
               {aiChatMessages.map((message,index)=><article key={index} className={"nexus-assistant-message "+message.role}><b>{message.role==="assistant"?"NEXUS":"YOU"}</b><p>{message.text}</p></article>)}
               {assistantBusy && <div className="nexus-assistant-thinking"><i/><i/><i/> Thinking</div>}
             </div>
