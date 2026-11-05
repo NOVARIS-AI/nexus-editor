@@ -1290,7 +1290,7 @@ export default function App() {
       const referenceWorkflow = buildReferenceContext(assets, mediaAnalyses, brief);
       const promptUnderstanding = understandDirectorPrompt(brief);
       const referenceDocuments = await Promise.all(aiFiles.slice(0,5).map(async file => ({ name:file.name.slice(0,180), mimeType:file.type || "text/plain", text:(await file.text()).slice(0,12000) })));
-      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceDocuments, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceDocuments, audioTranscript:transcriptionText.slice(0,16000), visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
