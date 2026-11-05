@@ -36,6 +36,17 @@ export function AuthGate({ children }: Props) {
     return () => { alive = false; data.subscription.unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    const openSignIn = () => {
+      localStorage.removeItem("nexus-guest-mode");
+      setGuest(false);
+      setMode("signin");
+      setMessage("Sign in or create an account to use creator features.");
+    };
+    window.addEventListener("nexus:require-auth", openSignIn);
+    return () => window.removeEventListener("nexus:require-auth", openSignIn);
+  }, []);
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) { setMessage("Supabase isn't connected in this environment yet. Add the Project URL and publishable key."); return; }
