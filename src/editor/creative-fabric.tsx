@@ -106,7 +106,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
 }
 
 export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onClose }: Props) {
-  const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"models"|"quote"|"whatif">("map");
+  const [tab, setTab] = useState<"director"|"map"|"scenes"|"dna"|"intent"|"semantic"|"models"|"quote"|"whatif">("director");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
   const [semanticModelReady,setSemanticModelReady]=useState(isSemanticModelLoaded());
@@ -145,6 +145,27 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally { setVisualScanBusy(false); }
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
+
+  const directorBrief = useMemo(() => {
+    const duration = clips.reduce((max, clip) => Math.max(max, clip.start + (clip.sourceOut - clip.sourceIn) / (clip.speed || 1)), 0);
+    const hasDNA = Boolean(dna.purpose.trim() && dna.audience.trim());
+    const hasAudioSource = assets.some(asset => asset.kind === "audio");
+    const audioOnTimeline = clips.some(clip => assets.find(asset => asset.id === clip.assetId)?.kind === "audio");
+    const hasTranscript = transcriptSegments.length > 0;
+    const readiness = Math.round((assets.length ? 15 : 0) + (clips.length ? 25 : 0) + (hasDNA ? 15 : 0) + (textLayers.length ? 15 : 0) + (hasTranscript ? 10 : 0) + (audioOnTimeline ? 10 : 0) + (visualAnalyses.length ? 10 : 0));
+    const moves: {priority:string;title:string;detail:string;tab:"dna"|"intent"|"semantic"|"scenes"|"map"}[] = [];
+    if (!assets.length) moves.push({priority:"START",title:"Bring the project to life",detail:"Import a source visual or audio asset so the Director has real material to work with.",tab:"map"});
+    else if (!clips.length) moves.push({priority:"HIGH",title:"Establish the story timeline",detail:"Your media is present, but no story beats have been arranged yet.",tab:"scenes"});
+    if (!hasDNA) moves.push({priority:"HIGH",title:"Define the creative contract",detail:"Set the project's purpose and audience so future recommendations have a consistent direction.",tab:"dna"});
+    if (clips.length && !hasTranscript) moves.push({priority:"MEDIUM",title:"Understand the spoken message",detail:"Transcribe speech to unlock key-moment search, pause review and message-aware caption suggestions.",tab:"semantic"});
+    if (clips.length && !textLayers.length) moves.push({priority:"MEDIUM",title:"Give the central message a visual anchor",detail:"Create a title or caption only where it strengthens the story; keep wording accurate.",tab:"intent"});
+    if (hasAudioSource && !audioOnTimeline) moves.push({priority:"MEDIUM",title:"Connect the sound world",detail:"An audio source is available but is not represented by a timeline clip yet.",tab:"map"});
+    if (clips.length && !visualAnalyses.length) moves.push({priority:"MEDIUM",title:"Inspect real project frames",detail:"Sample frames to measure composition, visual changes and text-safe regions. This is not object recognition.",tab:"scenes"});
+    if (duration > 0 && duration < 8) moves.push({priority:"REVIEW",title:"Check whether the story has room to land",detail:"The current timeline is under eight seconds. Review pacing before adding more material.",tab:"scenes"});
+    if (!moves.length) moves.push({priority:"REVIEW",title:"Run a creative direction review",detail:"Your core project signals are present. Compare alternate treatments and review continuity before export.",tab:"intent"});
+    return {duration,readiness,hasDNA,hasAudioSource,audioOnTimeline,hasTranscript,moves:moves.slice(0,6)};
+  },[assets,clips,textLayers,dna,transcriptSegments,visualAnalyses]);
+
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
   const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments),[semanticQuery,assets,clips,textLayers,transcriptSegments]);
   const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,transcriptSegments,true),[assets,clips,textLayers,transcriptSegments]);
@@ -185,9 +206,18 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   },[intent,dna.purpose,projectName]);
   const saveDNA = () => { try { localStorage.setItem("nexus-fabric-dna:"+projectName,JSON.stringify(dna)); setSaved(true); } catch { setSaved(false); } };
   return <aside className="nexus-fabric-panel" role="dialog" aria-label="NEXUS Creative Fabric">
-    <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>PROJECT INTELLIGENCE LAYER · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
-    <div className="nexus-fabric-intro"><span><Sparkles size={14}/> CREATIVE WORLD MAP</span><h2>Your project, connected.</h2><p>Creative Fabric links your media, timeline beats and message layers so editing decisions can consider the whole project.</p></div>
-    <nav className="nexus-fabric-tabs">{(["map","scenes","dna","intent","semantic","models","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",models:"Model Centre",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
+    <header className="nexus-fabric-head"><div className="nexus-fabric-mark"><GitBranch size={19}/></div><div><b>NEXUS CREATIVE FABRIC</b><small>AI DIRECTOR INTELLIGENCE · LOCAL FIRST</small></div><button onClick={onClose} aria-label="Close Creative Fabric"><X size={19}/></button></header>
+    <div className="nexus-fabric-intro"><span><Sparkles size={14}/> UNIFIED CREATIVE INTELLIGENCE</span><h2>Direct the whole creative world.</h2><p>One connected system reads project structure, creative intent, story signals and continuity before proposing changes.</p></div>
+    <nav className="nexus-fabric-tabs">{(["director","map","scenes","dna","intent","semantic","models","quote","whatif"] as const).map(k=><button key={k} className={tab===k?"active":""} onClick={()=>setTab(k)}>{({director:"Director",map:"World map",scenes:"Scenes",dna:"Project DNA",intent:"Intent",semantic:"Semantic search",models:"Model Centre",quote:"Quote intelligence",whatif:"What-if"})[k]}</button>)}</nav>
+    {tab==="director" && <div className="nexus-fabric-body">
+       <div className="nexus-director-readiness"><div><span>PROJECT READINESS SIGNAL</span><strong>{directorBrief.readiness}<small>/100</small></strong><p>A transparent completeness signal based on available project structure — not an artistic quality score.</p></div><div className="nexus-director-ring" style={{background:"conic-gradient(var(--accent-c) "+directorBrief.readiness+"%,var(--line) 0)"}}><b>{directorBrief.readiness}%</b><small>signals present</small></div></div>
+       <div className="nexus-fabric-stats"><div><b>{assets.length}</b><small>Media sources</small></div><div><b>{clips.length}</b><small>Timeline scenes</small></div><div><b>{directorBrief.duration.toFixed(1)}s</b><small>Timeline duration</small></div></div>
+       <div className="nexus-fabric-section-title"><b>Director's next best moves</b><small>Live project-aware priorities</small></div>
+       <div className="nexus-director-moves">{directorBrief.moves.map(move=><article key={move.title}><span>{move.priority}</span><div><b>{move.title}</b><p>{move.detail}</p></div><button onClick={()=>setTab(move.tab)}>Review <ArrowRight size={13}/></button></article>)}</div>
+       <div className="nexus-fabric-section-title"><b>Connected intelligence status</b><small>Evidence available to the Director</small></div>
+       <div className="nexus-director-signals"><div><b>{directorBrief.hasDNA?"Ready":"Needs setup"}</b><span>Project DNA</span></div><div><b>{directorBrief.hasTranscript?"Available":"Not available"}</b><span>Speech meaning</span></div><div><b>{directorBrief.audioOnTimeline?"Connected":directorBrief.hasAudioSource?"Source only":"No audio source"}</b><span>Audio context</span></div><div><b>{visualAnalyses.length} scanned</b><span>Visual measurements</span></div></div>
+       <p className="nexus-fabric-copy">The Director combines these signals to prioritise work. Visual measurements currently cover brightness, composition and change detection; semantic visual recognition is not yet installed. Recommendations remain reviewable and never silently change your timeline.</p>
+     </div>}
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
@@ -289,6 +319,6 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <small className="nexus-fabric-scene-note">Message category and styling are heuristic suggestions, not a claim to know the author's intention. You can edit the resulting text layer and undo the operation.</small>
     </div>}
     {tab==="whatif" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Explore different creative directions without replacing your current edit.</p><div className="nexus-fabric-universes">{["Cinematic","Documentary","Bold social","Minimal"].map(v=><button key={v} className={universe===v?"active":""} onClick={()=>setUniverse(v)}>{v}</button>)}</div><div className="nexus-fabric-universe-card"><WandSparkles size={22}/><b>{universe} universe</b><p>{({Cinematic:"Use contrast, deliberate pacing and a strong visual payoff. Preserve the core story and quote wording.",Documentary:"Prioritise natural footage, clear context, restrained transitions and an honest visual tone.","Bold social":"Prioritise an immediate hook, strong type hierarchy, short beats and high mobile readability.",Minimal:"Reduce effects and competing layers; let one image and one clear message carry the scene."})[universe]}</p><small>This is a direction preview, not a generated duplicate or a change to your timeline.</small></div></div>}
-    <footer className="nexus-fabric-footer"><span>Existing tools remain in control</span><button onClick={onClose}>Return to editor <ArrowRight size={14}/></button></footer>
+    <footer className="nexus-fabric-footer"><span>AI Director retains control · reviewed changes only</span><button onClick={onClose}>Collapse intelligence <ArrowRight size={14}/></button></footer>
   </aside>;
 }
