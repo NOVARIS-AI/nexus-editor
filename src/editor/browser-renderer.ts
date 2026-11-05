@@ -207,14 +207,23 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     }
     canvasStream = canvas.captureStream(input.fps);
     if (audioDestination) audioDestination.stream.getAudioTracks().forEach(track => canvasStream!.addTrack(track));
-    const mimeType = [
+    const mimeCandidates = [
       "video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4",
       "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"
-    ].find(type => MediaRecorder.isTypeSupported(type));
-    if (!mimeType) throw new Error("This browser does not expose a supported MP4 or WebM recording format. Try an updated Chrome browser.");
+    ];
     const videoBitsPerSecond = Math.max(lowMemory ? 1_200_000 : 2_000_000, Math.min(lowMemory ? 8_000_000 : 24_000_000, Math.round(input.width * input.height * input.fps * (lowMemory ? 0.045 : 0.08))));
     const audioBitsPerSecond = needsAudio ? (lowMemory ? 96000 : 160000) : undefined;
-    const recorder = new MediaRecorder(canvasStream, { mimeType, videoBitsPerSecond, ...(audioBitsPerSecond ? { audioBitsPerSecond } : {}) });
+    let mimeType = "";
+    let recorder: MediaRecorder | null = null;
+    for (const candidate of mimeCandidates) {
+      if (!MediaRecorder.isTypeSupported(candidate)) continue;
+      try {
+        recorder = new MediaRecorder(canvasStream, { mimeType: candidate, videoBitsPerSecond, ...(audioBitsPerSecond ? { audioBitsPerSecond } : {}) });
+        mimeType = candidate;
+        break;
+      } catch { /* Some mobile browsers advertise a codec but reject its recorder configuration. Try the next supported format. */ }
+    }
+    if (!recorder || !mimeType) throw new Error("This browser could not start an MP4 or WebM video export. Update Chrome, lower the export quality, or try a shorter edit.");
     const chunks: BlobPart[] = [];
     recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
     let rejectRecording: (reason?: unknown) => void = () => {};
