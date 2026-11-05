@@ -23,7 +23,7 @@ The installable debug APK is written to:
 
 ## GitHub Actions
 
-The workflow `.github/workflows/android-apk.yml` builds this APK on relevant pushes to `main` or when manually dispatched from GitHub Actions. It uploads the APK as the artifact `NEXUS-Studio-Android-debug` for 30 days. Download the artifact ZIP from the successful workflow run, extract it, and install `app-debug.apk` on an Android device. Android may ask the user to allow installation from the browser or file manager used to open the APK.
+The workflow `.github/workflows/android-apk.yml` builds this APK on relevant pushes to `main` or when manually dispatched from GitHub Actions. It uploads the APK as the artifact `NEXUS-Studio-Android-debug` for 30 days. The workflow also installs the Android SDK, generates the Capacitor project only when absent, applies the NEXUS launcher icon, and can inject the two public Supabase client settings from repository Actions secrets. Download the artifact ZIP from the successful workflow run, extract it, and install `app-debug.apk` on an Android device. Android may ask the user to allow installation from the browser or file manager used to open the APK.
 
 This is a debug build, not a Play Store release or a privately signed production build. It can be installed for testing and later replaced by another build signed with the same debug key on the same build environment; debug signing keys may change between CI runs, so Android may require uninstalling an older debug build before installing a new one.
 
