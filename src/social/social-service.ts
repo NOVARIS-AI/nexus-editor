@@ -367,3 +367,34 @@ export async function respondToFollowRequest(followerId:string,accept:boolean){
   const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw new Error("Sign in to manage follow requests.");
   const result=accept?await supabase.from("follows").update({status:"accepted"}).eq("follower_id",followerId).eq("followed_id",auth.user.id).eq("status","pending"):await supabase.from("follows").delete().eq("follower_id",followerId).eq("followed_id",auth.user.id).eq("status","pending");fail(result.error);
 }
+
+export type NexusNotification = {
+  id:string; actorId:string|null; actorName:string; actorHandle:string;
+  actorAvatar:string|null; eventType:"follow_request"|"new_follower"|"follow_accepted"|"post_like"|"post_comment";
+  entityType:string|null; entityId:string|null; createdAt:string; readAt:string|null;
+};
+export async function loadNexusNotifications():Promise<{items:NexusNotification[];unreadCount:number}> {
+  if(!supabase)return{items:[],unreadCount:0};
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)return{items:[],unreadCount:0};
+  const [itemsResult,unreadResult]=await Promise.all([
+    supabase.from("notifications").select("id,actor_id,event_type,entity_type,entity_id,created_at,read_at").eq("recipient_id",auth.user.id).order("created_at",{ascending:false}).limit(60),
+    supabase.from("notifications").select("id",{count:"exact",head:true}).eq("recipient_id",auth.user.id).is("read_at",null)
+  ]);
+  fail(itemsResult.error);fail(unreadResult.error);
+  const rows=itemsResult.data||[];
+  const actorIds=[...new Set(rows.map(row=>row.actor_id).filter((id):id is string=>Boolean(id)))];
+  let profiles:any[]=[];
+  if(actorIds.length){const result=await supabase.from("profiles").select("id,username,display_name,avatar_url").in("id",actorIds);fail(result.error);profiles=result.data||[];}
+  const byId=new Map(profiles.map(profile=>[profile.id,profile]));
+  return {items:rows.map(row=>{const actor=row.actor_id?byId.get(row.actor_id):null;return{
+    id:row.id,actorId:row.actor_id,actorName:actor?.display_name||"A NEXUS creator",
+    actorHandle:actor?.username||"creator",actorAvatar:actor?.avatar_url||null,
+    eventType:row.event_type,entityType:row.entity_type,entityId:row.entity_id,
+    createdAt:row.created_at,readAt:row.read_at
+  };}),unreadCount:unreadResult.count||0};
+}
+export async function markNexusNotificationRead(notificationId?:string) {
+  if(!supabase)throw new Error("Supabase is not configured in this build.");
+  const {data:auth}=await supabase.auth.getUser();if(!auth.user)throw new Error("Sign in to manage notifications.");
+  const {error}=await supabase.rpc("mark_nexus_notification_read",{p_notification_id:notificationId||null});fail(error);
+}
