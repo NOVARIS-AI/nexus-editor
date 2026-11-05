@@ -1939,19 +1939,15 @@ export default function App() {
     setActiveSubtool(effect.name);
     setStatus(effect.name + " applied to “" + selectedClip.label + "”. Adjust its individual controls to fine-tune the look.");
   }
+  // Public primary navigation stays focused on the five core destinations.
+  // Saved videos, notifications and settings live inside My Profile; staff moderation
+  // and private appeals are intentionally excluded from public navigation.
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
     { id: "for-you" as Page, label: "For You", icon: Compass },
-    { id: "profile" as Page, label: "My Profile", icon: UserCircle },
-    { id: "notifications" as Page, label: "Notifications", icon: Bell },
-    { id: "saved" as Page, label: "Saved videos", icon: Bookmark },
-    { id: "moderation" as Page, label: "Moderation Centre", icon: ShieldCheck },
-    { id: "appeals" as Page, label: "My Appeals", icon: Undo2 },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
-    { id: "projects" as Page, label: "Projects", icon: Folder },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
-    { id: "ai" as Page, label: "AI Studio", icon: Sparkles },
-    { id: "settings" as Page, label: "Settings", icon: Settings }
+    { id: "profile" as Page, label: "My Profile", icon: UserCircle }
   ];
   const pageTitle = nav.find(n => n.id === page)?.label || "Home";
   const recent = ["My Vlog Edit", "Tech Review", "Birthday Bash"];
@@ -1980,7 +1976,7 @@ export default function App() {
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
-      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onOpenSaved={() => setPage("saved")} onOpenNotifications={() => setPage("notifications")} onOpenSettings={() => setPage("settings")} onOpenAppeals={() => setPage("appeals")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "moderation" && <ModerationCentre onBack={() => setPage("home")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
