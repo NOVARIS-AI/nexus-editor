@@ -50,3 +50,8 @@ The editor includes honest disabled-worker handling: if a worker URL/token is ab
 ## Android APK target
 
 The project now includes a Capacitor Android shell. The Android APK uses the native Android document picker for media selection and native filesystem/share APIs for completed exports. See [docs/ANDROID_APK.md](docs/ANDROID_APK.md). The GitHub Actions workflow `NEXUS Android APK` creates an installable debug APK artifact. Browser-based timeline rendering remains shared with the web build; native Media3 rendering and background export are future native-engine work, not yet claimed as complete.
+
+
+## Completion workflow additions — Google SEO and app identity
+
+Google SEO and the official NEXUS app logo/icon are explicit release workstreams. See [docs/NEXUS_COMPLETION_WORKFLOW.md](docs/NEXUS_COMPLETION_WORKFLOW.md) for their scope, sequence and acceptance checks. These are planned work items, not claims that Google indexing or final icon assets are already complete.
