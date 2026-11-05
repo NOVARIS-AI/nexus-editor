@@ -15,7 +15,8 @@ The first provider-independent For You experience has been added to the existing
 - Comment sheet with local preview comments.
 - More menu with report-preview and copy-page-link actions.
 - Guest action gate: selecting the profile sign-in entry emits the existing AuthGate event to request sign-in.
-- Studio entry point from the community page.
+- Studio entry point and direct template-library entry point from the community page.
+- Template cards now open a preview sheet with explicit **Use in current project** and **Start new project** choices; starting a new template project confirms before clearing the current timeline and retains imported media in the media library.
 - Studio top-bar Publish entry opens a three-step publishing preparation flow.
 - Publish flow collects caption, audience (public/followers/private), comments/remix choices, and shows a review/availability gate.
 - Local-only publish draft metadata can be saved on the current device.
