@@ -1383,3 +1383,8 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 @media(prefers-reduced-transparency:reduce){
   .nexus-shell .editor-topbar,.nexus-shell .editor-timeline-zone,.nexus-shell .editor-bottom-tools.nexus-tool-stack,.nexus-shell .editor-library,.nexus-shell .editor-center,.nexus-shell .editor-inspector{backdrop-filter:none!important;background:#11162a!important}
 }
+
+/* Restore customer-facing Creative features; the engineering panel itself stays private. */
+.nexus-shell .nexus-fabric-trigger{display:inline-flex!important;align-items:center}
+.nexus-shell .nexus-fabric-panel{display:flex!important}
+@media(max-width:700px){.nexus-shell .nexus-fabric-trigger span{display:none}.nexus-shell .nexus-fabric-trigger{width:36px;height:36px;justify-content:center;padding:7px}.nexus-shell .nexus-fabric-panel{display:flex!important}}
