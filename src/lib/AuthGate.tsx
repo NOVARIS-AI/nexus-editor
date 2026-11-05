@@ -64,8 +64,11 @@ export function AuthGate({ children }: Props) {
   };
 
   const continueAsGuest = () => { localStorage.setItem("nexus-guest-mode", "true"); setGuest(true); };
+  const returnToAccount = () => { localStorage.removeItem("nexus-guest-mode"); setGuest(false); };
+  const signOut = async () => { await supabase?.auth.signOut(); setSignedIn(false); };
   if (!ready) return <div className="nexus-auth-loading"><div className="nexus-auth-mark">N</div><span>Preparing your creative space…</span></div>;
-  if (signedIn || guest) return <>{children}</>;
+  if (signedIn) return <>{children}<button className="nexus-auth-access" onClick={signOut}>Sign out</button></>;
+  if (guest) return <>{children}<button className="nexus-auth-access" onClick={returnToAccount}>Sign in / Create account</button></>;
 
   const configured = isSupabaseConfigured;
   return <main className="nexus-auth-screen"><section className="nexus-auth-card">
