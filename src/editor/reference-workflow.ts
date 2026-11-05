@@ -45,8 +45,9 @@ export function buildReferenceContext(assets: ReferenceAssetLike[], analyses: Re
       : explicitStyle && asset.kind === "image" && styleName(asset) ? "style reference"
       : explicitReplacement && explicitStyle && asset.kind === "image" && images.length > 1 ? (imageIndex === 0 ? "style reference" : "replacement image")
       : explicitReplacement && asset.kind === "image" ? "replacement image"
-      : explicitReplacement && asset.kind === "video" ? "replacement video"
+      : explicitReplacement && asset.kind === "video" && replacementName(asset) ? "replacement video"
       : asset.kind === "video" && (explicitStructure || videos.length > 1) ? "reference video"
+      : explicitReplacement && asset.kind === "video" ? "replacement video"
       : asset.kind === "image" && explicitStyle ? "style reference"
       : asset.kind === "image" ? "content reference"
       : asset.kind === "video" ? "content reference" : "project media";

@@ -27,7 +27,7 @@ export function downloadProject(project: NexusProject, assets: MediaAsset[]) {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
-const finite = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
 const validAsset = (value: unknown): value is MediaAsset =>
   isRecord(value) && typeof value.id === "string" && !!value.id &&
   typeof value.name === "string" && ["video", "image", "audio"].includes(String(value.kind)) &&

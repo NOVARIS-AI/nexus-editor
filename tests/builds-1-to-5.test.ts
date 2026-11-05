@@ -92,11 +92,12 @@ describe("Prompt understanding and reference intelligence", () => {
 describe("Creative Fabric project intelligence", () => {
   it("builds scene roles, risks, recommendations and a director brief from timeline evidence", () => {
     const second = { ...clip, id: "clip-2", start: 8, label: "Wisdom lesson" };
-    const scenes = analyseFabricScenes([asset], [clip, second], [], [], []);
+    const third = { ...clip, id: "clip-3", start: 16, label: "Ending" };
+    const scenes = analyseFabricScenes([asset], [clip, second, third], [], [], []);
     expect(scenes[0].role).toBe("Hook");
     expect(scenes[1].role).toBe("Core message");
     expect(scenes[1].risks).toContain("Core message has no overlapping text layer");
-    const recommendations = recommendFabricActions(scenes, [clip, second]);
+    const recommendations = recommendFabricActions(scenes, [clip, second, third]);
     expect(recommendations.length).toBeGreaterThan(0);
     expect(makeDirectorBrief("Test", "Teach", "Creators", scenes, recommendations)).toContain("Continue directing my existing NEXUS project");
   });
