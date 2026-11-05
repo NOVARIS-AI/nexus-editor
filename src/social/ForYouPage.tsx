@@ -5,6 +5,7 @@ import {
   X, UserPlus
 } from "lucide-react";
 import "./for-you.css";
+import { useNexusAuth } from "../lib/AuthGate";
 
 type FeedPost = {
   id: string; creator: string; handle: string; initials: string; caption: string;
@@ -24,6 +25,7 @@ const formatCount = (n:number) => n >= 1_000_000 ? (n/1_000_000).toFixed(1).repl
 type Props = { onOpenStudio: () => void; onRequireSignIn: () => void };
 
 export function ForYouPage({ onOpenStudio, onRequireSignIn }: Props) {
+  const { signedIn } = useNexusAuth();
   const [activeTab,setActiveTab] = useState("For You");
   const [category,setCategory] = useState("All");
   const [query,setQuery] = useState("");
@@ -50,6 +52,7 @@ export function ForYouPage({ onOpenStudio, onRequireSignIn }: Props) {
     setNotice(label+" is a preview interaction. Connect the live NEXUS community service before it can be saved or shared publicly.");
   };
   const toggleLocal = (items:string[], setter:(next:string[])=>void, id:string, label:string) => {
+    if (!signedIn) { onRequireSignIn(); return; }
     setter(items.includes(id) ? items.filter(x=>x!==id) : [...items,id]);
     requireAction(label);
   };
@@ -60,6 +63,7 @@ export function ForYouPage({ onOpenStudio, onRequireSignIn }: Props) {
   const nextPost = (direction:number) => setActiveIndex(index=>Math.min(Math.max(0,index+direction),Math.max(0,filtered.length-1)));
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
+    if (!signedIn) { onRequireSignIn(); return; }
     setLocalComments(old=>({...old,[commentsFor]:[...(old[commentsFor]||[]),commentText.trim()]}));
     setCommentText("");
     requireAction("Comment");
@@ -122,7 +126,7 @@ export function ForYouPage({ onOpenStudio, onRequireSignIn }: Props) {
       <button onClick={()=>setActiveTab("Discover")}><Search size={18}/><span>Discover</span></button>
       <button className="nfy-add" onClick={onOpenStudio}><span><Plus size={22}/></span></button>
       <button onClick={()=>setNotice("Inbox and activity will be connected with the live community backend.")}><MessageCircle size={18}/><span>Inbox</span></button>
-      <button onClick={()=>onRequireSignIn()}><span className="nfy-mini-avatar">N</span><span>Profile</span></button>
+      <button onClick={()=>setProfileFor(DEMO_POSTS[0].handle)}><span className="nfy-mini-avatar">N</span><span>Profile</span></button>
     </footer>
 
     {commentsFor && commentPost && <div className="nfy-overlay" onClick={()=>setCommentsFor(null)}><section className="nfy-sheet" onClick={e=>e.stopPropagation()}>
