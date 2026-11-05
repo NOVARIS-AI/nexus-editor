@@ -248,3 +248,14 @@ export async function loadPulseInterestWeights() {
   add(likes.data, 1); add(saves.data, 2);
   return weights;
 }
+
+export async function saveMyCreatorTopics(topics: string[]) {
+  if (!supabase) throw new Error("Supabase is not configured in this build.");
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error("Sign in to edit creator topics.");
+  const normalized = [...new Set(topics.map(topic => topic.trim().toLowerCase()).filter(Boolean))].slice(0, 12);
+  const { error } = await supabase.from("profiles")
+    .update({ creator_topics: normalized }).eq("id", auth.user.id);
+  fail(error);
+  return normalized;
+}
