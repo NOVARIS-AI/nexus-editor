@@ -19,6 +19,45 @@ update public.posts
 set moderation_state = 'approved'
 where status = 'ready' and moderation_state = 'pending';
 
+-- Moderation decisions, like publish-state changes, are trusted-server only.
+create or replace function public.guard_nexus_publish_state()
+returns trigger language plpgsql set search_path = public
+as $nexus$
+declare jwt_role text;
+begin
+  jwt_role := coalesce(current_setting('request.jwt.claim.role', true), '');
+  if tg_table_name = 'posts' then
+    if jwt_role <> 'service_role' then
+      if tg_op = 'INSERT' and (new.status <> 'draft' or new.moderation_state <> 'pending') then
+        raise exception 'Posts must begin as unapproved drafts';
+      end if;
+      if tg_op = 'UPDATE' and (
+        new.status is distinct from old.status
+        or new.moderation_state is distinct from old.moderation_state
+      ) then
+        raise exception 'Only the trusted publishing service can change publish or moderation state';
+      end if;
+    end if;
+  elsif tg_table_name = 'media_assets' then
+    if jwt_role <> 'service_role' then
+      if tg_op = 'INSERT' and (new.upload_state <> 'pending' or new.provider <> 'unconfigured' or new.provider_asset_id is not null or new.playback_id is not null) then
+        raise exception 'Media assets must begin as unconfigured pending records';
+      end if;
+      if tg_op = 'UPDATE' and (
+        new.upload_state is distinct from old.upload_state
+        or new.provider is distinct from old.provider
+        or new.provider_asset_id is distinct from old.provider_asset_id
+        or new.playback_id is distinct from old.playback_id
+      ) then
+        raise exception 'Only the trusted media service can change provider and upload state';
+      end if;
+    end if;
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$nexus$;
+
 create index if not exists posts_moderation_feed_idx
   on public.posts (moderation_state, visibility, published_at desc)
   where status = 'ready';
