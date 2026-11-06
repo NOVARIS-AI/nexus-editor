@@ -167,8 +167,8 @@ describe("Build 11 — Quality intelligence",()=>{
  it("marks a structurally clean project ready for human review",()=>{const findings=inspectProjectQuality({assets:[{...asset,objectUrl:"blob:video"}],clips:[clip],imageLayers:[],textLayers:[],tracks:defaultTracks,duration:8});expect(qualitySummary(findings).ready).toBe(true);});
 });
 describe("Build 12 — Export reliability",()=>{
- it("blocks invalid export requests",()=>{expect(inspectExportRequest({width:0,height:0,fps:30,duration:8,clipCount:1,hasVisual:true,hasAudio:false}).ok).toBe(false);});
- it("validates video outputs and sanitises filenames",()=>{expect(validateExportBlob(new Blob(["video"],{type:"video/webm"})).extension).toBe("webm");expect(()=>validateExportBlob(new Blob([],{type:"video/mp4"}))).toThrow(/empty/i);expect(makeExportFilename("My project / final","mp4")).toBe("My-project-final.mp4");});
+ it("blocks invalid export requests and clip metadata",()=>{expect(inspectExportRequest({width:0,height:0,fps:30,duration:8,clipCount:1,hasVisual:true,hasAudio:false}).ok).toBe(false);expect(inspectExportRequest({width:1280,height:720,fps:30,duration:8,clipCount:-1,hasVisual:true,hasAudio:true}).errors).toContain("The project contains an invalid clip count.");expect(inspectExportRequest({width:1280,height:720,fps:30,duration:8,clipCount:1,hasVisual:false,hasAudio:true}).ok).toBe(false);});
+ it("validates video outputs, custom limits and sanitises filenames",()=>{expect(validateExportBlob(new Blob(["video"],{type:"video/webm"})).extension).toBe("webm");expect(()=>validateExportBlob(new Blob([],{type:"video/mp4"}))).toThrow(/empty/i);expect(()=>validateExportBlob(new Blob(["12345"],{type:"video/mp4"}),4)).toThrow(/0.00 GB/);expect(makeExportFilename("My project / final","mp4")).toBe("My-project-final.mp4");expect(makeExportFilename("Untitled","")).toBe("Untitled.mp4");});
  it("classifies cancellation and decode failures",()=>{expect(classifyExportFailure(new Error("Export cancelled")).code).toBe("cancelled");expect(classifyExportFailure(new Error("A media file could not be decoded")).code).toBe("media-decode");});
 });
 
