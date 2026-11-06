@@ -167,7 +167,14 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     setter(items.includes(id) ? items.filter(x=>x!==id) : [...items,id]);
     requireAction(label);
   };
-  useEffect(() => {\n    setActiveIndex(index => Math.min(index, Math.max(0, filtered.length - 1)));\n    if(feedScrollRef.current)feedScrollRef.current.scrollTop=0;\n  }, [filtered.length]);\n\n  useEffect(() => { if(feedScrollRef.current)feedScrollRef.current.scrollTop=0; }, [activeTab,category,query]);\n\n  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
+  useEffect(() => {
+    setActiveIndex(index => Math.min(index, Math.max(0, filtered.length - 1)));
+    if(feedScrollRef.current)feedScrollRef.current.scrollTop=0;
+  }, [filtered.length]);
+
+  useEffect(() => { if(feedScrollRef.current)feedScrollRef.current.scrollTop=0; }, [activeTab,category,query]);
+
+  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
 
