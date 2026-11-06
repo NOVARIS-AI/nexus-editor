@@ -785,7 +785,7 @@ export default function App() {
     const additions: TimelineTextLayer[] = [];
     for (const [assetId, segments] of sourceEntries) {
       const matchingClips = clips.filter(clip => clip.assetId === assetId);
-      const targets = chosenClip ? [chosenClip] : matchingClips.length ? matchingClips : [{ id: "source-" + assetId, assetId, start: 0, sourceIn: 0, sourceOut: Infinity, speed: 1 } as TimelineClip];
+      const targets = chosenClip ? [chosenClip] : matchingClips;
       for (const clip of targets) {
         for (const segment of segments.slice(0, 160)) {
           const sourceStart = Math.max(segment.start, clip.sourceIn || 0);
@@ -926,7 +926,7 @@ export default function App() {
         results.push(await analyzeMediaAsset(item));
         if ((item.kind === "audio" || item.kind === "video") && item.file && !internalTranscripts[item.id]) {
           try {
-            const speechFile = item.kind === "video" ? await extractAudioTrackFromVideo(item.file, 0, Math.min(item.duration || 0, 480)) : item.file;
+            const speechFile = item.kind === "video" ? await extractAudioTrackFromVideo(item.file, 0, Math.min(item.duration || 480, 480)) : item.file;
             const speech = await transcribeMediaInternally(speechFile);
             if (speech.text.trim()) {
               setInternalTranscripts(old => ({ ...old, [item.id]: speech.segments }));
