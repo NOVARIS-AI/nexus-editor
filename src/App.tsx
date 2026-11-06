@@ -919,26 +919,47 @@ export default function App() {
   }
   async function analyzeAllMedia() {
     if (!assets.length) { setAiReply("Import media or search for reusable media first. There is nothing to analyse yet."); return; }
-    setAnalysisBusy(true); setAiReply("Analysing media locally in the browser. Large files may take a little while.");
+    setAnalysisBusy(true);
+    setAiReply("Analysing project media. Internal speech analysis will use the safest available engine for this device.");
+    setEngineReport([]);
     const results: MediaAnalysis[] = [];
-    for (const item of assets) {
-      try {
-        results.push(await analyzeMediaAsset(item));
-        if ((item.kind === "audio" || item.kind === "video") && item.file && !internalTranscripts[item.id]) {
-          try {
-            const speechFile = item.kind === "video" ? await extractAudioTrackFromVideo(item.file, 0, Math.min(item.duration || 480, 480)) : item.file;
-            const speech = await transcribeMediaInternally(speechFile);
-            if (speech.text.trim()) {
-              setInternalTranscripts(old => ({ ...old, [item.id]: speech.segments }));
-              setInternalSpeechText(old => [old, speech.text].filter(Boolean).join("\n"));
+    const speechNotes: string[] = [];
+    try {
+      for (const item of assets) {
+        setStatus("Analysing " + item.name + "…");
+        try {
+          results.push(await analyzeMediaAsset(item));
+          if ((item.kind === "audio" || item.kind === "video") && item.file && !internalTranscripts[item.id]) {
+            try {
+              setStatus("Checking internal speech engines for " + item.name + "…");
+              const speechFile = item.kind === "video"
+                ? await extractAudioTrackFromVideo(item.file, 0, Math.min(item.duration || 480, 480))
+                : item.file;
+              const speech = await transcribeMediaInternally(speechFile, message => setStatus(item.name + " · " + message));
+              if (speech.text.trim() || speech.segments.length) {
+                setInternalTranscripts(old => ({ ...old, [item.id]: speech.segments }));
+                setInternalSpeechText(old => [old, speech.text].filter(Boolean).join("\n"));
+                speechNotes.push(item.name + ": internal speech insights ready (" + speech.engine + ").");
+              } else speechNotes.push(item.name + ": no speech was detected.");
+            } catch (error) {
+              const reason = error instanceof Error ? error.message : "Internal speech analysis unavailable.";
+              speechNotes.push(item.name + ": speech analysis skipped — " + reason);
             }
-          } catch { /* speech intelligence is optional; continue other media analysis */ }
+          }
+        } catch (error) {
+          results.push({ assetId:item.id,name:item.name,kind:item.kind,duration:item.duration,fileSize:item.file?.size||0,notes:[error instanceof Error?error.message:"Analysis failed"] });
         }
-      } catch (error) { results.push({ assetId:item.id,name:item.name,kind:item.kind,duration:item.duration,fileSize:item.file?.size||0,notes:[error instanceof Error?error.message:"Analysis failed"] }); }
-      setMediaAnalyses([...results]);
+        setMediaAnalyses([...results]);
+        if (speechNotes.length) setEngineReport([...speechNotes]);
+      }
+      setMediaAnalyses(results);
+      setEngineReport(speechNotes);
+      const ready = speechNotes.filter(note => note.includes("insights ready")).length;
+      setStatus("Project analysis complete · " + results.length + " media item(s) checked · " + ready + " speech insight result(s).");
+      setAiReply("Media analysis finished for " + results.length + " asset(s). Speech intelligence ran internally where supported. " + (ready ? ready + " media item(s) produced speech insights that can be used for editable captions and AI guidance." : "No speech insights were produced; the rest of the media analysis remains available."));
+    } finally {
+      setAnalysisBusy(false);
     }
-    setMediaAnalyses(results); setAnalysisBusy(false);
-    setAiReply("Media analysis finished for "+results.length+" asset(s). Image dimensions, video metadata/brightness samples and audio energy/silence estimates are available. Visual understanding can be added with Scene Understanding.");
   }
   async function startVoiceoverRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
