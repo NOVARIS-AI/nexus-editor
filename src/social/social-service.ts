@@ -149,7 +149,7 @@ export async function loadMyCreatorPosts(): Promise<CommunityPost[]> {
   const handle = profile?.username || "creator";
   return posts.map(post => ({
     id: post.id, authorId: post.author_id, creator, handle,
-    initials: creator.split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "N",
+    initials: creator.split(/\\s+/).slice(0, 2).map((part: string) => part[0] || "").join("").toUpperCase() || "N",
     caption: post.caption || "", topics: post.topics || [],
     creatorTopics: profile?.creator_topics || [],
     likes: likeCounts.get(post.id) || 0, comments: commentCounts.get(post.id) || 0,
