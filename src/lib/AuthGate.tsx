@@ -65,10 +65,13 @@ export function AuthGate({ children }: Props) {
         const cleanDisplayName = displayName.trim().slice(0, 60) || cleanEmail.split("@")[0];
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail, password,
-          options: { data: { display_name: cleanDisplayName } }
+          options: {
+            data: { display_name: cleanDisplayName },
+            emailRedirectTo: window.location.origin
+          }
         });
         if (error) throw error;
-        setMessage(data.session ? "Account created. Welcome to NEXUS!" : "Account created. Check your email to confirm your address.");
+        setMessage(data.session ? "Account created. Welcome to NEXUS!" : "Account created. Check your email to confirm your address. Open the confirmation link on this same NEXUS website.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (error) throw error;
