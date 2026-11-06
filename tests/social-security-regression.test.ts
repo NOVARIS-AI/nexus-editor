@@ -41,6 +41,25 @@ describe("NEXUS social and moderation security regression checks", () => {
     expect(sql).toContain("moderation_events");
   });
 
+  it("keeps uploaded videos pending until a trusted moderator atomically approves or rejects them", () => {
+    const migration = read("../supabase/migrations/202611060003_publish_moderation_pipeline.sql");
+    const queue = read("../api/moderation/pending-posts.ts");
+    const review = read("../api/moderation/publish-review.ts");
+    const preview = read("../api/moderation/preview-token.ts");
+    const publish = read("../src/social/PublishFlow.tsx");
+    expect(migration).toContain("for update");
+    expect(migration).toContain("nexus_review_pending_post");
+    expect(migration).toContain("publish_approved");
+    expect(migration).toContain("publish_rejected");
+    expect(migration).toContain("to service_role");
+    expect(queue).toContain('status=eq.processing&moderation_state=eq.pending');
+    expect(review).toContain("rpc/nexus_review_pending_post");
+    expect(preview).toContain("requireModerator");
+    expect(preview).toContain('post.status !== "processing"');
+    expect(publish).toContain("checkVideoDraftStatus");
+    expect(publish).toContain("Submit for review");
+  });
+
   it("does not accidentally expose moderation routes in public navigation", () => {
     const app = read("../src/App.tsx");
     expect(app).toMatch(/moderation/);
