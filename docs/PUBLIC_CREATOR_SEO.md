@@ -14,6 +14,7 @@ Only profiles with `is_private = false` and posts with `status = ready`, `modera
 The Creator Portfolio shows public posts and provides links to the public profile and each post SEO page, plus copy-link controls and per-post SEO previews.
 
 ## Deployment requirements
+- The intended release path is GitHub `main` → the repository-linked Vercel project. A normal commit pushed to `main` should trigger Vercel's automatic production deployment when Git integration and production-branch settings are correctly configured. Do not create a separate manual deployment for this workflow.
 - Deploy the latest `main` branch to Vercel before expecting these URLs to resolve.
 - Vercel server environment must expose the existing Supabase project URL and anon/publishable key through one of: `SUPABASE_URL` or `VITE_SUPABASE_URL`, and `SUPABASE_ANON_KEY`, `VITE_SUPABASE_ANON_KEY`, or `VITE_SUPABASE_PUBLISHABLE_KEY`.
 - Never configure a service-role key for these read-only public pages.
