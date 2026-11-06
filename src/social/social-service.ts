@@ -378,6 +378,22 @@ export async function checkMyModerationAccess(): Promise<boolean> {
   } catch { return false; }
 }
 
+export async function uploadMyCreatorAvatar(file:File):Promise<string>{
+  if(!supabase)throw new Error("Supabase is not configured in this build.");
+  const {data:auth,error:authError}=await supabase.auth.getUser();fail(authError);
+  if(!auth.user)throw new Error("Sign in to upload a profile photo.");
+  const allowed=new Set(["image/jpeg","image/png","image/webp"]);
+  if(!allowed.has(file.type))throw new Error("Choose a JPG, PNG or WebP image.");
+  if(file.size>5*1024*1024)throw new Error("Profile photos must be 5 MB or smaller.");
+  const extension=file.type==="image/png"?"png":file.type==="image/webp"?"webp":"jpg";
+  const path=auth.user.id+"/"+crypto.randomUUID()+"."+extension;
+  const {error}=await supabase.storage.from("nexus-avatars").upload(path,file,{contentType:file.type,cacheControl:"3600",upsert:false});
+  fail(error);
+  const {data}=supabase.storage.from("nexus-avatars").getPublicUrl(path);
+  if(!data.publicUrl)throw new Error("The uploaded photo URL could not be created.");
+  return data.publicUrl;
+}
+
 export type EditableCreatorProfile = { id:string; username:string; displayName:string; avatarUrl:string; bio:string; isPrivate:boolean; creatorTopics:string[] };
 export async function loadMyCreatorProfile(): Promise<EditableCreatorProfile|null> {
   if (!supabase) return null;
