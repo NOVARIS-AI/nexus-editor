@@ -47,6 +47,7 @@ describe("NEXUS social and moderation security regression checks", () => {
     const review = read("../api/moderation/publish-review.ts");
     const preview = read("../api/moderation/preview-token.ts");
     const publish = read("../src/social/PublishFlow.tsx");
+    const app = read("../src/App.tsx");
     expect(migration).toContain("for update");
     expect(migration).toContain("nexus_review_pending_post");
     expect(migration).toContain("publish_approved");
@@ -61,6 +62,9 @@ describe("NEXUS social and moderation security regression checks", () => {
     expect(preview).toContain('post.status !== "processing"');
     expect(publish).toContain("checkVideoDraftStatus");
     expect(publish).toContain("Submit for review");
+    expect(publish).toContain("Render current Studio project");
+    expect(publish).toContain("onRenderVideo");
+    expect(app).toContain("startVideoExport({returnBlob:true})");
   });
 
   it("does not accidentally expose moderation routes in public navigation", () => {
