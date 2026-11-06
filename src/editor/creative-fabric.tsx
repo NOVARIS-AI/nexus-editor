@@ -13,7 +13,7 @@ export type FabricOperation = { kind: "add-title"; text: string; fontSize?: numb
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
-  transcriptSegments?: TranscriptSegment[]; beatMarkers?: BeatMarker[];
+  beatMarkers?: BeatMarker[];
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
   onSeekTo: (time: number) => void;
@@ -24,7 +24,6 @@ type DNA = { purpose: string; audience: string; style: string; palette: string; 
 const blankDNA: DNA = { purpose: "", audience: "", style: "Cinematic", palette: "Project colours", rules: "" };
 
 type SemanticHit = { id: string; title: string; kind: string; time: number; score: number; detail: string };
-type TranscriptSegment = { start:number; end:number; text:string };
 type BeatMarker = { assetId:string; time:number };
 const semanticGroups: Record<string,string[]> = {
   explanation: ["explain","explaining","teach","teaching","lesson","tutorial","how","guide","demonstration","main point","core message","message"],
@@ -42,12 +41,11 @@ function semanticTerms(query: string) {
   for(const [concept,terms] of Object.entries(semanticGroups)) if(terms.some(term=>query.toLowerCase().includes(term))) { expanded.add(concept); terms.forEach(term=>expanded.add(term)); }
   return [...expanded].filter(word=>word.length>2);
 }
-function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[], includeAll=false, visualDescriptions: VisualUnderstanding[] = []) : SemanticHit[] {
+function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], includeAll=false, visualDescriptions: VisualUnderstanding[] = []) : SemanticHit[] {
   const terms=semanticTerms(query); if(!terms.length&&!includeAll)return [];
   const records:(Omit<SemanticHit,"score">)[]=[
     ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
     ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
-    ...transcript.map((segment,index)=>({id:"transcript-"+index,title:segment.text.slice(0,76),kind:"Spoken transcript",time:segment.start,detail:segment.text})),
     ...visualDescriptions.map((item,index)=>({id:"visual-"+item.assetId+"-"+index,title:item.assetName+" · visual frame",kind:"AI visual description",time:item.timestamp||0,detail:item.description})),
     ...assets.map(asset=>({id:asset.id,title:asset.name,kind:asset.kind==="audio"?"Audio source":"Media source",time:clips.find(clip=>clip.assetId===asset.id)?.start||0,detail:asset.name+" "+asset.kind}))
   ];
@@ -111,7 +109,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"message"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
@@ -178,14 +176,14 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const sceneIntelligence = useMemo(()=>analyseFabricScenes(assets,clips,textLayers,visualAnalyses,visualDescriptions),[assets,clips,textLayers,visualAnalyses,visualDescriptions]);
   const visualSceneEvidence = useMemo(()=>buildVisualSceneEvidence(clips,visualDescriptions,visualAnalyses),[clips,visualDescriptions,visualAnalyses]);
   const visualCoverage = useMemo(()=>describeVisualCoverage(visualSceneEvidence),[visualSceneEvidence]);
-  const messageAwarePlan = useMemo(()=>buildMessageAwarePlan({assets,clips,transcriptSegments,beatMarkers}),[assets,clips,transcriptSegments,beatMarkers]);
+  const messageAwarePlan = useMemo(()=>buildMessageAwarePlan({assets,clips,beatMarkers}),[assets,clips,beatMarkers]);
   const fabricRecommendations = useMemo(()=>recommendFabricActions(sceneIntelligence,clips),[sceneIntelligence,clips]);
   const directorBrief = useMemo(()=>makeDirectorBrief(projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations),[projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations]);
   const priorMemory = useMemo(()=>readFabricMemory(projectName),[projectName]);
   useEffect(()=>{if(!clips.length)return;const memory={updatedAt:new Date().toISOString(),sceneCount:sceneIntelligence.length,assetCount:assets.length,lastBrief:directorBrief,signatures:sceneIntelligence.map(scene=>scene.role+":"+scene.title+":"+Math.round(scene.duration)),decisions:priorMemory?.decisions||[]};setMemoryStatus(writeFabricMemory(projectName,memory)?"Project memory updated locally · "+memory.sceneCount+" scene(s)":"Browser storage is unavailable; memory was not saved.");},[projectName,clips.length,assets.length,sceneIntelligence,directorBrief,priorMemory]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
-  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments,false,visualDescriptions),[semanticQuery,assets,clips,textLayers,transcriptSegments,visualDescriptions]);
-  const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,transcriptSegments,true,visualDescriptions),[assets,clips,textLayers,transcriptSegments,visualDescriptions]);
+  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,false,visualDescriptions),[semanticQuery,assets,clips,textLayers,visualDescriptions]);
+  const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,true,visualDescriptions),[assets,clips,textLayers,visualDescriptions]);
   const deviceInfo = useMemo(()=>getSemanticDeviceInfo(),[]);
   useEffect(()=>{if(!navigator.storage?.estimate){setModelStorageInfo("Storage estimate unavailable");return;}navigator.storage.estimate().then(({quota,usage})=>{const free=Math.max(0,(quota||0)-(usage||0));setModelStorageInfo(free?(free/1024/1024).toFixed(0)+" MB estimated available · "+((usage||0)/1024/1024).toFixed(0)+" MB used":"Storage estimate unavailable");}).catch(()=>setModelStorageInfo("Storage estimate unavailable"));},[]);
   const prepareSemanticModel = async () => {
@@ -208,7 +206,6 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally {setSemanticSearchBusy(false);}
   };
   const beatMoments = useMemo(()=>beatMarkers.flatMap(marker=>clips.filter(clip=>clip.assetId===marker.assetId && marker.time>=clip.sourceIn && marker.time<=clip.sourceOut).map(clip=>({time:clip.start+(marker.time-clip.sourceIn)/(clip.speed||1),asset:assets.find(a=>a.id===marker.assetId)?.name||"Audio",sourceTime:marker.time}))).sort((a,b)=>a.time-b.time).slice(0,16),[beatMarkers,clips,assets]);
-  const pauseMoments = useMemo(()=>transcriptSegments.slice(1).flatMap((segment,index)=>{const previous=transcriptSegments[index];const gap=segment.start-previous.end;return gap>=0.8?[{time:previous.end,gap,text:previous.text+" → "+segment.text}]:[];}).slice(0,12),[transcriptSegments]);
   const quoteDesign = useMemo(()=>understandQuote(quoteText),[quoteText]);
   const operations = useMemo<FabricOperation[]>(()=>{
     if(!intent.trim()) return [];
@@ -320,24 +317,22 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     </div>}
     {tab==="intent" && <div className="nexus-fabric-body"><p className="nexus-fabric-copy">Describe the result you want. Fabric turns it into a transparent, reviewable plan using the tools already in NEXUS.</p><textarea className="nexus-fabric-intent" value={intent} onChange={e=>setIntent(e.target.value)} placeholder="Make this a powerful 30-second wisdom quote video with a cinematic opening, readable message and calm ending…"/>{plan.length>0&&<div className="nexus-fabric-plan"><b>Proposed creative direction</b>{plan.map((s,i)=><div key={i}><span>{i+1}</span>{s}</div>)}<small>Target: {selectedClipId?"selected clip":"all eligible clips"} · Nothing changes until you approve.</small>{operations.length>0?<><div className="nexus-fabric-operation-list"><b>Ready-to-apply operations</b>{operations.map((op,i)=><span key={i}>{op.kind==="add-title"?"Add editable title: "+op.text:op.kind==="apply-look"?"Apply "+op.filter+" look":op.kind==="apply-transition"?"Apply "+op.transition+" transition":"Split clip at "+op.time.toFixed(2)+"s"}</span>)}</div><button className="nexus-fabric-primary" onClick={()=>{onApplyPlan(operations);setApproved(true);}}><Check size={15}/> {approved?"Apply again":"Approve & apply to timeline"}</button></>:<small>This request currently produces guidance only. Ask for a title, cinematic look or transition to create supported actions.</small>}</div>}</div>}
     {tab==="semantic" && <div className="nexus-fabric-body">
-      <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. Smart Search finds relevant moments using your project notes, captions and available transcript.</p>
+      <p className="nexus-fabric-copy">Search the meaning of your project, not only exact filenames. Smart Search finds relevant moments using your scene notes, editable text, visual descriptions and media names.</p>
       <label className="nexus-fabric-semantic-search">What are you looking for?<input value={semanticQuery} onChange={e=>setSemanticQuery(e.target.value)} placeholder="e.g. where I explain the main point, the hopeful ending, the proof…"/></label>
       {!semanticModelReady&&<button className="nexus-fabric-primary" onClick={()=>void prepareSemanticModel()}>Prepare Smart Search</button>}
-      <div className="nexus-fabric-semantic-actions"><button onClick={()=>void runSemanticSearch()} disabled={!semanticQuery.trim()||semanticSearchBusy||!semanticModelReady}>{semanticSearchBusy?"Understanding meaning…":"Search by meaning"}</button><span>{semanticModelReady?"Smart Search ready":"Basic search ready"}</span></div><div className="nexus-fabric-semantic-results">{semanticQuery.trim()?(semanticSearchMode==="embedding"?semanticResults:semanticHits).map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · {semanticSearchMode==="embedding"?"meaning match "+("semanticScore" in hit && typeof hit.semanticScore === "number" ? hit.semanticScore.toFixed(3) : ""):"text match "+hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item name or type."}</p></div><div className="nexus-fabric-hit-actions"><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button>{hit.kind==="Spoken transcript"&&<button onClick={()=>onApplyPlan([{kind:"add-title",text:hit.title,start:hit.time,duration:Math.max(2,Math.min(6,hit.title.trim().split(/\\s+/).length/2.5)),fontSize:36,fontFamily:"Arial",color:"#ffffff",backgroundColor:"rgba(8,12,22,0.72)",align:"center",x:50,y:78,shadow:true,animation:"fade"}])}>Create editable caption</button>}</div></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&semanticSearchMode==="embedding"&&!semanticResults.length&&!semanticSearchBusy&&<div className="nexus-fabric-empty">No project records were available to compare yet.</div>}{semanticQuery.trim()&&semanticSearchMode==="keyword"&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make search richer.</div>}</div>
-      <small className="nexus-fabric-scene-note">Search covers {transcriptSegments.length} available spoken segment(s). Keyword fallback uses related-word matching. Smart Search can find related moments using the meaning of your words and available project text. Search only uses content available in your project.</small>      <div className="nexus-fabric-semantic-tools">
-        <section><b>Natural pause candidates</b><small>Potential edit points from transcript gaps (0.8 seconds or longer). Review the audio before trimming.</small>{pauseMoments.length?pauseMoments.map((item,index)=><article key={"pause-"+index}><span>{item.gap.toFixed(1)}s pause · {item.text.slice(0,110)}</span><button onClick={()=>onSeekTo(item.time)}>Review cut</button></article>):<p>No long transcript pauses detected yet. Transcribe an audio/video source to populate this.</p>}</section>
-        <section><b>Music beat moments</b><small>Detected beat markers mapped from source-audio time to timeline time where the audio asset is used.</small>{beatMoments.length?beatMoments.map((item,index)=><article key={"beat-"+index}><span>{item.asset} · timeline {item.time.toFixed(2)}s</span><button onClick={()=>onSeekTo(item.time)}>Go to beat</button></article>):<p>No mapped beat markers yet. Run local beat analysis on an audio asset.</p>}</section>
-      </div>
+      <div className="nexus-fabric-semantic-actions"><button onClick={()=>void runSemanticSearch()} disabled={!semanticQuery.trim()||semanticSearchBusy||!semanticModelReady}>{semanticSearchBusy?"Understanding meaning…":"Search by meaning"}</button><span>{semanticModelReady?"Smart Search ready":"Basic search ready"}</span></div><div className="nexus-fabric-semantic-results">{semanticQuery.trim()?(semanticSearchMode==="embedding"?semanticResults:semanticHits).map(hit=><article key={hit.kind+"-"+hit.id}><div><b>{hit.title}</b><small>{hit.kind} · {hit.time.toFixed(1)}s · {semanticSearchMode==="embedding"?"meaning match "+("semanticScore" in hit && typeof hit.semanticScore === "number" ? hit.semanticScore.toFixed(3) : ""):"text match "+hit.score.toFixed(1)}</small><p>{hit.detail||"Matched from the item name or type."}</p></div><div className="nexus-fabric-hit-actions"><button onClick={()=>onSeekTo(hit.time)}>Go to moment</button></div></article>):<div className="nexus-fabric-empty">Try a meaning, story role, topic or phrase. Results will appear here.</div>}{semanticQuery.trim()&&semanticSearchMode==="embedding"&&!semanticResults.length&&!semanticSearchBusy&&<div className="nexus-fabric-empty">No project records were available to compare yet.</div>}{semanticQuery.trim()&&semanticSearchMode==="keyword"&&!semanticHits.length&&<div className="nexus-fabric-empty">No matching project notes yet. Add scene descriptions or captions to make search richer.</div>}</div>
+      <small className="nexus-fabric-scene-note">Search covers project scenes, editable text, visual descriptions and media names. Keyword fallback uses related-word matching; Smart Search compares the meaning of available project text.</small>
+      <div className="nexus-fabric-semantic-tools"><section><b>Music beat moments</b><small>Detected beat markers mapped from source-audio time to timeline time where the audio asset is used.</small>{beatMoments.length?beatMoments.map((item,index)=><article key={"beat-"+index}><span>{item.asset} · timeline {item.time.toFixed(2)}s</span><button onClick={()=>onSeekTo(item.time)}>Go to beat</button></article>):<p>No mapped beat markers yet. Run local beat analysis on an audio asset.</p>}</section></div>
     </div>}
 
     {tab==="message" && <div className="nexus-fabric-body">
-      <p className="nexus-fabric-copy">Message-Aware Editing connects the intended message to real project evidence. It can suggest editable captions from transcript segments, reviewable cuts at natural pauses, beat-aware transitions and visual treatments. Nothing changes until you approve an individual suggestion.</p>
+      <p className="nexus-fabric-copy">Beat-Aware Editing maps detected music moments to visual clips and suggests reviewable transitions. Nothing changes until you approve an individual suggestion.</p>
       <div className="nexus-fabric-intelligence-hub">
-        <div className="nexus-fabric-intelligence-head"><div><b>MESSAGE → EDIT DECISIONS</b><small>{messageAwarePlan.length} evidence-backed suggestion(s)</small></div><span>REVIEW FIRST</span></div>
-        <div className="nexus-fabric-intelligence-metrics"><div><b>{transcriptSegments.length}</b><small>Transcript segments</small></div><div><b>{pauseMoments.length}</b><small>Pause candidates</small></div><div><b>{beatMoments.length}</b><small>Mapped beat moments</small></div></div>
-        {messageAwarePlan.length ? <div className="nexus-fabric-recommendations">{messageAwarePlan.map(item=><article key={item.id}><span className={item.confidence==="high"?"priority":""}>{item.confidence.toUpperCase()}</span><div><strong>{item.title}</strong><small>{item.detail}</small><small>Evidence: {item.evidence} · {item.time.toFixed(2)}s</small></div><button onClick={()=>onSeekTo(item.time)}>Review</button>{item.operation&&<button onClick={()=>onApplyPlan([item.operation as FabricOperation])}>Apply</button>}</article>)}</div> : <div className="nexus-fabric-empty">Add timeline scenes, transcribe your audio, or analyse an audio track for beat candidates. The planner will use only evidence that exists in this project.</div>}
+        <div className="nexus-fabric-intelligence-head"><div><b>BEAT → EDIT DECISIONS</b><small>{messageAwarePlan.length} evidence-backed suggestion(s)</small></div><span>REVIEW FIRST</span></div>
+        <div className="nexus-fabric-intelligence-metrics"><div><b>{beatMoments.length}</b><small>Mapped beat moments</small></div><div><b>{clips.length}</b><small>Timeline clips</small></div><div><b>{assets.filter(item=>item.kind==="audio").length}</b><small>Audio sources</small></div></div>
+        {messageAwarePlan.length ? <div className="nexus-fabric-recommendations">{messageAwarePlan.map(item=><article key={item.id}><span className={item.confidence==="high"?"priority":""}>{item.confidence.toUpperCase()}</span><div><strong>{item.title}</strong><small>{item.detail}</small><small>Evidence: {item.evidence} · {item.time.toFixed(2)}s</small></div><button onClick={()=>onSeekTo(item.time)}>Review</button>{item.operation&&<button onClick={()=>onApplyPlan([item.operation as FabricOperation])}>Apply</button>}</article>)}</div> : <div className="nexus-fabric-empty">Add audio to your timeline and run beat analysis. The planner will use only beat markers detected in this project.</div>}
       </div>
-      <small className="nexus-fabric-scene-note">Transcript timing and beat detection can be approximate. Listen and preview before applying cuts or transitions. Captions remain editable text layers.</small>
+      <small className="nexus-fabric-scene-note">Beat detection can be approximate. Listen and preview before applying transitions.</small>
     </div>}
     {tab==="quote" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Quote Intelligence reads the wording you provide, estimates its message category and proposes a typography, tone and visual treatment. It preserves the exact quote text.</p>
