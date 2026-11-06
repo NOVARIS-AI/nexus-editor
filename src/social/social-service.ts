@@ -67,7 +67,7 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
     const handle = profile?.username || "creator";
     return {
       id: post.id, authorId: post.author_id, creator: display, handle,
-      initials: display.split(/\\s+/).slice(0, 2).map((part: string) => part[0] || "").join("").toUpperCase() || "N",
+      initials: display.split(/\s+/).slice(0, 2).map((part: string) => part[0] || "").join("").toUpperCase() || "N",
       caption: post.caption || "", topics: post.topics || [], creatorTopics: profile?.creator_topics || [],
       likes: likeCounts.get(post.id) || 0,
       comments: commentCounts.get(post.id) || 0,
