@@ -101,3 +101,20 @@ export async function uploadVideoDraft(
       : "Video uploaded. Processing is taking longer than expected; your private draft is saved and can be checked again later."
   };
 }
+
+export async function checkVideoDraftStatus(postId: string, mediaAssetId: string): Promise<VideoUploadDraftResult> {
+  const token = await accessToken();
+  const response = await fetch("/api/social/upload-status?mediaAssetId=" + encodeURIComponent(mediaAssetId), {
+    headers: { Authorization: "Bearer " + token }, cache: "no-store"
+  });
+  const status = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(status.error || "Could not check video processing.");
+  if (status.state === "failed") throw new Error("The video provider could not process this file. The post remains unavailable.");
+  const ready = status.state === "ready";
+  return {
+    postId, mediaAssetId, state: ready ? "ready" : "processing",
+    message: ready
+      ? "Video processing is complete. Your post is now waiting in the moderator review queue; it is not public yet."
+      : "Your video is still processing. You can check again later; the upload remains private."
+  };
+}
