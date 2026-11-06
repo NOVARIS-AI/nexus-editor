@@ -28,6 +28,18 @@ jobs:
           node-version: 22
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Generate dependency security audit report
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node --input-type=commonjs -e "const fs=require('fs');const a=JSON.parse(fs.readFileSync('npm-audit-report.json','utf8'));const v=a.vulnerabilities||{};console.log('Dependency audit totals:',JSON.stringify(a.metadata?.vulnerabilities||{}));for(const [name,item] of Object.entries(v)){console.log(name+' | '+item.severity+' | direct='+item.isDirect+' | fix='+JSON.stringify(item.fixAvailable));for(const adv of item.via||[]){if(typeof adv==='object')console.log('  '+adv.title+' ('+(adv.range||'range unavailable')+')');}}"
+      - name: Upload dependency audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-dependency-audit
+          path: npm-audit-report.json
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Check server and Worker JavaScript syntax
         run: |
           for file in api/*.js; do node --check "$file"; done
