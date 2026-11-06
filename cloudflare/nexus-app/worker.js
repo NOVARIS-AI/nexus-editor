@@ -113,13 +113,13 @@ async function invoke(handler, request, url, overrides = {}) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const pathname = url.pathname.replace(/\\/+$/, "") || "/";
+    const pathname = url.pathname.split("/").filter(Boolean).length ? "/" + url.pathname.split("/").filter(Boolean).join("/") : "/";
     let handler = routes.get(pathname);
     let overrides = {};
 
     if (pathname === "/sitemap.xml") handler = sitemap;
     if (pathname === "/creator" || pathname.startsWith("/creator/")) {
-      const match = pathname.match(/^\\/creator\\/([^/]+)(?:\\/post\\/([^/]+))?$/);
+      const creatorParts = pathname.split("/").filter(Boolean);\n      const match = creatorParts.length === 2 ? [pathname, creatorParts[1], undefined] : creatorParts.length === 4 && creatorParts[2] === "post" ? [pathname, creatorParts[1], creatorParts[3]] : null;
       if (match) {
         handler = creatorPage;
         overrides.query = { username: decodeURIComponent(match[1]), ...(match[2] ? { postId: decodeURIComponent(match[2]) } : {}) };
