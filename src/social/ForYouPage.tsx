@@ -167,7 +167,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     setter(items.includes(id) ? items.filter(x=>x!==id) : [...items,id]);
     requireAction(label);
   };
-  useEffect(() => {\n    setActiveIndex(index => Math.min(index, Math.max(0, filtered.length - 1)));\n  }, [filtered.length]);\n\n  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
+  useEffect(() => {\n    setActiveIndex(index => Math.min(index, Math.max(0, filtered.length - 1)));\n    if(feedScrollRef.current)feedScrollRef.current.scrollTop=0;\n  }, [filtered.length]);\n\n  useEffect(() => { if(feedScrollRef.current)feedScrollRef.current.scrollTop=0; }, [activeTab,category,query]);\n\n  const current = filtered[Math.min(activeIndex,Math.max(0,filtered.length-1))];
   const profilePost = sourcePosts.find(post=>post.handle===profileFor) || DEMO_POSTS.find(post=>post.handle===profileFor);
   const commentPost = sourcePosts.find(post=>post.id===commentsFor) || DEMO_POSTS.find(post=>post.id===commentsFor);
 
@@ -222,7 +222,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     finally { setCreatorTopicsSaving(false); }
   };
 
-  const nextPost = (direction:number) => { const target=Math.min(Math.max(0,activeIndex+direction),Math.max(0,filtered.length-1)); setActiveIndex(target); const item=feedScrollRef.current?.querySelectorAll<HTMLElement>(".nfy-post")[target]; item?.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); };
+  const nextPost = (direction:number) => { const target=Math.min(Math.max(0,activeIndex+direction),Math.max(0,filtered.length-1)); setActiveIndex(target); const container=feedScrollRef.current; const item=container?.querySelectorAll<HTMLElement>(".nfy-post")[target]; if(container&&item)container.scrollTo({top:item.offsetTop-container.offsetTop,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}); };
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
     if (!signedIn) { onRequireSignIn(); return; }
@@ -260,7 +260,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
       <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);if(item!=="All"){const next=preferredCategories.includes(item)?preferredCategories.filter(value=>value!==item):[...preferredCategories,item];setPreferredCategories(next);persistPulse({preferredCategories:next});}}}>{item}</button>)}</div>
     </div>}
 
-    <div className="nfy-stage" ref={feedScrollRef} role="region" aria-label="Creator feed. Scroll vertically to browse posts. Use the up and down arrow keys to change posts." tabIndex={0} onScroll={event=>{const el=event.currentTarget;const itemHeight=el.querySelector<HTMLElement>(".nfy-post")?.offsetHeight||el.clientHeight;if(itemHeight>0){const index=Math.max(0,Math.min(filtered.length-1,Math.round(el.scrollTop/itemHeight)));setActiveIndex(old=>old===index?old:index);}}} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}}>
+    <div className="nfy-stage" ref={feedScrollRef} role="region" aria-label="Creator feed. Scroll vertically to browse posts. Use the up and down arrow keys to change posts." tabIndex={0} onScroll={event=>{const el=event.currentTarget;const bounds=el.getBoundingClientRect();const cards=Array.from(el.querySelectorAll<HTMLElement>(".nfy-post"));if(cards.length){let nearest=0;let distance=Number.POSITIVE_INFINITY;cards.forEach((card,index)=>{const next=Math.abs(card.getBoundingClientRect().top-bounds.top);if(next<distance){distance=next;nearest=index;}});setActiveIndex(old=>old===nearest?old:nearest);}}} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}}>
       {filtered.length ? filtered.map((post,index)=>(
         <article className={"nfy-post"+(index===activeIndex?" is-active":"")} key={post.id}>
         <div className={"nfy-art nfy-"+post.palette+(post.isLive?" nfy-live-video":"")}>
