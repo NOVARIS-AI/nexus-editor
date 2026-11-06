@@ -31,6 +31,24 @@ jobs:
         run: npm install
       - name: Build web app
         run: npm run build
+      - name: Optimize oversized WebAssembly assets for Cloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r wasm_file; do
+            size=$(stat -c%s "$wasm_file")
+            if [ "$size" -gt 25000000 ]; then
+              echo "Optimizing $wasm_file ($size bytes)"
+              npx --yes --package=binaryen wasm-opt "$wasm_file" -Oz --all-features -o "$wasm_file.optimized"
+              optimized_size=$(stat -c%s "$wasm_file.optimized")
+              echo "Optimized size: $optimized_size bytes"
+              if [ "$optimized_size" -ge 25000000 ]; then
+                echo "::error::WebAssembly asset remains above Cloudflare's 25 MiB limit after optimization."
+                exit 1
+              fi
+              mv "$wasm_file.optimized" "$wasm_file"
+            fi
+          done < <(find dist -type f -name '*.wasm' -print)
       - name: Deploy Cloudflare Worker and static assets
         working-directory: cloudflare/nexus-app
         env:
