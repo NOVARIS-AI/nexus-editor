@@ -284,8 +284,8 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
         <article className={"nfy-post"+(index===activeIndex?" is-active":"")} key={post.id}>
         <div className={"nfy-art nfy-"+post.palette+(post.isLive?" nfy-live-video":"")}>
           {post.isLive && post.mediaAssetId ? (
-            post.id===current?.id && playbackUrl
-              ? <iframe key={post.id+":"+playbackUrl+":"+muted} className="nfy-stream-player" src={streamEmbedUrl(playbackUrl,muted)} title={"Video by "+post.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="eager" referrerPolicy="strict-origin-when-cross-origin"/>
+            post.id===current?.id && playbackUrl && !playbackError
+              ? <iframe key={post.id+":"+playbackUrl+":"+muted} className="nfy-stream-player" src={streamEmbedUrl(playbackUrl,muted)} title={"Video by "+post.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="eager" referrerPolicy="strict-origin-when-cross-origin" onError={()=>{setPlaybackError("The video player could not start. Try again.");setPlaybackUrl("");}}/>
               : <div className="nfy-video-state"><Clapperboard size={26}/><b>{post.id!==current?.id?"Scroll to this post to load its video":playbackLoading?"Preparing secure playback…":playbackError?"Video could not be loaded":"Video unavailable"}</b><small>{post.id===current?.id ? playbackError || "The video may still be processing or playback is not configured." : "Playback loads when this post becomes active."}</small>{post.id===current?.id && !playbackLoading && <button className="nfy-video-retry" onClick={()=>setPlaybackAttempt(value=>value+1)}>Retry playback</button>}</div>
           ) : <>
             <div className="nfy-art-grain"/>
@@ -296,6 +296,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
             <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
           </>}
         </div>
+          {post.isLive && post.id===current?.id && playbackUrl && !playbackError && <button className="nfy-video-mute" onClick={()=>setMuted(value=>!value)} aria-label={muted?"Unmute video":"Mute video"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>}
         <div className="nfy-post-info">
           <div className="nfy-creator-row">
             <button className="nfy-avatar" onClick={()=>setProfileFor(post.handle)}>{post.initials}</button>
