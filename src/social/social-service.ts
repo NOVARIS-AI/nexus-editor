@@ -118,6 +118,46 @@ export async function loadCreatorProfile(handle: string): Promise<CreatorProfile
   };
 }
 
+
+export async function loadMyCreatorPosts(): Promise<CommunityPost[]> {
+  if (!supabase) return [];
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  fail(authError);
+  if (!auth.user) return [];
+  const { data: posts, error } = await supabase.from("posts")
+    .select("id,author_id,caption,topics,visibility,created_at,media_asset_id")
+    .eq("author_id", auth.user.id).eq("status", "ready")
+    .eq("moderation_state", "approved").eq("visibility", "public")
+    .not("media_asset_id", "is", null)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false }).limit(60);
+  fail(error);
+  if (!posts?.length) return [];
+  const ids = posts.map(post => post.id);
+  const [profileResult, likesResult, commentsResult] = await Promise.all([
+    supabase.from("profiles").select("username,display_name,creator_topics,avatar_url").eq("id", auth.user.id).maybeSingle(),
+    supabase.from("post_likes").select("post_id").in("post_id", ids),
+    supabase.from("comments").select("post_id").in("post_id", ids).eq("status", "visible")
+  ]);
+  fail(profileResult.error); fail(likesResult.error); fail(commentsResult.error);
+  const profile = profileResult.data;
+  const likeCounts = new Map<string, number>();
+  const commentCounts = new Map<string, number>();
+  for (const row of likesResult.data || []) likeCounts.set(row.post_id, (likeCounts.get(row.post_id) || 0) + 1);
+  for (const row of commentsResult.data || []) commentCounts.set(row.post_id, (commentCounts.get(row.post_id) || 0) + 1);
+  const creator = profile?.display_name || "NEXUS Creator";
+  const handle = profile?.username || "creator";
+  return posts.map(post => ({
+    id: post.id, authorId: post.author_id, creator, handle,
+    initials: creator.split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "N",
+    caption: post.caption || "", topics: post.topics || [],
+    creatorTopics: profile?.creator_topics || [],
+    likes: likeCounts.get(post.id) || 0, comments: commentCounts.get(post.id) || 0,
+    visibility: post.visibility as CommunityPost["visibility"],
+    createdAt: post.created_at, mediaAssetId: post.media_asset_id || null
+  }));
+}
+
 export async function loadMyPostInteractions(postIds: string[]) {
   if (!supabase || !postIds.length) return { liked: [] as string[], saved: [] as string[] };
   const { data: auth } = await supabase.auth.getUser();
