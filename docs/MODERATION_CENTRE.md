@@ -18,3 +18,8 @@ A restricted staff-only report queue with server-side authorization and an audit
 
 ## Current scope
 Queue filters and audited report triage (reviewing/actioned/dismissed). This first slice does not automatically remove content, suspend accounts, or resolve appeals. Human review is required; use a separate documented process for urgent safety reports. Build, typecheck, integration tests, and Android testing are still required.
+
+
+## Atomic moderation action hardening
+
+Migration `supabase/migrations/202611060002_atomic_moderation_actions.sql` adds two trusted, service-role-only database RPCs. Report decisions now lock the report row and apply the content restriction, report status and audit event in one transaction. Appeal decisions similarly lock the appeal and atomically restore content when reversed, update the appeal, and write the audit event. The API no longer performs these changes as separate REST requests, preventing partially applied decisions and concurrent double-review. Apply this migration in the dedicated NEXUS Supabase project before using the updated moderation actions. The migration does not change public navigation or grant moderator permissions to any account.
