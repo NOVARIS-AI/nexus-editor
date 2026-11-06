@@ -1,4 +1,4 @@
-import { authenticate, cleanError, getConfig, sendJson, supabaseRest } from "./social-api";
+import { authenticate, cleanError, getConfig, sendJson, supabaseRest } from "./social-api.js";
 
 export async function requireModerator(req:any,res:any){
   const config=getConfig();
