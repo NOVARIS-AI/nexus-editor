@@ -45,13 +45,13 @@ import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
 const CreativeFabricPanel = lazy(() => import("./editor/creative-fabric").then(module => ({ default: module.CreativeFabricPanel })));
 import { WorkspaceSetup } from "./editor/workspace-setup";
-import { ForYouPage } from "./social/ForYouPage";
-import { CreatorProfilePage } from "./social/CreatorProfilePage";
-import { NotificationsPage } from "./social/NotificationsPage";
-import { SavedPage } from "./social/SavedPage";
-import { PublishFlow } from "./social/PublishFlow";
-import { ModerationCentre } from "./social/ModerationCentre";
-import { CreatorAppealsPage } from "./social/CreatorAppealsPage";
+const ForYouPage = lazy(() => import("./social/ForYouPage").then(module => ({ default: module.ForYouPage })));
+const CreatorProfilePage = lazy(() => import("./social/CreatorProfilePage").then(module => ({ default: module.CreatorProfilePage })));
+const NotificationsPage = lazy(() => import("./social/NotificationsPage").then(module => ({ default: module.NotificationsPage })));
+const SavedPage = lazy(() => import("./social/SavedPage").then(module => ({ default: module.SavedPage })));
+const PublishFlow = lazy(() => import("./social/PublishFlow").then(module => ({ default: module.PublishFlow })));
+const ModerationCentre = lazy(() => import("./social/ModerationCentre").then(module => ({ default: module.ModerationCentre })));
+const CreatorAppealsPage = lazy(() => import("./social/CreatorAppealsPage").then(module => ({ default: module.CreatorAppealsPage })));
 
 type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "appeals" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
@@ -2003,12 +2003,15 @@ export default function App() {
         <button className="avatar top-avatar" onClick={() => setPage("profile")} aria-label="Open creator profile">N</button>
       </header>
 
+      <Suspense fallback={<section className="page-content" aria-live="polite"><div className="nexus-ai-inline">Loading your NEXUS workspace…</div></section>}>
       {page === "profile" && <CreatorProfilePage onBack={() => setPage("for-you")} onOpenFeed={() => setPage("for-you")} onOpenSaved={() => setPage("saved")} onOpenNotifications={() => setPage("notifications")} onOpenSettings={() => setPage("settings")} onOpenAppeals={() => setPage("appeals")} onOpenAIStudio={() => setPage("ai")} onOpenModeration={() => setPage("moderation")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "notifications" && <NotificationsPage onBack={() => setPage("for-you")} onOpenProfile={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "moderation" && <ModerationCentre onBack={() => setPage("home")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "appeals" && <CreatorAppealsPage onBack={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onOpenSaved={() => setPage("saved")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+
+      </Suspense>
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
