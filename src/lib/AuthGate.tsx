@@ -65,10 +65,7 @@ export function AuthGate({ children }: Props) {
         const cleanDisplayName = displayName.trim().slice(0, 60) || cleanEmail.split("@")[0];
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail, password,
-          options: {
-            data: { display_name: cleanDisplayName },
-            emailRedirectTo: window.location.origin
-          }
+          options: { data: { display_name: cleanDisplayName }, emailRedirectTo: window.location.origin }
         });
         if (error) throw error;
         setMessage(data.session ? "Account created. Welcome to NEXUS!" : "Account created. Check your email to confirm your address. Open the confirmation link on this same NEXUS website.");
@@ -81,14 +78,14 @@ export function AuthGate({ children }: Props) {
     } finally { setBusy(false); }
   };
 
-  const oauth = async (provider: "google" | "apple") => {
-    if (!supabase) { setMessage("Connect Supabase first to enable social sign-in."); return; }
+  const googleSignIn = async () => {
+    if (!supabase) { setMessage("Connect Supabase first to enable Google sign-in."); return; }
     setBusy(true); setMessage("");
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: window.location.origin } });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
       if (error) throw error;
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Social sign-in could not be started.");
+      setMessage(error instanceof Error ? error.message : "Google sign-in could not be started.");
       setBusy(false);
     }
   };
@@ -113,8 +110,7 @@ export function AuthGate({ children }: Props) {
     <h1>{mode === "signup" ? "Create your space." : mode === "reset" ? "Reset your password." : "Create without limits."}</h1>
     <p className="nexus-auth-intro">Edit, create and share your ideas with the NEXUS creator community.</p>
     {mode !== "reset" && <div className="nexus-auth-socials">
-      <button type="button" onClick={() => oauth("google")} disabled={!configured || busy}>Continue with Google</button>
-      <button type="button" onClick={() => oauth("apple")} disabled={!configured || busy}>Continue with Apple</button>
+      <button type="button" onClick={googleSignIn} disabled={!configured || busy}>Continue with Google</button>
     </div>}
     <div className="nexus-auth-divider"><span>or use email</span></div>
     <form className="nexus-auth-form" onSubmit={submit}>
@@ -129,6 +125,5 @@ export function AuthGate({ children }: Props) {
     {!configured && <p className="nexus-auth-note">Add your NEXUS Supabase Project URL and publishable key to enable accounts in this environment.</p>}
     <button className="nexus-auth-guest" onClick={continueAsGuest}>Explore as a guest <span>→</span></button>
     <p className="nexus-auth-legal">Guest browsing is open. Sign in to publish, follow, like, comment and save.</p>
-    <p className="nexus-auth-chatgpt">ChatGPT sign-in is not a standard Supabase OAuth provider and is not presented as a working login option.</p>
   </section></main>;
 }
