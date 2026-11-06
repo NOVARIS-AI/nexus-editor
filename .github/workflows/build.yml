@@ -24,7 +24,9 @@ jobs:
         run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts
       - name: Type-check public creator SEO endpoints
         run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck api/creator-page.ts api/sitemap.ts
-      - name: Type-check moderation API endpoints\n        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/moderation/*.ts server/moderation-api.ts server/social-api.ts\n      - name: Verify SEO and brand assets
+      - name: Type-check moderation API endpoints
+        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/moderation/*.ts server/moderation-api.ts server/social-api.ts
+      - name: Verify SEO and brand assets
         run: npm run verify:release
       - name: Run regression tests
         run: npm test
