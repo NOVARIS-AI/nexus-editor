@@ -67,7 +67,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
   const [playbackLoading,setPlaybackLoading] = useState(false);
   const [playbackError,setPlaybackError] = useState("");
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
-  const touchStartY = useRef<number|null>(null);
+  const feedScrollRef = useRef<HTMLDivElement|null>(null);
   const lastWheelAt = useRef(0);
 
   useEffect(() => {
@@ -223,7 +223,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     finally { setCreatorTopicsSaving(false); }
   };
 
-  const nextPost = (direction:number) => setActiveIndex(index=>Math.min(Math.max(0,index+direction),Math.max(0,filtered.length-1)));
+  const nextPost = (direction:number) => { const target=Math.min(Math.max(0,activeIndex+direction),Math.max(0,filtered.length-1)); setActiveIndex(target); const container=feedScrollRef.current; const item=container?.querySelectorAll<HTMLElement>(".nfy-post")[target]; if(container&&item)container.scrollTo({top:item.offsetTop-container.offsetTop,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}); };
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
     if (!signedIn) { onRequireSignIn(); return; }
@@ -261,43 +261,10 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
       <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);if(item!=="All"){const next=preferredCategories.includes(item)?preferredCategories.filter(value=>value!==item):[...preferredCategories,item];setPreferredCategories(next);persistPulse({preferredCategories:next});}}}>{item}</button>)}</div>
     </div>}
 
-    <div className="nfy-stage" role="region" aria-label="Creator feed. Use the up and down arrow keys or scroll to change posts." tabIndex={0} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}} onWheel={event=>{if(Math.abs(event.deltaY)<24)return;const now=Date.now();if(now-lastWheelAt.current<650)return;lastWheelAt.current=now;nextPost(event.deltaY>0?1:-1);}}>
-      {current ? <article className="nfy-post" key={current.id} onTouchStart={event=>{touchStartY.current=event.changedTouches[0]?.clientY??null;}} onTouchEnd={event=>{if(touchStartY.current!==null){const delta=touchStartY.current-(event.changedTouches[0]?.clientY??touchStartY.current);if(Math.abs(delta)>45)nextPost(delta>0?1:-1);touchStartY.current=null;}}}>
-        <div className={"nfy-art nfy-"+current.palette+(current.isLive?" nfy-live-video":"")}>
-          {current.isLive && current.mediaAssetId ? (
-            playbackUrl
-              ? <iframe className="nfy-stream-player" src={playbackUrl} title={"Video by "+current.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
-              : <div className="nfy-video-state"><Clapperboard size={26}/><b>{playbackLoading?"Preparing secure playback…":"Video unavailable"}</b><small>{playbackError || "The video may still be processing or playback is not configured."}</small></div>
-          ) : <>
-            <div className="nfy-art-grain"/>
-            <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
-            <div className="nfy-art-copy"><span>VELTRONIX NEXUS · CREATOR PREVIEW</span><strong>{current.title}</strong><em>{current.subtitle}</em><small>EDITED IN NEXUS STUDIO</small></div>
-            <div className="nfy-demo-watermark">SAMPLE PREVIEW</div>
-            <button className="nfy-sound" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute preview":"Mute preview"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>
-            <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
-          </>}
-        </div>
-        <div className="nfy-post-info">
-          <div className="nfy-creator-row">
-            <button className="nfy-avatar" onClick={()=>setProfileFor(current.handle)}>{current.initials}</button>
-            <button className="nfy-creator-name" onClick={()=>setProfileFor(current.handle)}><b>{current.creator}</b><small>@{current.handle}</small></button>
-            <button className={"nfy-follow "+(followed.includes(current.handle)?"following":"")} onClick={()=>toggleLocal(followed,setFollowed,current.handle,"Follow")}>{followed.includes(current.handle)?<><Check size={14}/> Following</>:<><UserPlus size={14}/> Follow</>}</button>
-          </div>
-          <p className="nfy-caption">{current.caption}</p>
-          <div className="nfy-tags">{current.tags.map(tag=><button key={tag} onClick={()=>{setQuery(tag);setActiveTab("Discover");}}># {tag}</button>)}</div>
-          <div className="nfy-soundline"><Volume2 size={13}/><span>{current.sound}{current.createdAt ? " · "+new Date(current.createdAt).toLocaleDateString() : ""}</span></div>
-        </div>
-        <aside className="nfy-actions">
-          <button aria-label={liked.includes(current.id)?"Unlike post":"Like post"} onClick={()=>toggleLocal(liked,setLiked,current.id,"Like")} className={liked.includes(current.id)?"is-liked":""}><span><Heart size={22} fill={liked.includes(current.id)?"currentColor":"none"}/></span><small>{formatCount(current.likes+(liked.includes(current.id)?1:0))}</small></button>
-          <button aria-label="Open comments" onClick={()=>setCommentsFor(current.id)}><span><MessageCircle size={22}/></span><small>{formatCount(current.comments+(localComments[current.id]?.length||0))}</small></button>
-          <button aria-label={saved.includes(current.id)?"Remove saved post":"Save post"} onClick={()=>toggleLocal(saved,setSaved,current.id,"Save")} className={saved.includes(current.id)?"is-saved":""}><span><Bookmark size={21} fill={saved.includes(current.id)?"currentColor":"none"}/></span><small>{saved.includes(current.id)?"Saved":"Save"}</small></button>
-          <button aria-label="More post actions" onClick={()=>{setMenuFor(menuFor===current.id?null:current.id);}}><span><MoreHorizontal size={22}/></span><small>More</small></button>
-          {menuFor===current.id&&<div className="nfy-more-menu"><button onClick={()=>{const nextHiddenPosts=notInterested.includes(current.id)?notInterested:[...notInterested,current.id];setNotInterested(nextHiddenPosts);persistPulse({hiddenPostIds:nextHiddenPosts});setMenuFor(null);setActiveIndex(0);setNotice("NEXUS Pulse will show you less like this post.");}}><Sparkles size={14}/> Not interested</button><button onClick={()=>{const nextHiddenCreators=current.authorId?(mutedCreators.includes(current.authorId)?mutedCreators:[...mutedCreators,current.authorId]):mutedCreators;setMutedCreators(nextHiddenCreators);persistPulse({hiddenCreatorIds:nextHiddenCreators});setMenuFor(null);setActiveIndex(0);setNotice("This creator is hidden from your feed.");}}><X size={14}/> Hide creator</button>{current.isLive && current.authorId && current.authorId!==currentUserId && <button onClick={()=>{void (async()=>{if(!signedIn){onRequireSignIn();return;}if(!window.confirm("Block this creator? Their posts will no longer appear for you, and existing follows between both accounts will be removed."))return;setBlockSubmitting(true);try{await blockCommunityCreator(current.authorId!);const next=[...new Set([...mutedCreators,current.authorId!])];setMutedCreators(next);persistPulse({hiddenCreatorIds:next});setFollowed(old=>old.filter(handle=>handle!==current.handle));setMenuFor(null);setActiveIndex(0);setNotice("Creator blocked. Their content will be hidden from your account.");}catch(error){setServiceError(error instanceof Error?error.message:"Could not block this creator.");}finally{setBlockSubmitting(false);}})();}} disabled={blockSubmitting}><X size={14}/> {blockSubmitting?"Blocking…":"Block creator"}</button>}
-          <button onClick={()=>{setReportFor(current.id);setReportReason("spam");setReportDetails("");setMenuFor(null);}}><Flag size={14}/> Report post</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
-        </aside>
-      </article> : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
-      <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span aria-live="polite">{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
+    <div className="nfy-stage" ref={feedScrollRef} role="region" aria-label="Creator feed. Scroll vertically to browse posts. Use the up and down arrow keys to change posts." tabIndex={0} onScroll={event=>{const el=event.currentTarget;const item=el.querySelector<HTMLElement>(".nfy-post");if(!item)return;const height=item.getBoundingClientRect().height; if(height>0){const index=Math.max(0,Math.min(filtered.length-1,Math.round(el.scrollTop/height)));setActiveIndex(old=>old===index?old:index);}}} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}}>
+      {filtered.length ? filtered.map((post,index)=><React.Fragment key={post.id}></article>) : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
     </div>
+    <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span aria-live="polite">{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
 
     <div className="nfy-notice"><Sparkles size={14}/><span>{feedLoading ? "Loading community posts…" : serviceError ? serviceError : notice}</span><button onClick={()=>setNotice("Preview mode · sample posts only")} aria-label="Dismiss notice"><X size={14}/></button></div>
 
