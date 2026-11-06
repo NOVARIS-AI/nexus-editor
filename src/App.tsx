@@ -898,7 +898,8 @@ export default function App() {
         results.push(await analyzeMediaAsset(item));
         if ((item.kind === "audio" || item.kind === "video") && item.file && !internalTranscripts[item.id]) {
           try {
-            const speech = await transcribeMediaInternally(item.file);
+            const speechFile = item.kind === "video" ? await extractAudioTrackFromVideo(item.file, 0, Math.min(item.duration || 0, 480)) : item.file;
+            const speech = await transcribeMediaInternally(speechFile);
             if (speech.text.trim()) {
               setInternalTranscripts(old => ({ ...old, [item.id]: speech.segments }));
               setInternalSpeechText(old => [old, speech.text].filter(Boolean).join("\\n"));
@@ -1415,7 +1416,7 @@ export default function App() {
       const referenceFusion = buildReferenceFusion(referenceWorkflow, brief);
       const promptUnderstanding = understandDirectorPrompt(brief);
       const referenceDocuments = await Promise.all(aiFiles.slice(0,5).map(async file => ({ name:file.name.slice(0,180), mimeType:file.type || "text/plain", text:(await file.text()).slice(0,12000) })));
-      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceFusion, referenceDocuments, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext });
+      const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceFusion, referenceDocuments, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext, audioTranscript: internalSpeechText.slice(0, 12000) });
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
