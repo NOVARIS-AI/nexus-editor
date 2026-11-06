@@ -10,9 +10,11 @@ import { buildVisualSceneEvidence, describeVisualCoverage } from "./visual-intel
 import { buildMessageAwarePlan } from "./message-aware-editing";
 
 export type FabricOperation = { kind: "add-title"; text: string; fontSize?: number; fontFamily?: string; color?: string; backgroundColor?: string; align?: "left" | "center" | "right"; x?: number; y?: number; duration?: number; start?: number; shadow?: boolean; animation?: "none" | "fade" | "pop" } | { kind: "apply-look"; filter: string; clipId?: string } | { kind: "apply-transition"; transition: "fade" | "zoom" | "wipe" | "slide" | "blur"; clipId?: string } | { kind: "split-clip"; clipId: string; time: number };
+type TranscriptSegment = { start: number; end: number; text: string };
 type Props = {
   projectName: string; aspectRatio: string; assets: MediaAsset[];
   clips: TimelineClip[]; textLayers: TimelineTextLayer[]; imageLayers: TimelineImageLayer[];
+  transcriptSegments?: TranscriptSegment[];
   beatMarkers?: BeatMarker[];
   selectedClipId?: string | null;
   onApplyPlan: (operations: FabricOperation[]) => void;
@@ -41,11 +43,12 @@ function semanticTerms(query: string) {
   for(const [concept,terms] of Object.entries(semanticGroups)) if(terms.some(term=>query.toLowerCase().includes(term))) { expanded.add(concept); terms.forEach(term=>expanded.add(term)); }
   return [...expanded].filter(word=>word.length>2);
 }
-function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], includeAll=false, visualDescriptions: VisualUnderstanding[] = []) : SemanticHit[] {
+function searchProjectMeaning(query: string, assets: MediaAsset[], clips: TimelineClip[], texts: TimelineTextLayer[], transcript: TranscriptSegment[], includeAll=false, visualDescriptions: VisualUnderstanding[] = []) : SemanticHit[] {
   const terms=semanticTerms(query); if(!terms.length&&!includeAll)return [];
   const records:(Omit<SemanticHit,"score">)[]=[
     ...clips.map(clip=>({id:clip.id,title:clip.aiScene?.title||clip.label||"Untitled scene",kind:"Scene",time:clip.start,detail:[clip.label,clip.aiScene?.title,clip.aiScene?.visual,clip.aiScene?.narration].filter(Boolean).join(" ")})),
     ...texts.map(layer=>({id:layer.id,title:layer.text.slice(0,76),kind:"Text / message",time:layer.start,detail:layer.text})),
+    ...transcript.map((segment,index)=>({id:"speech-"+index,title:segment.text.slice(0,76),kind:"Speech insight",time:segment.start,detail:segment.text})),
     ...visualDescriptions.map((item,index)=>({id:"visual-"+item.assetId+"-"+index,title:item.assetName+" · visual frame",kind:"AI visual description",time:item.timestamp||0,detail:item.description})),
     ...assets.map(asset=>({id:asset.id,title:asset.name,kind:asset.kind==="audio"?"Audio source":"Media source",time:clips.find(clip=>clip.assetId===asset.id)?.start||0,detail:asset.name+" "+asset.kind}))
   ];
@@ -109,7 +112,7 @@ function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFa
   return steps;
 }
 
-export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
+export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, textLayers, imageLayers, transcriptSegments = [], beatMarkers = [], selectedClipId, onApplyPlan, onSeekTo, onSendToDirector, onClose }: Props) {
   const [tab, setTab] = useState<"map"|"scenes"|"dna"|"intent"|"semantic"|"message"|"quote"|"whatif">("map");
   const [intent, setIntent] = useState("");
   const [semanticQuery, setSemanticQuery] = useState("");
@@ -182,8 +185,8 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const priorMemory = useMemo(()=>readFabricMemory(projectName),[projectName]);
   useEffect(()=>{if(!clips.length)return;const memory={updatedAt:new Date().toISOString(),sceneCount:sceneIntelligence.length,assetCount:assets.length,lastBrief:directorBrief,signatures:sceneIntelligence.map(scene=>scene.role+":"+scene.title+":"+Math.round(scene.duration)),decisions:priorMemory?.decisions||[]};setMemoryStatus(writeFabricMemory(projectName,memory)?"Project memory updated locally · "+memory.sceneCount+" scene(s)":"Browser storage is unavailable; memory was not saved.");},[projectName,clips.length,assets.length,sceneIntelligence,directorBrief,priorMemory]);
   const plan = useMemo(()=>intent.trim()?planIntent(intent,dna,graph):[],[intent,dna,graph]);
-  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,false,visualDescriptions),[semanticQuery,assets,clips,textLayers,visualDescriptions]);
-  const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,true,visualDescriptions),[assets,clips,textLayers,visualDescriptions]);
+  const semanticHits = useMemo(()=>searchProjectMeaning(semanticQuery,assets,clips,textLayers,transcriptSegments,false,visualDescriptions),[semanticQuery,assets,clips,textLayers,transcriptSegments,visualDescriptions]);
+  const semanticCorpus = useMemo(()=>searchProjectMeaning("",assets,clips,textLayers,transcriptSegments,true,visualDescriptions),[assets,clips,textLayers,transcriptSegments,visualDescriptions]);
   const deviceInfo = useMemo(()=>getSemanticDeviceInfo(),[]);
   useEffect(()=>{if(!navigator.storage?.estimate){setModelStorageInfo("Storage estimate unavailable");return;}navigator.storage.estimate().then(({quota,usage})=>{const free=Math.max(0,(quota||0)-(usage||0));setModelStorageInfo(free?(free/1024/1024).toFixed(0)+" MB estimated available · "+((usage||0)/1024/1024).toFixed(0)+" MB used":"Storage estimate unavailable");}).catch(()=>setModelStorageInfo("Storage estimate unavailable"));},[]);
   const prepareSemanticModel = async () => {
