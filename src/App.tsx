@@ -180,7 +180,7 @@ export default function App() {
     const saved = localStorage.getItem("nexus-editor-theme");
     return themes.some(item => item.id === saved) ? saved as typeof themes[number]["id"] : "royal-wine";
   });
-  function changeTheme(id: string) {
+  function changeTheme(id: typeof themes[number]["id"]) {
     if (!themes.some(item => item.id === id)) return;
     setTheme(id);
     localStorage.setItem("nexus-editor-theme", id);
@@ -247,7 +247,7 @@ export default function App() {
     const message = assistantInput.trim();
     if (!message || assistantBusy) return;
     setAssistantInput("");
-    setAiChatMessages(old => [...old, { role: "user", text: message }].slice(-40));
+    setAiChatMessages(old => [...old, { role: "user" as const, text: message }].slice(-40));
     setAssistantBusy(true);
     void runAICommand(message).finally(() => setAssistantBusy(false));
   }
@@ -1544,7 +1544,7 @@ export default function App() {
     if (!request) return;
     const respond = (text: string) => {
       setAiReply(text);
-      setAiChatMessages(old => [...old, { role: "assistant", text }].slice(-40));
+      setAiChatMessages(old => [...old, { role: "assistant" as const, text }].slice(-40));
     };
     if (aiMode === "teach") {
       if (!selectedClip) { respond("Teaching mode: import or add media, then select a timeline clip. I can then walk you through the controls that are currently available."); return; }
