@@ -1,0 +1,16 @@
+name = "nexus-studio-app"
+main = "worker.js"
+compatibility_date = "2026-11-06"
+compatibility_flags = ["nodejs_compat"]
+nodejs_compat_populate_process_env = true
+workers_dev = true
+
+[assets]
+directory = "../../dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*", "/creator/*", "/sitemap.xml"]
+not_found_handling = "single-page-application"
+
+[vars]
+NEXUS_CF_TEXT_MODEL = "@cf/meta/llama-3.2-1b-instruct"
+NEXUS_CF_IMAGE_MODEL = "@cf/black-forest-labs/flux-1-schnell"
