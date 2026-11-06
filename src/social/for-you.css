@@ -123,3 +123,17 @@
 @media(prefers-reduced-motion:reduce){
   .nfy-stage{scroll-behavior:auto}
 }
+
+
+/* Active-card transitions and playback controls */
+.nfy-post{transition:border-color .22s ease,box-shadow .22s ease}
+.nfy-post.is-active{border-color:rgba(197,141,224,.34);box-shadow:0 25px 76px rgba(0,0,0,.38),0 0 0 1px rgba(197,141,224,.06)}
+.nfy-post-info,.nfy-actions{transition:opacity .22s ease,transform .22s ease}
+.nfy-post.is-active .nfy-post-info{animation:nfy-post-enter .32s ease both}
+.nfy-post.is-active .nfy-actions{animation:nfy-actions-enter .32s ease both}
+@keyframes nfy-post-enter{from{opacity:.72;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes nfy-actions-enter{from{opacity:.72;transform:translateX(7px)}to{opacity:1;transform:translateX(0)}}
+.nfy-video-mute{position:absolute;z-index:8;top:12px;right:12px;width:38px;height:38px;display:grid;place-items:center;border:1px solid #ffffff55;border-radius:50%;background:#090a12a8;color:#fff;backdrop-filter:blur(10px);cursor:pointer}
+.nfy-video-retry{margin-top:8px;padding:9px 13px;border:1px solid #d4a0f2;border-radius:10px;background:#b47bd52b;color:#fff;font:inherit;font-size:11px;font-weight:700;cursor:pointer}
+@media(max-width:760px){.nfy-video-mute{top:14px;right:14px}}
+@media(prefers-reduced-motion:reduce){.nfy-post,.nfy-post-info,.nfy-actions{transition:none!important;animation:none!important}}
