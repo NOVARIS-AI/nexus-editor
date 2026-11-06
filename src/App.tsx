@@ -2195,7 +2195,7 @@ export default function App() {
           <div className="nexus-template-preview-actions"><button className="outline-button" onClick={() => { applyCreativeTemplate(selectedTemplate); setSelectedTemplate(null); }}>Use in current project</button><button className="gradient-button" onClick={() => { if ((clips.length || textLayers.length || imageLayers.length) && !window.confirm("Start a new template project? Your current timeline will be cleared, but imported media stays in the media library.")) return; startTemplateProject(selectedTemplate); setSelectedTemplate(null); }}>Start new project <ArrowRight size={15}/></button></div>
         </div>
       </section></div>}
-      {publishFlowOpen && <PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} />}
+      {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} /></Suspense>}
       {page!=="editor" && <nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"for-you",label:"For You",icon:Compass},{id:"editor",label:"Editor",icon:Clapperboard},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);if(item.id==="editor")setEditorView("workspace");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
