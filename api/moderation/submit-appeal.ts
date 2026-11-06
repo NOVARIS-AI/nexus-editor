@@ -1,4 +1,4 @@
-import {authenticate,cleanError,getConfig,sendJson,supabaseRest} from "../../server/social-api";
+import {authenticate,cleanError,getConfig,sendJson,supabaseRest} from "../../server/social-api.js";
 export default async function handler(req:any,res:any){
  if(req.method!=="POST"){res.setHeader("Allow","POST");return sendJson(res,405,{error:"Method not allowed."});}
  try{
