@@ -1,4 +1,4 @@
-import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "../../server/social-api";
+import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "../../server/social-api.js";
 
 export default async function handler(req: any, res: any) {
   if (!methodOnly(req, res, "GET")) return;
