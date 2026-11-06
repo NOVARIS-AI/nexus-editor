@@ -88,3 +88,38 @@
 @media(prefers-reduced-motion:reduce){
  .nfy-post,.nfy-art,.nfy-actions>button span{transition:none!important;animation:none!important;scroll-behavior:auto!important}
 }
+
+/* Real multi-card vertical scrolling and native CSS scroll snapping */
+.nfy-stage{
+  height:min(78dvh,760px);
+  min-height:530px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  scroll-behavior:smooth;
+  overscroll-behavior-y:contain;
+  scrollbar-width:none;
+}
+.nfy-stage::-webkit-scrollbar{display:none}
+.nfy-post{flex:0 0 auto;scroll-snap-align:start;scroll-snap-stop:always}
+@media(max-width:760px){
+  .nfy-stage{
+    height:auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    scroll-snap-type:y mandatory;
+    scroll-padding-block:0;
+    -webkit-overflow-scrolling:touch;
+  }
+  .nfy-post{
+    flex:0 0 calc(100dvh - 165px);
+    height:calc(100dvh - 165px);
+    min-height:360px;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .nfy-stage{scroll-behavior:auto}
+}
