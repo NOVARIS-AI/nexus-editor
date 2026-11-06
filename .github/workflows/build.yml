@@ -22,6 +22,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Type-check the internal speech API
         run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts
+      - name: Type-check public creator SEO endpoints
+        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck api/creator-page.ts api/sitemap.ts
       - name: Verify SEO and brand assets
         run: npm run verify:release
       - name: Run regression tests
