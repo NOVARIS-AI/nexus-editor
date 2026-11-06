@@ -15,7 +15,7 @@ declare
   v_next_upload text;
 begin
   select role into v_role from public.moderator_roles where user_id = p_actor_id;
-  if v_role not in ('moderator','admin') then raise exception 'Moderator permission required'; end if;
+  if coalesce(v_role,'') not in ('moderator','admin') then raise exception 'Moderator permission required'; end if;
   if p_decision not in ('approve','reject') then raise exception 'Invalid publishing review decision'; end if;
 
   select * into v_post from public.posts where id = p_post_id for update;
