@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck, Video, FileVideo, LoaderCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck, Video, FileVideo, LoaderCircle, RefreshCw } from "lucide-react";
 import "./publish-flow.css";
-import { uploadVideoDraft, type VideoUploadDraftResult } from "./video-upload";
+import { uploadVideoDraft, checkVideoDraftStatus, type VideoUploadDraftResult } from "./video-upload";
 
 type Props = { projectName:string; onClose:()=>void };
 type Visibility = "public"|"followers"|"private";
@@ -39,13 +39,22 @@ export function PublishFlow({projectName,onClose}:Props) {
     setVideoFile(file);
   };
   const upload=async()=>{
-    if(!videoFile||uploadBusy)return;
-    setUploadBusy(true);setMessage("");setUploadProgress(0);
+    if(uploadBusy)return;
+    setUploadBusy(true);setMessage("");
     try {
-      const result=await uploadVideoDraft(videoFile,{projectName,caption,visibility,commentsEnabled:allowComments,remixEnabled:allowRemix},setUploadProgress,setUploadStage);
-      setUploadResult(result);setMessage(result.message);
+      if(uploadResult){
+        if(uploadResult.state!=="processing")return;
+        setUploadStage("Checking video processing…");
+        const result=await checkVideoDraftStatus(uploadResult.postId,uploadResult.mediaAssetId);
+        setUploadResult(result);setMessage(result.message);
+      }else{
+        if(!videoFile)return;
+        setUploadProgress(0);
+        const result=await uploadVideoDraft(videoFile,{projectName,caption,visibility,commentsEnabled:allowComments,remixEnabled:allowRemix},setUploadProgress,setUploadStage);
+        setUploadResult(result);setMessage(result.message);
+      }
     } catch(error) { setMessage(error instanceof Error?error.message:"Video upload failed. Your local project remains safe."); }
-    finally { setUploadBusy(false); }
+    finally { setUploadBusy(false);setUploadStage(""); }
   };
 
   return <div className="nexus-publish-overlay" role="dialog" aria-modal="true" aria-label="Publish to NEXUS" onClick={uploadBusy?undefined:onClose}>
@@ -66,14 +75,14 @@ export function PublishFlow({projectName,onClose}:Props) {
         <button className={visibility==="private"?"selected":""} onClick={()=>setVisibility("private")}><Lock/><span><b>Only me</b><small>Keep this post private.</small></span>{visibility==="private"&&<Check/>}</button>
       </div><label className="nexus-publish-toggle"><input type="checkbox" checked={allowComments} onChange={event=>setAllowComments(event.target.checked)}/><span><b>Allow comments</b><small>Viewers can respond after the post is approved.</small></span></label><label className="nexus-publish-toggle"><input type="checkbox" checked={allowRemix} onChange={event=>setAllowRemix(event.target.checked)}/><span><b>Allow remix / reuse</b><small>Let other creators build on this work when supported.</small></span></label></div>}
       {step===2&&<div className="nexus-publish-body">
-        <div className="nexus-publish-review"><ShieldCheck size={25}/><div><b>{uploadResult?"Video saved as a private draft":"Ready to upload for review"}</b><small>Confirm the details before sending your video to secure storage.</small></div></div>
+        <div className="nexus-publish-review"><ShieldCheck size={25}/><div><b>{uploadResult?(uploadResult.state==="ready"?"Submitted for moderation review":"Upload received · processing"):"Ready to submit for review"}</b><small>Your video is uploaded privately first. A verified moderator must approve it before it can appear to its selected audience.</small></div></div>
         <dl><div><dt>Video</dt><dd>{videoFile?.name||"No video selected"}</dd></div><div><dt>Audience</dt><dd>{visibility==="public"?"Public after approval":visibility==="followers"?"Followers after approval":"Only me"}</dd></div><div><dt>Comments</dt><dd>{allowComments?"Allowed":"Off"}</dd></div><div><dt>Remix</dt><dd>{allowRemix?"Allowed":"Off"}</dd></div><div><dt>Caption</dt><dd>{caption.trim()||"No caption added"}</dd></div></dl>
-        {!uploadResult&&<div className="nexus-publish-blocked"><UploadCloud size={19}/><div><b>Private upload · moderation required</b><small>The upload API creates a private draft and stores the video with signed playback protection. It does not publish the post or expose it in For You.</small></div></div>}
+        {!uploadResult&&<div className="nexus-publish-blocked"><UploadCloud size={19}/><div><b>Secure upload · approval required</b><small>The video is stored privately and checked by the video provider. After processing, it enters the restricted moderator queue. It cannot appear in For You until approved.</small></div></div>}
         {uploadBusy&&<div className="nexus-upload-progress"><div><LoaderCircle size={16}/><span>{uploadStage||"Uploading…"}</span><b>{uploadProgress}%</b></div><progress max="100" value={uploadProgress}/></div>}
-        {uploadResult&&<div className="nexus-publish-review nexus-publish-uploaded"><Check size={20}/><div><b>Private draft uploaded</b><small>Draft ID: {uploadResult.postId}</small></div></div>}
+        {uploadResult&&<div className="nexus-publish-review nexus-publish-uploaded"><Check size={20}/><div><b>{uploadResult.state==="ready"?"Waiting for moderator approval":"Upload received · processing"}</b><small>Post reference: {uploadResult.postId}</small></div></div>}
       </div>}
       {message&&<p className="nexus-publish-message" role="status">{message}</p>}
-      <footer className="nexus-publish-foot"><button className="nexus-publish-secondary" onClick={saveDraft} disabled={uploadBusy}>{saved?"Saved on device":"Save details"}</button><div>{step>0&&<button className="nexus-publish-secondary" onClick={()=>setStep(v=>v-1)} disabled={uploadBusy}><ArrowLeft size={15}/> Back</button>}{step<2?<button className="nexus-publish-primary" onClick={()=>setStep(v=>v+1)} disabled={step===0&&!videoFile}>Continue <ArrowRight size={15}/></button>:<button className="nexus-publish-primary" onClick={()=>void upload()} disabled={!videoFile||uploadBusy||Boolean(uploadResult)}>{uploadBusy?<><LoaderCircle size={15}/> Uploading…</>:uploadResult?<><Check size={15}/> Draft uploaded</>:<><UploadCloud size={15}/> Upload private draft</>}</button>}</div></footer>
+      <footer className="nexus-publish-foot"><button className="nexus-publish-secondary" onClick={saveDraft} disabled={uploadBusy}>{saved?"Saved on device":"Save details"}</button><div>{step>0&&<button className="nexus-publish-secondary" onClick={()=>setStep(v=>v-1)} disabled={uploadBusy}><ArrowLeft size={15}/> Back</button>}{step<2?<button className="nexus-publish-primary" onClick={()=>setStep(v=>v+1)} disabled={step===0&&!videoFile}>Continue <ArrowRight size={15}/></button>:<button className="nexus-publish-primary" onClick={()=>void upload()} disabled={(!videoFile&&!uploadResult)||uploadBusy||(Boolean(uploadResult)&&uploadResult.state==="ready")}>{uploadBusy?<><LoaderCircle size={15}/> {uploadStage||"Working…"}</>:uploadResult?.state==="ready"?<><Check size={15}/> Awaiting review</>:uploadResult?.state==="processing"?<><RefreshCw size={15}/> Check processing</>:<><UploadCloud size={15}/> Submit for review</>}</button>}</div></footer>
     </section>
   </div>;
 }
