@@ -52,9 +52,12 @@ describe("NEXUS social and moderation security regression checks", () => {
     expect(migration).toContain("publish_approved");
     expect(migration).toContain("publish_rejected");
     expect(migration).toContain("to service_role");
+    expect(migration).toContain("coalesce(v_role");
     expect(queue).toContain('status=eq.processing&moderation_state=eq.pending');
     expect(review).toContain("rpc/nexus_review_pending_post");
     expect(preview).toContain("requireModerator");
+    const roleHardening = read("../supabase/migrations/202611060004_harden_moderation_role_checks.sql");
+    expect(roleHardening).toContain("coalesce(v_role");
     expect(preview).toContain('post.status !== "processing"');
     expect(publish).toContain("checkVideoDraftStatus");
     expect(publish).toContain("Submit for review");
