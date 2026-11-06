@@ -67,7 +67,7 @@ export async function loadCommunityFeed(mode: "public" | "following" = "public")
     const handle = profile?.username || "creator";
     return {
       id: post.id, authorId: post.author_id, creator: display, handle,
-      initials: display.split(/\\s+/).slice(0, 2).map(part => part[0] || "").join("").toUpperCase() || "N",
+      initials: display.split(/\\s+/).slice(0, 2).map((part: string) => part[0] || "").join("").toUpperCase() || "N",
       caption: post.caption || "", topics: post.topics || [], creatorTopics: profile?.creator_topics || [],
       likes: likeCounts.get(post.id) || 0,
       comments: commentCounts.get(post.id) || 0,
@@ -537,6 +537,7 @@ export async function createSavedCollection(name:string,description="") {
     .insert({owner_id:user.id,name:cleanName,description:description.trim().slice(0,180)})
     .select("id,name,description,created_at").single();
   fail(error);
+  if (!data) throw new Error("The saved collection could not be created.");
   return {id:data.id,name:data.name,description:data.description||"",createdAt:data.created_at,postIds:[]} as SavedCollection;
 }
 
