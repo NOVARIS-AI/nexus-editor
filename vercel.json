@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/creator/:username/post/:postId", "destination": "/api/creator-page?username=:username&postId=:postId" },
+    { "source": "/creator/:username", "destination": "/api/creator-page?username=:username" },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+  ]
+}
