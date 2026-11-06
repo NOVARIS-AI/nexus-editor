@@ -1,4 +1,4 @@
-import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "../../server/social-api";
+import { authenticate, cleanError, cloudflareRequest, getConfig, methodOnly, sendJson, supabaseRest } from "../../server/social-api.js";
 
 const MAX_UPLOAD_BYTES = 200 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
