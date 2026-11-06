@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from "react";
-import {ShieldCheck,RefreshCw,ArrowLeft,Flag,CheckCircle2,Archive,Undo2,EyeOff,Play,Video,Globe2,Users,Lock} from "lucide-react";
+import {ShieldCheck,RefreshCw,ArrowLeft,Flag,CheckCircle2,Archive,Undo2,EyeOff,Play,Video} from "lucide-react";
 import {supabase} from "../lib/supabase";
 import {useNexusAuth} from "../lib/AuthGate";
 import "./moderation-centre.css";
