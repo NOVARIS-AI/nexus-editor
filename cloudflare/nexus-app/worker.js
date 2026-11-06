@@ -3,6 +3,7 @@ import cloudflareAI from "../../api/cloudflare-ai.js";
 import creatorPage from "../../api/creator-page.js";
 import engineJobs from "../../api/engine-jobs.js";
 import engineStatus from "../../api/engine-status.js";
+import health from "../../api/health.js";
 import nexusWorker from "../../api/nexus-worker.js";
 import sitemap from "../../api/sitemap.js";
 import transcribe from "../../api/transcribe.js";
@@ -25,6 +26,7 @@ const routes = new Map([
   ["/api/creator-page", creatorPage],
   ["/api/engine-jobs", engineJobs],
   ["/api/engine-status", engineStatus],
+  ["/api/health", health],
   ["/api/nexus-worker", nexusWorker],
   ["/api/sitemap", sitemap],
   ["/api/transcribe", transcribe],
