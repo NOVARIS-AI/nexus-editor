@@ -21,9 +21,9 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Install dependencies
@@ -32,7 +32,7 @@ jobs:
         run: |
           for file in api/*.js; do node --check "$file"; done
           node --check workers/nexus-ai/src/index.js
-      - name: Verify SEO and brand assets
+      - name: Type-check the internal speech API\n        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts\n      - name: Verify SEO and brand assets
         run: npm run verify:release
       - name: Run regression tests
         run: npm test
