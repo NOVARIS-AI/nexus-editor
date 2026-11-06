@@ -16,7 +16,7 @@ declare
 begin
   select role into v_role from public.moderator_roles where user_id = p_actor_id;
   if coalesce(v_role,'') not in ('moderator','admin') then raise exception 'Moderator permission required'; end if;
-  if p_decision not in ('approve','reject') then raise exception 'Invalid publishing review decision'; end if;
+  if coalesce(p_decision,'') not in ('approve','reject') then raise exception 'Invalid publishing review decision'; end if;
 
   select * into v_post from public.posts where id = p_post_id for update;
   if not found then raise exception 'Pending post not found'; end if;
