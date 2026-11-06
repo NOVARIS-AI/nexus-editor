@@ -23,3 +23,6 @@ The Creator Portfolio shows public posts and provides links to the public profil
 
 ## Validation still required
 Run the repository CI/build checks, deploy to Vercel, then verify public profile, public post, private profile (404), non-public post (404), metadata and sitemap responses. Confirm a profile with a real public username and at least one approved public post.
+
+## Build compatibility note
+Server-side TypeScript modules use explicit `.js` import specifiers so Vercel's NodeNext-oriented function type-check can resolve the corresponding TypeScript source. Keep this convention for new API-to-server imports.
