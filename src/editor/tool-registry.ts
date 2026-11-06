@@ -7,7 +7,6 @@ export const EDITOR_TOOL_REGISTRY: EditorToolEntry[] = [
   { id: "text", label: "Text", actions: ["add timed text", "editable title layouts", "quote poster layers", "fonts", "style", "animation", "align"], capability: "working" },
   { id: "overlay", label: "Overlay", actions: ["add overlay", "mask", "blend", "position", "opacity"], capability: "guidance" },
   { id: "effects", label: "Effects", actions: ["one-tap looks", "video filters", "transitions", "motion keyframes"], capability: "working" },
-  { id: "captions", label: "Captions", actions: ["auto captions", "manual captions", "caption style", "language"], capability: "guidance" },
   { id: "filters", label: "Filters", actions: ["100+ colour looks", "cinematic", "film", "portrait", "product", "creative"], capability: "working" },
   { id: "adjust", label: "Adjust", actions: ["image finishing presets", "brightness", "contrast", "saturation", "exposure", "temperature", "HSL"], capability: "working" },
   { id: "media", label: "Media", actions: ["import photos", "import videos", "import audio", "browse files", "media library"], capability: "working" },
