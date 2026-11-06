@@ -1,4 +1,4 @@
-import { requireModerator,cleanError,sendJson,supabaseRest } from "../../server/moderation-api";
+import { requireModerator,cleanError,sendJson,supabaseRest } from "../../server/moderation-api.js";
 export default async function handler(req:any,res:any){
  if(req.method!=="POST"){res.setHeader("Allow","POST");return sendJson(res,405,{error:"Method not allowed."});}
  try{
