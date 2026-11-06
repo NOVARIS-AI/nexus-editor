@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
       - name: Type-check the internal speech API
         run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts
       - name: Type-check public creator SEO endpoints
