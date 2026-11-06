@@ -13,7 +13,7 @@
 The API requires the existing server-only Supabase service role and Cloudflare Stream credentials. Never expose the service-role key or Cloudflare API token in Vite/client variables or source control. The preview endpoint also needs `CLOUDFLARE_STREAM_CUSTOMER_CODE`.
 
 ## Database migration
-Apply `supabase/migrations/202611060003_publish_moderation_pipeline.sql` after the previously applied social foundation, video moderation gate, moderator roles, appeals, and atomic moderation migrations. It creates `nexus_review_pending_post`, executable only by `service_role`.
+Apply `supabase/migrations/202611060003_publish_moderation_pipeline.sql` after the previously applied social foundation, video moderation gate, moderator roles, appeals, and atomic moderation migrations. It creates `nexus_review_pending_post`, executable only by `service_role`. Then apply `supabase/migrations/202611060004_harden_moderation_role_checks.sql` to make the already-installed report and appeal RPCs fail closed when an actor role is missing.
 
 ## Important status meanings
 - `draft`: creator's initial private post record.
