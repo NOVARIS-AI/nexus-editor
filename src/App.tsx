@@ -1113,6 +1113,7 @@ export default function App() {
         window.setTimeout(() => URL.revokeObjectURL(url), 60000);
         setStatus("Export complete · " + extension.toUpperCase() + " video saved to your device.");
       }
+      return null;
     } catch (error) {
       const failure=classifyExportFailure(error);
       setStatus(failure.message);
