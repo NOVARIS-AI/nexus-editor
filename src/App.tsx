@@ -1071,9 +1071,9 @@ export default function App() {
       setStatus(error instanceof Error ? error.message : "Could not save the project backup.");
     }
   }
-  async function startVideoExport() {
-    if (exportBusy) return;
-    if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return; }
+  async function startVideoExport(options: { returnBlob?: boolean } = {}): Promise<Blob | null> {
+    if (exportBusy) return null;
+    if (!hasExportableContent || duration <= 0) { setStatus("Add a video, photo, image layer or text layer before exporting."); return null; }
     const fps = Number.parseInt(exportFps, 10) || 30;
     const mobileProfile=getMobilePerformanceProfile({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:(navigator as Navigator & {deviceMemory?:number}).deviceMemory});
     const requestedSize = getExportDimensions(aspectRatio, exportQuality);
@@ -1083,9 +1083,9 @@ export default function App() {
     if (safeQuality !== exportQuality) setExportQuality(safeQuality);
     const qualityFindings=inspectProjectQuality({assets,clips,imageLayers,textLayers,tracks:trackStates,duration,exportWidth:size.width,exportHeight:size.height});
     const qualityState=qualitySummary(qualityFindings);
-    if(!qualityState.ready){const blockers=qualityFindings.filter(item=>item.severity==="error").map(item=>item.title+": "+item.detail);setStatus("Export blocked by project quality checks: "+blockers.join(" "));setEngineReport(blockers);return;}
+    if(!qualityState.ready){const blockers=qualityFindings.filter(item=>item.severity==="error").map(item=>item.title+": "+item.detail);setStatus("Export blocked by project quality checks: "+blockers.join(" "));setEngineReport(blockers);return null;}
     const preflight=inspectExportRequest({width:size.width,height:size.height,fps,duration,clipCount:clips.length,hasVisual:hasExportableContent,hasAudio:clips.some(clip=>{const kind=assets.find(item=>item.id===clip.assetId)?.kind;return kind==="audio"||kind==="video";})});
-    if(!preflight.ok){setStatus("Export preflight blocked: "+preflight.errors.join(" "));setEngineReport(preflight.errors);return;}
+    if(!preflight.ok){setStatus("Export preflight blocked: "+preflight.errors.join(" "));setEngineReport(preflight.errors);return null;}
     const advisory=[...qualityFindings.filter(item=>item.severity==="warning").map(item=>item.title),...preflight.warnings];
     if(advisory.length)setStatus("Export review: "+advisory.join(" · "));
     const controller = new AbortController();
@@ -1101,6 +1101,7 @@ export default function App() {
       const verified=validateExportBlob(blob);
       const extension=verified.extension;
       const filename=makeExportFilename(projectName,extension);
+      if (options.returnBlob) { setStatus("Studio render is ready for secure publishing."); return blob; }
       if (isNativeAndroid()) {
         await saveExportOnAndroid(blob, filename);
         setStatus("Export complete · " + filename + " saved in Documents/NEXUS Exports. The Android share sheet is ready.");
@@ -1115,6 +1116,7 @@ export default function App() {
     } catch (error) {
       const failure=classifyExportFailure(error);
       setStatus(failure.message);
+      return null;
     } finally { if (exportAbortController.current === controller) exportAbortController.current = null; setExportBusy(false); }
   }
   async function startNativeClipTranscode() {
@@ -2195,7 +2197,7 @@ export default function App() {
           <div className="nexus-template-preview-actions"><button className="outline-button" onClick={() => { applyCreativeTemplate(selectedTemplate); setSelectedTemplate(null); }}>Use in current project</button><button className="gradient-button" onClick={() => { if ((clips.length || textLayers.length || imageLayers.length) && !window.confirm("Start a new template project? Your current timeline will be cleared, but imported media stays in the media library.")) return; startTemplateProject(selectedTemplate); setSelectedTemplate(null); }}>Start new project <ArrowRight size={15}/></button></div>
         </div>
       </section></div>}
-      {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} /></Suspense>}
+      {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} onRenderVideo={async()=>{const blob=await startVideoExport({returnBlob:true});if(!blob)return null;const extension=blob.type.toLowerCase().includes("mp4")?"mp4":"webm";return new File([blob],makeExportFilename(projectName,extension),{type:blob.type||(extension==="mp4"?"video/mp4":"video/webm")});}} /></Suspense>}
       {page!=="editor" && <nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"for-you",label:"For You",icon:Compass},{id:"editor",label:"Editor",icon:Clapperboard},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);if(item.id==="editor")setEditorView("workspace");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
