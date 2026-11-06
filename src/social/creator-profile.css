@@ -50,3 +50,8 @@
 .ncp-social-preview strong{font-size:10px;color:#f0e5ff}
 .ncp-social-preview em{font-size:9px;line-height:1.4;color:#c8c2d5;font-style:normal}
 .ncp-social-preview small{font-size:8px;color:#9d90ad}
+
+.ncp-public-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.ncp-public-actions a,.ncp-public-actions button,.ncp-open-seo-page{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid rgba(204,160,231,.28);border-radius:9px;background:rgba(159,102,194,.12);color:#e7cafa;text-decoration:none;font-size:10px;font-weight:700}
+.ncp-public-actions button{cursor:pointer}
+.ncp-open-seo-page{margin:2px 0 4px;width:fit-content;background:rgba(83,137,190,.12);border-color:rgba(119,188,255,.22);color:#b9dcff}
