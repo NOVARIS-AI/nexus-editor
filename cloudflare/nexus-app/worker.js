@@ -119,7 +119,8 @@ export default {
 
     if (pathname === "/sitemap.xml") handler = sitemap;
     if (pathname === "/creator" || pathname.startsWith("/creator/")) {
-      const creatorParts = pathname.split("/").filter(Boolean);\n      const match = creatorParts.length === 2 ? [pathname, creatorParts[1], undefined] : creatorParts.length === 4 && creatorParts[2] === "post" ? [pathname, creatorParts[1], creatorParts[3]] : null;
+      const creatorParts = pathname.split("/").filter(Boolean);
+      const match = creatorParts.length === 2 ? [pathname, creatorParts[1], undefined] : creatorParts.length === 4 && creatorParts[2] === "post" ? [pathname, creatorParts[1], creatorParts[3]] : null;
       if (match) {
         handler = creatorPage;
         overrides.query = { username: decodeURIComponent(match[1]), ...(match[2] ? { postId: decodeURIComponent(match[2]) } : {}) };
