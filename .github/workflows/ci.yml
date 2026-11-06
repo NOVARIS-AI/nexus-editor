@@ -32,7 +32,9 @@ jobs:
         run: |
           for file in api/*.js; do node --check "$file"; done
           node --check workers/nexus-ai/src/index.js
-      - name: Type-check the internal speech API\n        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts\n      - name: Verify SEO and brand assets
+      - name: Type-check the internal speech API
+        run: npx tsc --noEmit --target ES2022 --module ESNext --moduleResolution bundler --skipLibCheck --types node api/transcribe.ts
+      - name: Verify SEO and brand assets
         run: npm run verify:release
       - name: Run regression tests
         run: npm test
