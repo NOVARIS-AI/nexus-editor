@@ -15,7 +15,7 @@ declare
 begin
   select role into v_role from public.moderator_roles where user_id = p_actor_id;
   if coalesce(v_role,'') not in ('moderator','admin') then raise exception 'Moderator permission required'; end if;
-  if p_decision not in ('remove_content','dismiss') then raise exception 'Invalid report decision'; end if;
+  if coalesce(p_decision,'') not in ('remove_content','dismiss') then raise exception 'Invalid report decision'; end if;
 
   select * into v_report from public.reports where id = p_report_id for update;
   if not found then raise exception 'Report not found'; end if;
@@ -61,7 +61,7 @@ declare
 begin
   select role into v_role from public.moderator_roles where user_id = p_actor_id;
   if coalesce(v_role,'') not in ('moderator','admin') then raise exception 'Moderator permission required'; end if;
-  if p_decision not in ('upheld','reversed') then raise exception 'Invalid appeal decision'; end if;
+  if coalesce(p_decision,'') not in ('upheld','reversed') then raise exception 'Invalid appeal decision'; end if;
 
   select * into v_appeal from public.moderation_appeals where id=p_appeal_id for update;
   if not found then raise exception 'Appeal not found'; end if;
