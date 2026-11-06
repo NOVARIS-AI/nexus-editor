@@ -930,7 +930,7 @@ export default function App() {
             const speech = await transcribeMediaInternally(speechFile);
             if (speech.text.trim()) {
               setInternalTranscripts(old => ({ ...old, [item.id]: speech.segments }));
-              setInternalSpeechText(old => [old, speech.text].filter(Boolean).join("\\n"));
+              setInternalSpeechText(old => [old, speech.text].filter(Boolean).join("\n"));
             }
           } catch { /* speech intelligence is optional; continue other media analysis */ }
         }
@@ -1574,7 +1574,9 @@ export default function App() {
       timelineSummary: { imageLayers: imageLayers.length, textLayers: textLayers.length, duration, playhead },
       conversation: aiChatMessages.slice(-8).map(message => ({ role: message.role, content: message.text })),
       editorCapabilities: aiContextSummary, currentStatus: status,
-      activeTool, activeSubtool, aspectRatio
+      activeTool, activeSubtool, aspectRatio,
+      internalSpeechInsights: internalSpeechText.slice(0, 12000),
+      speechSegmentCount: Object.values(internalTranscripts).reduce((sum, segments) => sum + segments.length, 0)
     });
     const plan = result.plan;
     setEngineReport(["Creative coach reviewed your current project", ...plan.assetNeeds.map(item => "Suggested asset: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
@@ -1608,6 +1610,7 @@ export default function App() {
           timelineSummary: { imageLayers:imageLayers.length, textLayers:textLayers.length, duration, playhead },
           conversation: aiChatMessages.slice(-8).map(message => ({ role: message.role, content: message.text })),
           editorCapabilities: aiContextSummary, currentStatus: status,
+          internalSpeechInsights: internalSpeechText.slice(0, 12000), speechSegmentCount: Object.values(internalTranscripts).reduce((sum, segments) => sum + segments.length, 0),
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
         const plan = result.plan;
