@@ -23,6 +23,17 @@ const DEMO_POSTS: FeedPost[] = [
   { id:"p4",creator:"NEXUS Demo Creator",handle:"nexus.moments",initials:"NM",caption:"A recap format for the little moments that deserve a proper edit.",tags:["dailyrecap","storytime"],category:"Lifestyle",title:"KEEP THE MOMENT",subtitle:"Little things, big memories",palette:"ocean",likes:945,comments:31,sound:"Warm ambience · NEXUS demo" }
 ];
 
+const streamEmbedUrl = (value:string, muted:boolean) => {
+  try {
+    const url = new URL(value);
+    url.searchParams.set("autoplay","true");
+    url.searchParams.set("muted",muted?"true":"false");
+    url.searchParams.set("controls","true");
+    url.searchParams.set("preload","true");
+    return url.toString();
+  } catch { return value; }
+};
+
 const formatCount = (n:number) => n >= 1_000_000 ? (n/1_000_000).toFixed(1).replace(/\\.0$/,"")+"M" : n >= 1000 ? (n/1000).toFixed(1).replace(/\\.0$/,"")+"K" : String(n);
 
 type Props = { onOpenStudio: () => void; onOpenTemplates: () => void; onOpenSaved: () => void; onRequireSignIn: () => void };
@@ -66,6 +77,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
   const [playbackUrl,setPlaybackUrl] = useState("");
   const [playbackLoading,setPlaybackLoading] = useState(false);
   const [playbackError,setPlaybackError] = useState("");
+  const [playbackAttempt,setPlaybackAttempt] = useState(0);
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const feedScrollRef = useRef<HTMLDivElement|null>(null);
 
@@ -192,7 +204,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
       .catch(error => { if (active) setPlaybackError(error instanceof Error ? error.message : "This video could not be loaded."); })
       .finally(() => { if (active) setPlaybackLoading(false); });
     return () => { active = false; };
-  }, [current?.id, current?.isLive, current?.mediaAssetId]);
+  }, [current?.id, current?.isLive, current?.mediaAssetId, playbackAttempt]);
 
   useEffect(() => {
     if (!profileFor || !profilePost?.isLive) { setCreatorProfile(null); return; }
@@ -273,8 +285,8 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
         <div className={"nfy-art nfy-"+post.palette+(post.isLive?" nfy-live-video":"")}>
           {post.isLive && post.mediaAssetId ? (
             post.id===current?.id && playbackUrl
-              ? <iframe className="nfy-stream-player" src={playbackUrl} title={"Video by "+post.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
-              : <div className="nfy-video-state"><Clapperboard size={26}/><b>{post.id!==current?.id?"Scroll to this post to load its video":playbackLoading?"Preparing secure playback…":"Video unavailable"}</b><small>{playbackError || "The video may still be processing or playback is not configured."}</small></div>
+              ? <iframe key={post.id+":"+playbackUrl+":"+muted} className="nfy-stream-player" src={streamEmbedUrl(playbackUrl,muted)} title={"Video by "+post.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="eager" referrerPolicy="strict-origin-when-cross-origin"/>
+              : <div className="nfy-video-state"><Clapperboard size={26}/><b>{post.id!==current?.id?"Scroll to this post to load its video":playbackLoading?"Preparing secure playback…":playbackError?"Video could not be loaded":"Video unavailable"}</b><small>{post.id===current?.id ? playbackError || "The video may still be processing or playback is not configured." : "Playback loads when this post becomes active."}</small>{post.id===current?.id && !playbackLoading && <button className="nfy-video-retry" onClick={()=>setPlaybackAttempt(value=>value+1)}>Retry playback</button>}</div>
           ) : <>
             <div className="nfy-art-grain"/>
             <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
