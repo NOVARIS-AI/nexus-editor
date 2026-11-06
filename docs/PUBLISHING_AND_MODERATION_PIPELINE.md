@@ -1,7 +1,7 @@
 # NEXUS Studio publishing and moderation pipeline
 
 ## Creator flow
-1. The creator chooses an exported MP4, WebM, or QuickTime file (current route limit: 200 MB).
+1. The creator can render the current Studio timeline directly into the publishing flow (no manual export/re-import) or choose an existing MP4, WebM, or QuickTime file (current route limit: 200 MB).
 2. The server authenticates the creator, enforces the current per-account upload limit, creates a draft post and media record, then requests a signed Cloudflare Stream direct-upload URL.
 3. The browser uploads directly to Cloudflare. The Studio UI shows progress and checks processing status; if processing takes longer, the creator can check again without uploading the file again.
 4. When Cloudflare reports the asset ready, the trusted status API records media metadata and moves the post to `processing` with `moderation_state=pending`. It is not publicly playable or listed in the public feed.
