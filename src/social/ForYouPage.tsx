@@ -68,7 +68,6 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
   const [playbackError,setPlaybackError] = useState("");
   const [pulsePreferencesReady,setPulsePreferencesReady] = useState(false);
   const feedScrollRef = useRef<HTMLDivElement|null>(null);
-  const lastWheelAt = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -223,7 +222,7 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
     finally { setCreatorTopicsSaving(false); }
   };
 
-  const nextPost = (direction:number) => { const target=Math.min(Math.max(0,activeIndex+direction),Math.max(0,filtered.length-1)); setActiveIndex(target); const container=feedScrollRef.current; const item=container?.querySelectorAll<HTMLElement>(".nfy-post")[target]; if(container&&item)container.scrollTo({top:item.offsetTop-container.offsetTop,behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"}); };
+  const nextPost = (direction:number) => { const target=Math.min(Math.max(0,activeIndex+direction),Math.max(0,filtered.length-1)); setActiveIndex(target); const item=feedScrollRef.current?.querySelectorAll<HTMLElement>(".nfy-post")[target]; item?.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"}); };
   const submitComment = () => {
     if (!commentText.trim() || !commentsFor) return;
     if (!signedIn) { onRequireSignIn(); return; }
@@ -261,8 +260,43 @@ export function ForYouPage({ onOpenStudio, onOpenTemplates, onOpenSaved, onRequi
       <div className="nfy-categories">{["All","Creative","Design","Learning","Lifestyle","Gaming","Music","Business"].map(item=><button key={item} className={category===item?"selected":""} onClick={()=>{setCategory(item);setActiveIndex(0);if(item!=="All"){const next=preferredCategories.includes(item)?preferredCategories.filter(value=>value!==item):[...preferredCategories,item];setPreferredCategories(next);persistPulse({preferredCategories:next});}}}>{item}</button>)}</div>
     </div>}
 
-    <div className="nfy-stage" ref={feedScrollRef} role="region" aria-label="Creator feed. Scroll vertically to browse posts. Use the up and down arrow keys to change posts." tabIndex={0} onScroll={event=>{const el=event.currentTarget;const item=el.querySelector<HTMLElement>(".nfy-post");if(!item)return;const height=item.getBoundingClientRect().height; if(height>0){const index=Math.max(0,Math.min(filtered.length-1,Math.round(el.scrollTop/height)));setActiveIndex(old=>old===index?old:index);}}} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}}>
-      {filtered.length ? filtered.map((post,index)=><React.Fragment key={post.id}></article>) : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
+    <div className="nfy-stage" ref={feedScrollRef} role="region" aria-label="Creator feed. Scroll vertically to browse posts. Use the up and down arrow keys to change posts." tabIndex={0} onScroll={event=>{const el=event.currentTarget;const height=el.clientHeight;if(height>0){const index=Math.max(0,Math.min(filtered.length-1,Math.round(el.scrollTop/height)));setActiveIndex(old=>old===index?old:index);}}} onKeyDown={event=>{if(event.key==="ArrowDown"||event.key==="PageDown"){event.preventDefault();nextPost(1);}else if(event.key==="ArrowUp"||event.key==="PageUp"){event.preventDefault();nextPost(-1);}}}>
+      {filtered.length ? filtered.map((post,index)=>(
+        <article className={"nfy-post"+(index===activeIndex?" is-active":"")} key={post.id}>
+        <div className={"nfy-art nfy-"+post.palette+(post.isLive?" nfy-live-video":"")}>
+          {post.isLive && post.mediaAssetId ? (
+            post.id===current?.id && playbackUrl
+              ? <iframe className="nfy-stream-player" src={playbackUrl} title={"Video by "+post.creator} allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen loading="lazy" referrerPolicy="strict-origin-when-cross-origin"/>
+              : <div className="nfy-video-state"><Clapperboard size={26}/><b>{post.id!==current?.id?"Scroll to this post to load its video":playbackLoading?"Preparing secure playback…":"Video unavailable"}</b><small>{playbackError || "The video may still be processing or playback is not configured."}</small></div>
+          ) : <>
+            <div className="nfy-art-grain"/>
+            <div className="nfy-art-orbit orbit-a"/><div className="nfy-art-orbit orbit-b"/>
+            <div className="nfy-art-copy"><span>VELTRONIX NEXUS · CREATOR PREVIEW</span><strong>{post.title}</strong><em>{post.subtitle}</em><small>EDITED IN NEXUS STUDIO</small></div>
+            <div className="nfy-demo-watermark">SAMPLE PREVIEW</div>
+            <button className="nfy-sound" onClick={()=>setMuted(v=>!v)} aria-label={muted?"Unmute preview":"Mute preview"}>{muted?<VolumeX size={17}/>:<Volume2 size={17}/>}</button>
+            <div className="nfy-play-indicator"><Play size={20} fill="currentColor"/></div>
+          </>}
+        </div>
+        <div className="nfy-post-info">
+          <div className="nfy-creator-row">
+            <button className="nfy-avatar" onClick={()=>setProfileFor(post.handle)}>{post.initials}</button>
+            <button className="nfy-creator-name" onClick={()=>setProfileFor(post.handle)}><b>{post.creator}</b><small>@{post.handle}</small></button>
+            <button className={"nfy-follow "+(followed.includes(post.handle)?"following":"")} onClick={()=>toggleLocal(followed,setFollowed,post.handle,"Follow")}>{followed.includes(post.handle)?<><Check size={14}/> Following</>:<><UserPlus size={14}/> Follow</>}</button>
+          </div>
+          <p className="nfy-caption">{post.caption}</p>
+          <div className="nfy-tags">{post.tags.map(tag=><button key={tag} onClick={()=>{setQuery(tag);setActiveTab("Discover");}}># {tag}</button>)}</div>
+          <div className="nfy-soundline"><Volume2 size={13}/><span>{post.sound}{post.createdAt ? " · "+new Date(post.createdAt).toLocaleDateString() : ""}</span></div>
+        </div>
+        <aside className="nfy-actions">
+          <button aria-label={liked.includes(post.id)?"Unlike post":"Like post"} onClick={()=>toggleLocal(liked,setLiked,post.id,"Like")} className={liked.includes(post.id)?"is-liked":""}><span><Heart size={22} fill={liked.includes(post.id)?"currentColor":"none"}/></span><small>{formatCount(post.likes+(liked.includes(post.id)?1:0))}</small></button>
+          <button aria-label="Open comments" onClick={()=>setCommentsFor(post.id)}><span><MessageCircle size={22}/></span><small>{formatCount(post.comments+(localComments[post.id]?.length||0))}</small></button>
+          <button aria-label={saved.includes(post.id)?"Remove saved post":"Save post"} onClick={()=>toggleLocal(saved,setSaved,post.id,"Save")} className={saved.includes(post.id)?"is-saved":""}><span><Bookmark size={21} fill={saved.includes(post.id)?"currentColor":"none"}/></span><small>{saved.includes(post.id)?"Saved":"Save"}</small></button>
+          <button aria-label="More post actions" onClick={()=>{setMenuFor(menuFor===post.id?null:post.id);}}><span><MoreHorizontal size={22}/></span><small>More</small></button>
+          {menuFor===post.id&&<div className="nfy-more-menu"><button onClick={()=>{const nextHiddenPosts=notInterested.includes(post.id)?notInterested:[...notInterested,post.id];setNotInterested(nextHiddenPosts);persistPulse({hiddenPostIds:nextHiddenPosts});setMenuFor(null);setActiveIndex(0);setNotice("NEXUS Pulse will show you less like this post.");}}><Sparkles size={14}/> Not interested</button><button onClick={()=>{const nextHiddenCreators=post.authorId?(mutedCreators.includes(post.authorId)?mutedCreators:[...mutedCreators,post.authorId]):mutedCreators;setMutedCreators(nextHiddenCreators);persistPulse({hiddenCreatorIds:nextHiddenCreators});setMenuFor(null);setActiveIndex(0);setNotice("This creator is hidden from your feed.");}}><X size={14}/> Hide creator</button>{post.isLive && post.authorId && post.authorId!==currentUserId && <button onClick={()=>{void (async()=>{if(!signedIn){onRequireSignIn();return;}if(!window.confirm("Block this creator? Their posts will no longer appear for you, and existing follows between both accounts will be removed."))return;setBlockSubmitting(true);try{await blockCommunityCreator(post.authorId!);const next=[...new Set([...mutedCreators,post.authorId!])];setMutedCreators(next);persistPulse({hiddenCreatorIds:next});setFollowed(old=>old.filter(handle=>handle!==post.handle));setMenuFor(null);setActiveIndex(0);setNotice("Creator blocked. Their content will be hidden from your account.");}catch(error){setServiceError(error instanceof Error?error.message:"Could not block this creator.");}finally{setBlockSubmitting(false);}})();}} disabled={blockSubmitting}><X size={14}/> {blockSubmitting?"Blocking…":"Block creator"}</button>}
+          <button onClick={()=>{setReportFor(post.id);setReportReason("spam");setReportDetails("");setMenuFor(null);}}><Flag size={14}/> Report post</button><button onClick={()=>{navigator.clipboard?.writeText(window.location.href);setNotice("Page link copied where clipboard access is available.");setMenuFor(null);}}><Share2 size={14}/> Copy page link</button></div>}
+        </aside>
+      </article>
+      )) : <div className="nfy-empty"><Compass size={28}/><h3>No matching previews</h3><p>Try another search or category.</p><button onClick={()=>{setQuery("");setCategory("All");setActiveTab("For You");}}>Clear filters</button></div>}
     </div>
     <div className="nfy-feed-controls"><button onClick={()=>nextPost(-1)} disabled={activeIndex===0}><ArrowLeft size={15}/> Previous</button><span aria-live="polite">{filtered.length?Math.min(activeIndex+1,filtered.length):0} / {filtered.length}</span><button onClick={()=>nextPost(1)} disabled={activeIndex>=filtered.length-1}>Next <ChevronDown size={15}/></button></div>
 
