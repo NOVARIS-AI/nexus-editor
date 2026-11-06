@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck, Video, FileVideo, LoaderCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Image, Lock, Globe2, Users, X, UploadCloud, ShieldCheck, Video, FileVideo, LoaderCircle, RefreshCw, Film } from "lucide-react";
 import "./publish-flow.css";
 import { uploadVideoDraft, checkVideoDraftStatus, type VideoUploadDraftResult } from "./video-upload";
 
-type Props = { projectName:string; onClose:()=>void };
+type Props = { projectName:string; onClose:()=>void; onRenderVideo:()=>Promise<File|null> };
 type Visibility = "public"|"followers"|"private";
 
-export function PublishFlow({projectName,onClose}:Props) {
+export function PublishFlow({projectName,onClose,onRenderVideo}:Props) {
   const [step,setStep]=useState(0);
   useEffect(()=>{const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape")onClose();};window.addEventListener("keydown",onKeyDown);return()=>window.removeEventListener("keydown",onKeyDown);},[onClose]);
   const [caption,setCaption]=useState("");
@@ -15,6 +15,7 @@ export function PublishFlow({projectName,onClose}:Props) {
   const [allowRemix,setAllowRemix]=useState(false);
   const [videoFile,setVideoFile]=useState<File|null>(null);
   const [uploadBusy,setUploadBusy]=useState(false);
+  const [renderBusy,setRenderBusy]=useState(false);
   const [uploadProgress,setUploadProgress]=useState(0);
   const [uploadStage,setUploadStage]=useState("");
   const [uploadResult,setUploadResult]=useState<VideoUploadDraftResult|null>(null);
@@ -38,6 +39,17 @@ export function PublishFlow({projectName,onClose}:Props) {
     if(file.size>200*1024*1024){setVideoFile(null);setMessage("This upload route currently accepts videos up to 200 MB.");return;}
     setVideoFile(file);
   };
+  const renderFromStudio=async()=>{
+    if(renderBusy||uploadBusy)return;
+    setRenderBusy(true);setMessage("");
+    try{
+      const file=await onRenderVideo();
+      if(!file){setMessage("Studio could not create a publish-ready video. Check the export quality report and try again.");return;}
+      selectVideo(file);
+      setMessage("Studio render is ready. Your editable project is unchanged; review the post details before uploading.");
+    }catch(error){setMessage(error instanceof Error?error.message:"Studio could not render this project.");}
+    finally{setRenderBusy(false);}
+  };
   const upload=async()=>{
     if(uploadBusy)return;
     setUploadBusy(true);setMessage("");
@@ -57,14 +69,14 @@ export function PublishFlow({projectName,onClose}:Props) {
     finally { setUploadBusy(false);setUploadStage(""); }
   };
 
-  return <div className="nexus-publish-overlay" role="dialog" aria-modal="true" aria-label="Publish to NEXUS" onClick={uploadBusy?undefined:onClose}>
+  return <div className="nexus-publish-overlay" role="dialog" aria-modal="true" aria-label="Publish to NEXUS" onClick={uploadBusy||renderBusy?undefined:onClose}>
     <section className="nexus-publish-modal" onClick={event=>event.stopPropagation()}>
-      <header className="nexus-publish-head"><button onClick={onClose} aria-label="Close publish flow" disabled={uploadBusy}><X size={19}/></button><div><span>STUDIO → COMMUNITY</span><h2>Publish your creation</h2><small>{projectName}</small></div><span className="nexus-publish-draft">DRAFT</span></header>
+      <header className="nexus-publish-head"><button onClick={onClose} aria-label="Close publish flow" disabled={uploadBusy||renderBusy}><X size={19}/></button><div><span>STUDIO → COMMUNITY</span><h2>Publish your creation</h2><small>{projectName}</small></div><span className="nexus-publish-draft">DRAFT</span></header>
       <div className="nexus-publish-steps">{["Video & details","Audience","Review"].map((name,index)=><div className={step===index?"active":step>index?"done":""} key={name}><i>{step>index?<Check size={12}/>:index+1}</i><span>{name}</span></div>)}</div>
       {step===0&&<div className="nexus-publish-body">
         <div className="nexus-publish-cover"><div><Image size={26}/><b>Video for your post</b><small>Choose an exported MP4, WebM or QuickTime video. Maximum 200 MB for this upload route.</small></div></div>
         <input ref={fileInput} type="file" accept="video/mp4,video/webm,video/quicktime" hidden onChange={event=>selectVideo(event.target.files?.[0]||null)}/>
-        <button className="nexus-publish-file" type="button" onClick={()=>fileInput.current?.click()} disabled={uploadBusy}><FileVideo size={17}/>{videoFile?"Choose a different video":"Choose video from device"}</button>
+        <button className="nexus-publish-file" type="button" onClick={()=>void renderFromStudio()} disabled={uploadBusy||renderBusy}><Film size={17}/>{renderBusy?"Rendering current Studio timeline…":"Render current Studio project"}</button><small className="nexus-publish-render-note">NEXUS renders your current timeline and sends that file directly into the secure upload flow. No manual export or re-import needed.</small><button className="nexus-publish-file" type="button" onClick={()=>fileInput.current?.click()} disabled={uploadBusy||renderBusy}><FileVideo size={17}/>{videoFile?"Choose a different video":"Or choose an exported video"}</button>
         {videoFile&&<div className="nexus-publish-source"><Video size={17}/><span><b>{videoFile.name}</b><small>{(videoFile.size/1024/1024).toFixed(1)} MB · {videoFile.type}</small></span><button onClick={()=>selectVideo(null)} aria-label="Remove selected video"><X size={15}/></button></div>}
         <label className="nexus-publish-label" htmlFor="nexus-publish-caption">Caption</label><textarea id="nexus-publish-caption" maxLength={2200} value={caption} onChange={event=>setCaption(event.target.value)} placeholder="Tell the community what your video is about…"/><div className="nexus-publish-count">{caption.length}/2200</div>
         <label className="nexus-publish-label">Project source</label><div className="nexus-publish-source"><Check size={16}/><span><b>{projectName}</b><small>Your editable Studio project stays private and unchanged.</small></span></div>
@@ -82,7 +94,7 @@ export function PublishFlow({projectName,onClose}:Props) {
         {uploadResult&&<div className="nexus-publish-review nexus-publish-uploaded"><Check size={20}/><div><b>{uploadResult.state==="ready"?"Waiting for moderator approval":"Upload received · processing"}</b><small>Post reference: {uploadResult.postId}</small></div></div>}
       </div>}
       {message&&<p className="nexus-publish-message" role="status">{message}</p>}
-      <footer className="nexus-publish-foot"><button className="nexus-publish-secondary" onClick={saveDraft} disabled={uploadBusy}>{saved?"Saved on device":"Save details"}</button><div>{step>0&&<button className="nexus-publish-secondary" onClick={()=>setStep(v=>v-1)} disabled={uploadBusy}><ArrowLeft size={15}/> Back</button>}{step<2?<button className="nexus-publish-primary" onClick={()=>setStep(v=>v+1)} disabled={step===0&&!videoFile}>Continue <ArrowRight size={15}/></button>:<button className="nexus-publish-primary" onClick={()=>void upload()} disabled={(!videoFile&&!uploadResult)||uploadBusy||(uploadResult?.state==="ready")}>{uploadBusy?<><LoaderCircle size={15}/> {uploadStage||"Working…"}</>:uploadResult?.state==="ready"?<><Check size={15}/> Awaiting review</>:uploadResult?.state==="processing"?<><RefreshCw size={15}/> Check processing</>:<><UploadCloud size={15}/> Submit for review</>}</button>}</div></footer>
+      <footer className="nexus-publish-foot"><button className="nexus-publish-secondary" onClick={saveDraft} disabled={uploadBusy||renderBusy}>{saved?"Saved on device":"Save details"}</button><div>{step>0&&<button className="nexus-publish-secondary" onClick={()=>setStep(v=>v-1)} disabled={uploadBusy||renderBusy}><ArrowLeft size={15}/> Back</button>}{step<2?<button className="nexus-publish-primary" onClick={()=>setStep(v=>v+1)} disabled={step===0&&!videoFile}>Continue <ArrowRight size={15}/></button>:<button className="nexus-publish-primary" onClick={()=>void upload()} disabled={(!videoFile&&!uploadResult)||uploadBusy||renderBusy||(uploadResult?.state==="ready")}>{uploadBusy?<><LoaderCircle size={15}/> {uploadStage||"Working…"}</>:uploadResult?.state==="ready"?<><Check size={15}/> Awaiting review</>:uploadResult?.state==="processing"?<><RefreshCw size={15}/> Check processing</>:<><UploadCloud size={15}/> Submit for review</>}</button>}</div></footer>
     </section>
   </div>;
 }
