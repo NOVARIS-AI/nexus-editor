@@ -475,18 +475,18 @@ export default function App() {
     const nextTexts=textLayers.map(item=>{if(!ids.includes("text:"+item.id)||item.locked)return item;return {...item,x:axis==="left"||axis==="right"||axis==="center-x"?Math.max(0,Math.min(100,targetX)):item.x,y:axis==="top"||axis==="bottom"||axis==="center-y"?Math.max(0,Math.min(100,targetY)):item.y};});
     setUndoStack(old=>[...old.slice(-49),captureProjectSnapshot()]);setRedoStack([]);setImageLayers(nextImages);setTextLayers(nextTexts);setStatus("Selected layers aligned. Undo is available.");
   }
-  function selectedOverlayEntries() {
-    return selectedOverlayIds.flatMap(key => {
+  function selectedOverlayEntries(): Array<{ kind: "image"; id: string; layer: TimelineImageLayer } | { kind: "text"; id: string; layer: TimelineTextLayer }> {
+    return selectedOverlayIds.flatMap((key): Array<{ kind: "image"; id: string; layer: TimelineImageLayer } | { kind: "text"; id: string; layer: TimelineTextLayer }> => {
       const splitAt = key.indexOf(":");
       const kind = key.slice(0, splitAt);
       const id = key.slice(splitAt + 1);
       if (kind === "image") {
         const layer = imageLayers.find(item => item.id === id);
-        return layer ? [{ kind: "image" as const, id, layer }] : [];
+        return layer ? [{ kind: "image", id, layer }] : [];
       }
       if (kind === "text") {
         const layer = textLayers.find(item => item.id === id);
-        return layer ? [{ kind: "text" as const, id, layer }] : [];
+        return layer ? [{ kind: "text", id, layer }] : [];
       }
       return [];
     });
