@@ -1,4 +1,4 @@
-export type EditorToolCapability = "working" | "guidance" | "planned";
+export type EditorToolCapability = "working" | "guidance" | "planned" | "internal";
 export interface EditorToolEntry { id: string; label: string; actions: string[]; capability: EditorToolCapability; }
 
 export const EDITOR_TOOL_REGISTRY: EditorToolEntry[] = [
@@ -13,5 +13,11 @@ export const EDITOR_TOOL_REGISTRY: EditorToolEntry[] = [
   { id: "stickers", label: "Stickers", actions: ["emoji and symbols", "import image sticker"], capability: "working" },
   { id: "background", label: "Background", actions: ["color", "blur", "canvas"], capability: "guidance" },
   { id: "ratio", label: "Ratio", actions: ["9:16", "16:9", "1:1", "4:5", "3:4"], capability: "working" },
-  { id: "export", label: "Export", actions: ["browser timeline render", "resolution", "frame rate", "download", "share"], capability: "working" }
+  { id: "export", label: "Export", actions: ["browser timeline render", "resolution", "frame rate", "download", "share"], capability: "working" },
+  // Hidden execution tools available to the existing NEXUS AI Director; never render these as user-facing controls.
+  { id: "remotion", label: "Remotion", actions: ["compose React-based video scenes", "render deterministic video compositions", "produce preview and final render"], capability: "internal" },
+  { id: "hyperframes", label: "HyperFrames", actions: ["build animated typography", "compose motion graphics", "create frame-accurate graphic sequences"], capability: "internal" },
+  { id: "ffmpeg", label: "FFmpeg", actions: ["extract audio and frames", "trim and concatenate media", "transcode and mux supported formats", "prepare export"], capability: "internal" },
+  { id: "whisper", label: "Whisper", actions: ["transcribe speech", "return timestamped segments", "support subtitle and caption timing"], capability: "internal" },
+  { id: "yt-dlp", label: "yt-dlp", actions: ["retrieve user-owned or explicitly authorized reference media from supported sources", "inspect source metadata"], capability: "internal" }
 ];
