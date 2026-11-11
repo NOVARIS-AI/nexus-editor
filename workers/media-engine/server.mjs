@@ -150,19 +150,22 @@ async function runFfmpeg(job, folder, output) {
   if (!job.options.inputUrl) throw new Error("FFmpeg needs an approved inputUrl in the task options.");
   const input = await downloadAllowedMedia(job.options.inputUrl, folder);
   const action = String(job.options.action || "transcode").toLowerCase();
-  const args = ["-y", "-i", input];
-  if (action === "extract-audio") args.push("-vn", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", output);
-  else if (action === "trim") {
+  const args = ["-y"];
+  if (action === "trim") {
     const start = Math.max(0, Math.min(3600, Number(job.options.startSeconds) || 0));
     const duration = Math.max(.1, Math.min(600, Number(job.options.durationSeconds) || 10));
-    args.splice(2, 0, "-ss", String(start)); args.push("-t", String(duration), "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", output);
+    args.push("-ss", String(start), "-i", input, "-t", String(duration), "-c:v", "libx264", "-c:a", "aac", "-movflags", "+faststart", output);
   } else {
-    const format = String(job.options.format || "mp4").toLowerCase();
-    if (!["mp4", "webm", "mp3", "wav"].includes(format)) throw new Error("Unsupported FFmpeg output format.");
-    if (format === "mp3") args.push("-vn", "-codec:a", "libmp3lame", "-q:a", "3", output);
-    else if (format === "wav") args.push("-vn", "-c:a", "pcm_s16le", output);
-    else if (format === "webm") args.push("-c:v", "libvpx-vp9", "-c:a", "libopus", output);
-    else args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-c:a", "aac", "-movflags", "+faststart", output);
+    args.push("-i", input);
+    if (action === "extract-audio") args.push("-vn", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", output);
+    else {
+      const format = String(job.options.format || "mp4").toLowerCase();
+      if (!["mp4", "webm", "mp3", "wav"].includes(format)) throw new Error("Unsupported FFmpeg output format.");
+      if (format === "mp3") args.push("-vn", "-codec:a", "libmp3lame", "-q:a", "3", output);
+      else if (format === "wav") args.push("-vn", "-c:a", "pcm_s16le", output);
+      else if (format === "webm") args.push("-c:v", "libvpx-vp9", "-c:a", "libopus", output);
+      else args.push("-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-c:a", "aac", "-movflags", "+faststart", output);
+    }
   }
   await runProcess("ffmpeg", args, { cwd: folder, timeout: 15 * 60 * 1000 });
 }
@@ -175,11 +178,8 @@ async function runYtDlp(job, folder, output) {
   else args.push("--max-filesize", "200M", "--format", "best[ext=mp4]/best", "--merge-output-format", "mp4", "--no-part", "-o", output, url.toString());
   const result = await runProcess("yt-dlp", args, { cwd: folder, timeout: 10 * 60 * 1000 });
   if (metadata) {
-    const parsed = JSON.parse(result.stdout.trim().split("\n").at(-1));
-    const safe = { title: String(parsed.title || "").slice(0, 300), duration: Number(parsed.duration) || null, webpage_url: url.origin + url.pathname, extractor: String(parsed.extractor_key || "").slice(0, 80) };
-    const metaPath = path.join(folder, "metadata.json");
-    await fs.writeFile(metaPath, JSON.stringify(safe));
-    return metaPath;
+    const parsed = JSON.parse(result.stdout.trim().split("\\n").at(-1));
+    return { title: String(parsed.title || "").slice(0, 300), duration: Number(parsed.duration) || null, webpage_url: url.origin + url.pathname, extractor: String(parsed.extractor_key || "").slice(0, 80) };
   }
 }
 async function execute(job) {
@@ -193,11 +193,7 @@ async function execute(job) {
     else if (job.engine === "ffmpeg") await runFfmpeg(job, folder, output);
     else if (job.engine === "ytdlp") {
       const result = await runYtDlp(job, folder, output);
-      if (result) {
-        const metaName = job.id + ".json";
-        await fs.copyFile(result, path.join(OUTPUTS, metaName));
-        job.output = { url: outputUrl(metaName), mimeType: "application/json" };
-      }
+      if (result && typeof result === "object") job.metadata = result;
     } else throw new Error("Unsupported internal engine.");
     if (job.engine !== "ytdlp" || String(job.options.action || "metadata") !== "metadata") {
       const finalName = job.id + "." + outputExt;
@@ -253,7 +249,7 @@ const server = http.createServer(async (req, res) => {
     if (!safeId(id)) return json(res, 400, { error: "Invalid job id." });
     const job = await getJob(id);
     if (!job) return json(res, 404, { error: "Job not found." });
-    return json(res, 200, { id: job.id, state: job.state, progress: job.progress, message: job.message, ...(job.output ? { output: job.output } : {}), ...(job.error ? { error: job.error } : {}) });
+    return json(res, 200, { id: job.id, state: job.state, progress: job.progress, message: job.message, ...(job.output ? { output: job.output } : {}), ...(job.metadata ? { metadata: job.metadata } : {}), ...(job.error ? { error: job.error } : {}) });
   }
   return json(res, 404, { error: "Route not found." });
 });
