@@ -1323,7 +1323,6 @@ export default function App() {
       const response=await fetch(url,{headers:{Accept:"image/*,video/*,audio/*"}});
       if(!response.ok) throw new Error("Generated output could not be downloaded (HTTP "+response.status+").");
       const blob=await response.blob();
-      const expectedKind=job.engine as "image"|"video"|"audio";
       const declared=(latest.output.mimeType||"").split(";")[0].trim().toLowerCase();
       const actual=(blob.type||"").split(";")[0].trim().toLowerCase();
       const mimeType=!actual || actual==="application/octet-stream" ? declared : actual;
