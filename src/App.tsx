@@ -33,7 +33,7 @@ import { inspectProjectQuality, qualitySummary } from "./editor/quality-intellig
 import { classifyExportFailure, inspectExportRequest, makeExportFilename, validateExportBlob } from "./editor/export-reliability";
 import { getMobilePerformanceProfile } from "./editor/mobile-performance";
 import { getChromaSvgMatrix } from "./editor/video-engine";
-import { LiveCameraStudio } from "./editor/LiveCameraStudio";
+
 import { createBackgroundFile, eraseImageColour, removeImageBackground } from "./editor/background-tools";
 import { ObjectEraserStudio } from "./editor/ObjectEraserStudio";
 import { VideoObjectEraserStudio } from "./editor/VideoObjectEraserStudio";
