@@ -33,31 +33,32 @@ export function LiveCameraStudio({ onRecorded }: Props) {
     if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
-    const foreground = document.createElement("canvas");
-    foreground.width = width; foreground.height = height;
-    const fg = foreground.getContext("2d", { willReadFrequently: true });
-    if (!fg) return;
-    fg.drawImage(video, 0, 0, width, height);
-    if (mode === "screen" && backgroundRef.current?.complete && backgroundRef.current.naturalWidth) {
-      const frame = fg.getImageData(0, 0, width, height);
-      const pixels = frame.data;
-      const hex = keyColor.replace("#", "");
-      const kr = parseInt(hex.slice(0, 2), 16), kg = parseInt(hex.slice(2, 4), 16), kb = parseInt(hex.slice(4, 6), 16);
-      const threshold = tolerance * 2.2;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const distance = Math.hypot(pixels[i] - kr, pixels[i + 1] - kg, pixels[i + 2] - kb);
-        pixels[i + 3] = Math.max(0, Math.min(255, ((distance - threshold) / Math.max(1, softness * 2)) * 255));
+    const bg = backgroundRef.current;
+    if (mode === "screen" && bg?.complete && bg.naturalWidth) {
+      const foreground = document.createElement("canvas");
+      foreground.width = width; foreground.height = height;
+      const fg = foreground.getContext("2d", { willReadFrequently: true });
+      if (fg) {
+        fg.drawImage(video, 0, 0, width, height);
+        const frame = fg.getImageData(0, 0, width, height);
+        const pixels = frame.data;
+        const hex = keyColor.replace("#", "");
+        const kr = parseInt(hex.slice(0, 2), 16), kg = parseInt(hex.slice(2, 4), 16), kb = parseInt(hex.slice(4, 6), 16);
+        const threshold = tolerance * 2.2;
+        for (let i = 0; i < pixels.length; i += 4) {
+          const distance = Math.hypot(pixels[i] - kr, pixels[i + 1] - kg, pixels[i + 2] - kb);
+          const alpha = Math.max(0, Math.min(255, ((distance - threshold) / Math.max(1, softness * 2)) * 255));
+          pixels[i + 3] = alpha;
+        }
+        fg.putImageData(frame, 0, 0);
+        const scale = Math.max(width / bg.naturalWidth, height / bg.naturalHeight);
+        const bw = bg.naturalWidth * scale, bh = bg.naturalHeight * scale;
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(bg, (width - bw) / 2, (height - bh) / 2, bw, bh);
+        ctx.drawImage(foreground, 0, 0);
       }
-      fg.putImageData(frame, 0, 0);
-      const bg = backgroundRef.current;
-      const scale = Math.max(width / bg.naturalWidth, height / bg.naturalHeight);
-      const bw = bg.naturalWidth * scale, bh = bg.naturalHeight * scale;
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(bg, (width - bw) / 2, (height - bh) / 2, bw, bh);
-      ctx.drawImage(foreground, 0, 0);
     } else {
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(foreground, 0, 0);
+      ctx.drawImage(video, 0, 0, width, height);
     }
     frameRef.current = requestAnimationFrame(drawFrame);
   }, [keyColor, mode, softness, tolerance]);
