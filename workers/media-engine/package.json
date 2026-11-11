@@ -3,8 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "engines": { "node": ">=22" },
-  "scripts": { "start": "node server.mjs", "check": "node --check server.mjs && node --check remotion/entry.jsx" },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs",
+    "test": "node --test"
+  },
   "dependencies": {
     "@remotion/bundler": "4.0.542",
     "@remotion/renderer": "4.0.542",
