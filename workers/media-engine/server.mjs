@@ -172,9 +172,9 @@ async function runFfmpeg(job, folder, output) {
   await runProcess("ffmpeg", args, { cwd: folder, timeout: 15 * 60 * 1000 });
 }
 async function runYtDlp(job, folder, output) {
-  if (job.options.userAuthorized !== true) throw new Error("Media retrieval requires explicit confirmation that the user owns the media or has permission to download it.");
-  const url = checkedUrl(job.options.url, YTDLP_HOSTS);
   const metadata = String(job.options.action || "metadata") === "metadata";
+  if (!metadata && job.options.userAuthorized !== true) throw new Error("Media retrieval requires explicit confirmation that the user owns the media or has permission to download it.");
+  const url = checkedUrl(job.options.url, YTDLP_HOSTS);
   const args = ["--no-warnings", "--no-playlist", "--no-call-home", "--no-write-comments", "--no-write-description", "--no-write-info-json"];
   if (metadata) args.push("--dump-single-json", "--skip-download", url.toString());
   else args.push("--max-filesize", "200M", "--format", "best[ext=mp4]/best", "--merge-output-format", "mp4", "--no-part", "-o", output, url.toString());
