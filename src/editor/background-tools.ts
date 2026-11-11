@@ -1,5 +1,3 @@
-import type { MediaAsset } from "../types";
-
 export type BackgroundProgress = { status: string; progress?: number };
 
 /** Locally segments a still image with MODNet and returns a transparent PNG.
