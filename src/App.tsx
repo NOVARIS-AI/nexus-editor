@@ -496,9 +496,10 @@ export default function App() {
     if (!entries.length) return;
     const show = entries.some(entry => entry.layer.visible === false);
     recordProjectHistory();
-    const ids = new Set(entries.map(entry => entry.id));
-    setImageLayers(old => old.map(layer => ids.has(layer.id) ? { ...layer, visible: show } : layer));
-    setTextLayers(old => old.map(layer => ids.has(layer.id) ? { ...layer, visible: show } : layer));
+    const imageIds = new Set(entries.filter(entry => entry.kind === "image").map(entry => entry.id));
+    const textIds = new Set(entries.filter(entry => entry.kind === "text").map(entry => entry.id));
+    setImageLayers(old => old.map(layer => imageIds.has(layer.id) ? { ...layer, visible: show } : layer));
+    setTextLayers(old => old.map(layer => textIds.has(layer.id) ? { ...layer, visible: show } : layer));
     setStatus(show ? "Selected overlays shown." : "Selected overlays hidden.");
   }
   function updateSelectedOverlayLock() {
@@ -506,9 +507,10 @@ export default function App() {
     if (!entries.length) return;
     const unlock = entries.some(entry => entry.layer.locked);
     recordProjectHistory();
-    const ids = new Set(entries.map(entry => entry.id));
-    setImageLayers(old => old.map(layer => ids.has(layer.id) ? { ...layer, locked: unlock } : layer));
-    setTextLayers(old => old.map(layer => ids.has(layer.id) ? { ...layer, locked: unlock } : layer));
+    const imageIds = new Set(entries.filter(entry => entry.kind === "image").map(entry => entry.id));
+    const textIds = new Set(entries.filter(entry => entry.kind === "text").map(entry => entry.id));
+    setImageLayers(old => old.map(layer => imageIds.has(layer.id) ? { ...layer, locked: unlock } : layer));
+    setTextLayers(old => old.map(layer => textIds.has(layer.id) ? { ...layer, locked: unlock } : layer));
     setStatus(unlock ? "Selected overlays unlocked." : "Selected overlays locked.");
   }
   function deleteSelectedOverlays() {
