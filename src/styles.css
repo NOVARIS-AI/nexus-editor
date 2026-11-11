@@ -1739,3 +1739,5 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .nexus-shell .nexus-sticker-row{grid-template-columns:repeat(6,minmax(0,1fr))}
  .nexus-shell .nexus-background-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+.nexus-shell .editor-preview-frame{isolation:isolate}
