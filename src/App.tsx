@@ -1740,7 +1740,7 @@ export default function App() {
       return;
     }
 
-    const requestedEffect = CREATIVE_EFFECTS.find(item => normalized.includes(item.name.toLowerCase()));
+    const requestedEffect = NEXUS_VIDEO_EFFECTS.find(item => normalized.includes(item.name.toLowerCase()));
     if (requestedEffect && /effect|look|apply|make|give|style/.test(normalized)) {
       if (!visualSelected) { respond("Select a photo or video clip first. Then I can apply " + requestedEffect.name + " directly to it."); return; }
       applyCreativeEffect(requestedEffect);
