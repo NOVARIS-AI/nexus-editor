@@ -732,9 +732,12 @@ export default function App() {
     const image = imageLayers.find(layer => layer.id === id);
     const text = textLayers.find(layer => layer.id === id);
     if ((kind === "image" && (!image || image.locked)) || (kind === "text" && (!text || text.locked))) return;
+    // Cover-fit images are background plates, not ordinary overlays.
+    // Keep them out of the shared image/text stack so controls match preview/export.
+    const overlayImages = imageLayers.filter(layer => layer.fit !== "cover");
     const ordered = [
-      ...imageLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })),
-      ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? imageLayers.length + index }))
+      ...overlayImages.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })),
+      ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? overlayImages.length + index }))
     ].sort((a, b) => a.order - b.order);
     const current = ordered.findIndex(item => item.id === id);
     const target = current + direction;
@@ -742,7 +745,7 @@ export default function App() {
     [ordered[current], ordered[target]] = [ordered[target], ordered[current]];
     recordProjectHistory();
     const orders = new Map(ordered.map((entry, index) => [entry.id, index]));
-    setImageLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
+    setImageLayers(old => old.map(layer => layer.fit === "cover" ? layer : ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
     setTextLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
     setStatus(direction < 0 ? "Layer moved one level backward." : "Layer moved one level forward.");
   }
@@ -753,9 +756,12 @@ export default function App() {
     const image = imageLayers.find(layer => layer.id === id);
     const text = textLayers.find(layer => layer.id === id);
     if ((kind === "image" && (!image || image.locked)) || (kind === "text" && (!text || text.locked))) return;
+    // Cover-fit images are background plates, not ordinary overlays.
+    // Keep them out of the shared image/text stack so controls match preview/export.
+    const overlayImages = imageLayers.filter(layer => layer.fit !== "cover");
     const ordered = [
-      ...imageLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })),
-      ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? imageLayers.length + index }))
+      ...overlayImages.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })),
+      ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? overlayImages.length + index }))
     ].sort((a, b) => a.order - b.order);
     const current = ordered.findIndex(item => item.id === id);
     if (current < 0) return;
@@ -763,7 +769,7 @@ export default function App() {
     ordered.splice(position === "front" ? ordered.length : 0, 0, item);
     recordProjectHistory();
     const orders = new Map(ordered.map((entry, index) => [entry.id, index]));
-    setImageLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
+    setImageLayers(old => old.map(layer => layer.fit === "cover" ? layer : ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
     setTextLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
     setStatus(position === "front" ? "Layer brought above all overlays." : "Layer sent behind all overlays.");
   }
