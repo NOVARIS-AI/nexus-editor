@@ -111,13 +111,17 @@ export function VideoObjectEraserStudio({ file, onApply, disabled = false }: Pro
     try {
       video.pause();
       for (let i = 0; i < times.length; i++) {
-        video.currentTime = times[i];
-        await new Promise<void>((resolve, reject) => {
-          const done = () => { cleanup(); resolve(); };
-          const fail = () => { cleanup(); reject(new Error("Could not seek to a video frame.")); };
-          const cleanup = () => { video.removeEventListener("seeked", done); video.removeEventListener("error", fail); };
-          video.addEventListener("seeked", done, { once: true }); video.addEventListener("error", fail, { once: true });
-        });
+        if (Math.abs(video.currentTime - times[i]) >= 0.04) {
+          video.currentTime = times[i];
+          await new Promise<void>((resolve, reject) => {
+            const done = () => { cleanup(); resolve(); };
+            const fail = () => { cleanup(); reject(new Error("Could not seek to a video frame.")); };
+            const cleanup = () => { video.removeEventListener("seeked", done); video.removeEventListener("error", fail); };
+            video.addEventListener("seeked", done, { once: true }); video.addEventListener("error", fail, { once: true });
+          });
+        } else if (video.readyState < 2) {
+          await new Promise<void>(resolve => video.addEventListener("loadeddata", () => resolve(), { once: true }));
+        }
         frameContext.drawImage(video, 0, 0, frame.width, frame.height);
         setProgress("AI reconstruction · frame " + (i + 1) + " of " + times.length);
         const image = await requestVideoInpaint(frame, maskSnapshot, prompt);
