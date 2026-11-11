@@ -332,8 +332,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const overlayImages = imageLayers.filter(layer => layer.fit !== "cover");
         const orderedOverlayLayers = [
-          ...imageLayers.filter(layer => layer.fit !== "cover").map((layer, index) => ({
+          ...overlayImages.map((layer, index) => ({
             kind: "image" as const,
             layer,
             order: layer.stackOrder ?? index
@@ -341,7 +342,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ...input.textLayers.map((layer, index) => ({
             kind: "text" as const,
             layer,
-            order: layer.stackOrder ?? imageLayers.length + index
+            order: layer.stackOrder ?? overlayImages.length + index
           }))
         ].sort((a, b) => a.order - b.order);
         orderedOverlayLayers.forEach(entry => {
