@@ -10,7 +10,7 @@ export async function askNexusDirector(brief:string,context:Record<string,unknow
  const engineJobs:DirectorEngineJob[]=[];
  // Speech recognition is already callable through the existing online-first/local Whisper pipeline.
  for(const task of tasks){
-  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",sceneTitle:String(task.options?.sceneTitle||task.action||"Speech analysis").slice(0,160),state:"unavailable",message:"Whisper is handled by NEXUS existing online-first/on-device speech pipeline. Select or analyse the audio asset to run transcription."});continue;}
+  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",sceneTitle:String(task.options?.sceneTitle||task.action||"Speech analysis").slice(0,160),state:"unavailable",message:"Whisper is handled by NEXUS existing selected-audio speech pipeline (online-first/on-device). Select or analyse the audio asset to run transcription."});continue;}
   if(!isRemoteInternalEngineTool(task.engine))continue;
   const taskOptions={...(task.options&&typeof task.options==="object"?task.options:{}),action:task.action,source:"nexus-ai-director"};
   if(task.engine==="ytdlp" && String(taskOptions.action||"metadata")!=="metadata"){
