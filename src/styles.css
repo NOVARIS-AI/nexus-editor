@@ -1688,3 +1688,35 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     max-height:34dvh!important;overflow-y:auto!important;
   }
 }
+
+
+/* NEXUS effect browser: persistent tool drawer with visual, selectable previews. */
+.nexus-shell .nexus-effect-reference-strip{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--nx-line);border-radius:12px;background:color-mix(in srgb,var(--nx-surface-2) 78%,transparent);font-size:10px}
+.nexus-shell .nexus-effect-reference-strip>span:not(:first-child){padding:5px 9px;border-radius:999px;background:color-mix(in srgb,var(--nx-accent) 15%,transparent);color:var(--nx-text);font-weight:700}
+.nexus-shell .nexus-effect-reference-strip>span:first-child{font-size:8px;letter-spacing:.12em;color:var(--nx-muted);font-weight:800}
+.nexus-shell .nexus-effect-reference-strip small{flex-basis:100%;color:var(--nx-muted);font-size:9px}
+.nexus-shell .nexus-effect-library-head{display:flex;align-items:center;justify-content:space-between;padding:5px 2px}
+.nexus-shell .nexus-effect-library-head>div{display:grid;gap:3px}
+.nexus-shell .nexus-effect-library-head b{font-size:13px;color:var(--nx-text)}
+.nexus-shell .nexus-effect-library-head small,.nexus-shell .nexus-effect-library-head>span{font-size:9px;color:var(--nx-muted)}
+.nexus-shell .nexus-effect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px;max-height:230px;overflow:auto;padding:4px 2px 8px}
+.nexus-shell .nexus-effect-grid>button{display:flex;min-width:0;flex-direction:column;gap:5px;padding:5px;border:1px solid var(--nx-line);border-radius:11px;background:color-mix(in srgb,var(--nx-surface-2) 75%,transparent);color:var(--nx-text);text-align:left}
+.nexus-shell .nexus-effect-grid>button.active{border-color:var(--nx-accent);box-shadow:0 0 0 1px var(--nx-accent)}
+.nexus-shell .nexus-effect-grid>button:disabled{opacity:.55}
+.nexus-shell .nexus-effect-thumb{position:relative;display:grid;place-items:center;width:100%;aspect-ratio:4/3;overflow:hidden;border-radius:7px;background-size:cover;background-position:center}
+.nexus-shell .nexus-effect-thumb i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#111a;color:white;font-size:10px;font-style:normal}
+.nexus-shell .nexus-effect-grid>button b{font-size:9px;line-height:1.25}
+.nexus-shell .nexus-effect-grid>button small{font-size:8px;color:var(--nx-muted)}
+/* Keep every add/edit drawer open above the dock; never shrink the preview or timeline. */
+@media(max-width:700px){
+ .nexus-shell .editor-screen[data-tool-panel-open="true"] .editor-bottom-tools .nexus-subtool-ribbon,
+ .nexus-shell .editor-screen[data-tool-panel-open="true"] .editor-bottom-tools .nexus-context-controls{
+   position:fixed!important;left:8px!important;right:8px!important;bottom:calc(66px + env(safe-area-inset-bottom))!important;
+   z-index:120!important;width:auto!important;max-height:min(48dvh,420px)!important;overflow:auto!important;
+   margin:0!important;border:1px solid var(--nx-line)!important;border-radius:18px!important;
+   background:color-mix(in srgb,var(--nx-surface) 96%,transparent)!important;
+   box-shadow:0 -18px 55px #0009!important;backdrop-filter:blur(22px)!important;
+ }
+ .nexus-shell .editor-screen[data-tool-panel-open="true"] .editor-bottom-tools .nexus-subtool-ribbon{padding:12px!important}
+ .nexus-shell .nexus-effect-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-height:210px}
+}
