@@ -6,7 +6,6 @@ const engines = {
   remotion: { url: "NEXUS_REMOTION_ENGINE_URL", token: "NEXUS_REMOTION_ENGINE_TOKEN" },
   hyperframes: { url: "NEXUS_HYPERFRAMES_ENGINE_URL", token: "NEXUS_HYPERFRAMES_ENGINE_TOKEN" },
   ffmpeg: { url: "NEXUS_FFMPEG_ENGINE_URL", token: "NEXUS_FFMPEG_ENGINE_TOKEN" },
-  whisper: { url: "NEXUS_WHISPER_ENGINE_URL", token: "NEXUS_WHISPER_ENGINE_TOKEN" },
   ytdlp: { url: "NEXUS_YTDLP_ENGINE_URL", token: "NEXUS_YTDLP_ENGINE_TOKEN" }
 };
 const states = new Set(["queued", "running", "succeeded", "failed", "cancelled"]);
