@@ -39,7 +39,7 @@ export function loadSavedGenerationJobs(): SavedNexusEngineJob[] {
     return parsed.filter((item): item is SavedNexusEngineJob =>
       Boolean(item && typeof item === "object" &&
         typeof item.id === "string" && item.id.length <= 180 &&
-        ["image", "video", "audio"].includes(item.engine) &&
+        ["image", "video", "audio", "render", "remotion", "hyperframes", "ffmpeg", "ytdlp"].includes(item.engine) &&
         ["queued", "running", "succeeded", "failed", "cancelled"].includes(item.state) &&
         typeof item.sceneTitle === "string")
     ).slice(0, MAX_SAVED_JOBS);
