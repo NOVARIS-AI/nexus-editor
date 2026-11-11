@@ -10,7 +10,11 @@ These tools are registered for the existing NEXUS AI Director. They are internal
 - **Whisper**: speech transcription and timestamped segments. This uses the existing online-first transcription endpoint and on-device Whisper Tiny fallback; it does not require a second worker.
 - **yt-dlp**: metadata/reference-media retrieval only for media the user owns or is explicitly authorized to download. Do not bypass DRM, paywalls, access controls or platform restrictions.
 
-The AI Director may return a small `engineTasks` array when an actual user request needs an internal operation. The client submits those tasks through `/api/engine-jobs`. Advice-only requests should return no tasks.
+The existing AI Director may return a small `engineTasks` array when an actual user request needs an internal operation. The client submits only the server-backed Remotion, HyperFrames, FFmpeg and authorized yt-dlp tasks through `/api/engine-jobs`, then tracks their job IDs in the shared background queue. Completed media is classified by the verified output MIME type before import; it is not classified by the tool name. Advice-only requests return no jobs.
+
+Whisper is deliberately not a second remote job type. It uses the existing online-first Groq Whisper-compatible endpoint and device-aware on-device Whisper Tiny fallback through `transcribeMediaInternally`. The AI Director can use an existing transcript supplied in context, but it must not report Whisper as completed when no audio was actually processed.
+
+The internal tool catalogue lives separately from the user-facing capability registry. These five implementation engines are not added as navigation items, visible tool cards, settings labels or separate AI identities. The user continues to interact with the existing NEXUS AI Director and sees the resulting editable project/media only.
 
 ## Worker configuration
 
@@ -30,7 +34,7 @@ Each configured worker must expose:
 - `POST /jobs` with JSON `{ "engine": "...", "prompt": "...", "options": {} }`
 - `GET /jobs/:id` returning `{ "id": "...", "state": "queued|running|succeeded|failed|cancelled", "progress": 0, "message": "...", "output": { "url": "https://..." } }`
 
-Output URLs must use HTTPS. The API validates job state and output URL before returning it to the app.
+Output URLs must use HTTPS. The API validates job state and output URL before returning it to the app. Remotion and HyperFrames outputs must resolve to video media; FFmpeg and yt-dlp may return audio or video media. The editor validates the returned MIME type and decodability before importing any output. yt-dlp is restricted to metadata/reference retrieval and media the user owns or is authorized to download.
 
 ## Important deployment note
 
