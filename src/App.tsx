@@ -1944,7 +1944,7 @@ export default function App() {
       if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first to use chroma key."); return; }
       updateSelectedClip({ chromaKeyEnabled: !selectedClip.chromaKeyEnabled, chromaKeyColor: selectedClip.chromaKeyColor || "#00ff00" });
       setActiveTool("adjust"); setActiveSubtool("chroma");
-      respond(selectedClip.chromaKeyEnabled ? "Chroma key turned off for the selected visual clip." : "Chroma key enabled. Adjust key colour, tolerance and softness. Preview uses an SVG approximation; export uses pixel-distance keying."); return;
+      respond(selectedClip.chromaKeyEnabled ? "Chroma key turned off for the selected visual clip." : "Chroma key enabled. Adjust key colour, tolerance and softness. Preview and export now use the same colour-projection key and feathering settings."); return;
     }
     const engineCommand = interpretEditorCommand(request);
     if (engineCommand.type === "analyze") { void analyzeAllMedia(); return; }
