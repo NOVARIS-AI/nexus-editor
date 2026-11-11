@@ -726,23 +726,27 @@ export default function App() {
     const layer: TimelineImageLayer = { id: uid(), assetId: source.id, trackId: "image-1", start: playhead, duration: 5, x: 50, y: 50, scale: 1, rotation: 0, opacity: 1, visible: true, locked: false, fit: "contain" };
     setImageLayers(old => [...old, layer]); setSelectedImageLayer(layer.id); setStatus(source.name + " added as an independent image/sticker layer.");
   }
-  function reorderSelectedImageLayer(direction: -1 | 1) {
-    if (!selectedImageLayer) return;
-    const selected = imageLayers.find(layer => layer.id === selectedImageLayer);
-    const index = imageLayers.findIndex(layer => layer.id === selectedImageLayer);
-    const target = index + direction;
-    if (!selected || selected.locked || index < 0 || target < 0 || target >= imageLayers.length) return;
+  function reorderSelectedOverlayLayer(kind: "image" | "text", direction: -1 | 1) {
+    const id = kind === "image" ? selectedImageLayer : selectedTextLayer;
+    if (!id) return;
+    const image = imageLayers.find(layer => layer.id === id);
+    const text = textLayers.find(layer => layer.id === id);
+    if ((kind === "image" && (!image || image.locked)) || (kind === "text" && (!text || text.locked))) return;
+    const ordered = [
+      ...imageLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })),
+      ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? imageLayers.length + index }))
+    ].sort((a, b) => a.order - b.order);
+    const current = ordered.findIndex(item => item.id === id);
+    const target = current + direction;
+    if (current < 0 || target < 0 || target >= ordered.length) return;
+    [ordered[current], ordered[target]] = [ordered[target], ordered[current]];
     recordProjectHistory();
-    setImageLayers(old => {
-      const current = old.findIndex(layer => layer.id === selectedImageLayer);
-      const nextTarget = current + direction;
-      if (current < 0 || nextTarget < 0 || nextTarget >= old.length) return old;
-      const next = [...old];
-      [next[current], next[nextTarget]] = [next[nextTarget], next[current]];
-      return next;
-    });
-    setStatus(direction < 0 ? "Image layer moved one level backward." : "Image layer moved one level forward.");
+    const orders = new Map(ordered.map((entry, index) => [entry.id, index]));
+    setImageLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
+    setTextLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
+    setStatus(direction < 0 ? "Layer moved one level backward." : "Layer moved one level forward.");
   }
+  function reorderSelectedImageLayer(direction: -1 | 1) { reorderSelectedOverlayLayer("image", direction); }
   function moveSelectedOverlayStackPosition(kind: "image" | "text", position: "front" | "back") {
     const id = kind === "image" ? selectedImageLayer : selectedTextLayer;
     if (!id) return;
@@ -984,23 +988,7 @@ export default function App() {
     setStatus("Created " + additions.length + " editable caption layers from internal speech insights. Review their timing and wording before export.");
   }
   function duplicateSelectedText() { const source=textLayers.find(layer=>layer.id===selectedTextLayer); if(!source)return; const copy={...source,id:uid(),start:source.start+source.duration}; recordProjectHistory(); setTextLayers(old=>[...old,copy]);setSelectedTextLayer(copy.id);setStatus("Text layer duplicated."); }
-  function reorderSelectedText(direction: -1 | 1) {
-    if (!selectedTextLayer) return;
-    const selected = textLayers.find(layer => layer.id === selectedTextLayer);
-    const index = textLayers.findIndex(layer => layer.id === selectedTextLayer);
-    const target = index + direction;
-    if (!selected || selected.locked || index < 0 || target < 0 || target >= textLayers.length) return;
-    recordProjectHistory();
-    setTextLayers(old => {
-      const current = old.findIndex(layer => layer.id === selectedTextLayer);
-      const nextTarget = current + direction;
-      if (current < 0 || nextTarget < 0 || nextTarget >= old.length) return old;
-      const next = [...old];
-      [next[current], next[nextTarget]] = [next[nextTarget], next[current]];
-      return next;
-    });
-    setStatus(direction < 0 ? "Text layer moved backward in the stack." : "Text layer moved forward in the stack.");
-  }
+  function reorderSelectedText(direction: -1 | 1) { reorderSelectedOverlayLayer("text", direction); }
   function toggleSelectedTextVisibility() {
     const layer = textLayers.find(item => item.id === selectedTextLayer);
     if (!layer) return;
