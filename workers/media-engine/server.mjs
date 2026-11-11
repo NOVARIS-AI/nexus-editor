@@ -180,7 +180,7 @@ async function runYtDlp(job, folder, output) {
   else args.push("--max-filesize", "200M", "--format", "best[ext=mp4]/best", "--merge-output-format", "mp4", "--no-part", "-o", output, url.toString());
   const result = await runProcess("yt-dlp", args, { cwd: folder, timeout: 10 * 60 * 1000 });
   if (metadata) {
-    const parsed = JSON.parse(result.stdout.trim().split("\\n").at(-1));
+    const parsed = JSON.parse(result.stdout.trim().split(String.fromCharCode(10)).at(-1));
     return { title: String(parsed.title || "").slice(0, 300), duration: Number(parsed.duration) || null, webpage_url: url.origin + url.pathname, extractor: String(parsed.extractor_key || "").slice(0, 80) };
   }
 }
