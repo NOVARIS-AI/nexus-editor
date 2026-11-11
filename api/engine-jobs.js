@@ -37,6 +37,7 @@ const safeJob = (body, requestedId) => {
     progress: Number.isFinite(Number(body.progress)) ? Math.max(0, Math.min(100, Number(body.progress))) : state === "succeeded" ? 100 : 0,
     message: String(body.message || state).slice(0, 500),
     ...(output ? { output } : {}),
+    ...(body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata) && JSON.stringify(body.metadata).length <= 4000 ? { metadata: body.metadata } : {}),
     ...(typeof body.error === "string" ? { error: body.error.slice(0, 1000) } : {})
   };
 };
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
   const engine = typeof req.query?.engine === "string" ? req.query.engine : "";
   if (req.method === "GET") {
     if (!id || id.length > 180 || !Object.prototype.hasOwnProperty.call(engines, engine)) return json(res, 400, { error: "A valid engine and job id are required." });
-    const config = engines[engine], base = workerBase(process.env[config.url] || ""), token = process.env[config.token];
+    const config = engines[engine], base = workerBase(process.env[config.url] || process.env.NEXUS_ENGINE_WORKER_URL || ""), token = process.env[config.token] || process.env.NEXUS_ENGINE_WORKER_TOKEN;
     if (!base || !token) return json(res, 503, { error: "This NEXUS worker is not configured with a secure HTTPS endpoint and token." });
     try {
       const upstream = await fetch(base + "/jobs/" + encodeURIComponent(id), { headers: { Authorization: "Bearer " + token, Accept: "application/json" }, signal: AbortSignal.timeout(20000) });
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
   if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 12000) return json(res, 400, { error: "Provide a prompt of up to 12,000 characters." });
   if (!options || typeof options !== "object" || Array.isArray(options)) return json(res, 400, { error: "Options must be a JSON object." });
   if (JSON.stringify(options).length > 8000) return json(res, 400, { error: "Generation options are too large." });
-  const config = engines[requestedEngine], base = workerBase(process.env[config.url] || ""), token = process.env[config.token];
+  const config = engines[requestedEngine], base = workerBase(process.env[config.url] || process.env.NEXUS_ENGINE_WORKER_URL || ""), token = process.env[config.token] || process.env.NEXUS_ENGINE_WORKER_TOKEN;
   if (!base || !token) return json(res, 503, { error: "The NEXUS " + requestedEngine + " worker is not configured yet. Use the listed editor fallback; no generation has been started." });
   try {
     const upstream = await fetch(base + "/jobs", {
