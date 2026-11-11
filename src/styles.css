@@ -1765,3 +1765,23 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 .nexus-live-camera-actions button { flex: 1 1 130px; }
 .nexus-live-background-thumb { display: block; width: 100%; max-height: 140px; object-fit: cover; border-radius: 10px; }
 .nexus-live-note { font-size: 12px; opacity: .75; line-height: 1.5; }
+
+
+/* NEXUS Object Eraser · brush mask and Smart Fill workspace */
+.nexus-object-eraser{display:grid;gap:10px;min-width:0}
+.nexus-object-eraser>p,.nexus-object-note{font-size:10px;line-height:1.55;color:var(--nx-muted)}
+.nexus-object-canvas{position:relative;width:100%;max-height:330px;overflow:hidden;display:grid;place-items:center;border-radius:13px;background:#111;touch-action:none}
+.nexus-object-canvas img{display:block;width:100%;height:100%;max-height:330px;object-fit:contain;pointer-events:none}
+.nexus-object-canvas canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+.nexus-object-canvas>span{position:absolute;inset:0;display:grid;place-items:center;color:#ddd;font-size:11px;pointer-events:none}
+.nexus-object-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.nexus-object-controls button{min-width:0;padding:8px 5px;border:1px solid var(--nx-line);border-radius:9px;background:var(--nx-surface-2);color:var(--nx-text);font-size:9px}
+.nexus-object-controls button.active{border-color:var(--nx-accent);background:color-mix(in srgb,var(--nx-accent) 18%,var(--nx-surface-2))}
+.nexus-object-controls button:disabled{opacity:.4}
+.nexus-object-brush{display:grid;grid-template-columns:1fr auto;gap:7px;align-items:center;font-size:10px;color:var(--nx-muted)}
+.nexus-object-brush input{grid-column:1/-1;width:100%;accent-color:var(--nx-accent)}
+.nexus-object-brush b{color:var(--nx-text);font-variant-numeric:tabular-nums}
+.nexus-object-apply{width:100%;min-height:40px;border:0;border-radius:11px;background:linear-gradient(110deg,var(--nx-accent),var(--accent-b,var(--nx-accent)));color:white;font-weight:800}
+.nexus-object-apply:disabled{opacity:.5}
+.nexus-object-note{display:block}
+@media(max-width:700px){.nexus-object-canvas{max-height:260px}.nexus-object-controls button{font-size:8px}}
