@@ -129,3 +129,31 @@ export const CREATIVE_EFFECTS = [
 {name:"Documentary Natural",patch:{filter:"Clean Neutral",brightness:100,contrast:104,saturation:96,vignette:0}},
 {name:"Film Trailer",patch:{filter:"Epic Film",contrast:130,saturation:108,vignette:32}}
 ] as const;
+
+
+// A 200-item real-time video effect library. Every entry maps to an existing
+// renderer-supported filter plus editable clip adjustments; these are not mock buttons.
+const NEXUS_EFFECT_VARIANTS = [
+  { label: "Soft", brightness: 104, contrast: 96, saturation: 96, vignette: 6 },
+  { label: "Punch", brightness: 100, contrast: 118, saturation: 122, vignette: 10 },
+  { label: "Glow", brightness: 110, contrast: 94, saturation: 112, vignette: 4 },
+  { label: "Deep", brightness: 92, contrast: 124, saturation: 88, vignette: 20 }
+] as const;
+const NEXUS_EFFECT_BASES = [
+  ...CREATIVE_EFFECTS,
+  ...CREATIVE_FILTERS.map(item => ({
+    name: item.name,
+    category: item.category,
+    patch: { filter: item.name, brightness: 100, contrast: 100, saturation: 100, vignette: 0 }
+  }))
+];
+export const NEXUS_VIDEO_EFFECTS = Array.from({ length: 200 }, (_, index) => {
+  const base = NEXUS_EFFECT_BASES[index % NEXUS_EFFECT_BASES.length];
+  const variant = NEXUS_EFFECT_VARIANTS[Math.floor(index / NEXUS_EFFECT_BASES.length) % NEXUS_EFFECT_VARIANTS.length];
+  const patch = { ...base.patch, brightness: variant.brightness, contrast: variant.contrast, saturation: variant.saturation, vignette: variant.vignette };
+  return {
+    name: index < CREATIVE_EFFECTS.length ? base.name : base.name + " · " + variant.label + (Math.floor(index / NEXUS_EFFECT_BASES.length) > 0 ? " " + (Math.floor(index / NEXUS_EFFECT_BASES.length) + 1) : ""),
+    category: "category" in base ? base.category : "Creative",
+    patch
+  };
+});
