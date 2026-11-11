@@ -262,14 +262,19 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       try {
         keyCtx.clearRect(0,0,width,height);keyCtx.drawImage(source,0,0,width,height);
         const frame=keyCtx.getImageData(0,0,width,height),data=frame.data,hex=(clip.chromaKeyColor||"#00ff00").replace("#","");
-        const key=[parseInt(hex.slice(0,2),16)||0,parseInt(hex.slice(2,4),16)||255,parseInt(hex.slice(4,6),16)||0];
-        const tolerance=Math.max(8,Math.min(180,clip.chromaKeyTolerance??70)),softness=Math.max(0,Math.min(100,clip.chromaKeySoftness??28))*1.4,spill=Math.max(0,Math.min(100,clip.chromaKeySpill??45))/100;
-        const dominant=key[1]>=key[0]&&key[1]>=key[2]?1:key[0]>=key[1]&&key[0]>=key[2]?0:2;
-        for(let i=0;i<data.length;i+=4){
-          const dr=data[i]-key[0],dg=data[i+1]-key[1],db=data[i+2]-key[2],distance=Math.sqrt(dr*dr+dg*dg+db*db),edge=Math.max(1,softness);
-          const t=Math.max(0,Math.min(1,(distance-(tolerance-edge))/(edge*2))),alpha=t*t*(3-2*t);
-          data[i+3]=Math.round(data[i+3]*alpha);
-          if(alpha>0&&alpha<1&&spill>0){const other=Math.max(data[i+(dominant===0?1:0)],data[i+(dominant===2?1:2)]);data[i+dominant]=Math.round(data[i+dominant]*(1-spill*(1-alpha))+other*spill*(1-alpha));}
+        const key=[0,2,4].map(index=>parseInt(hex.slice(index,index+2),16)/255);
+        const grey=(key[0]+key[1]+key[2])/3;
+        const direction=key.map(value=>value-grey);
+        const denominator=direction.reduce((sum,value,index)=>sum+value*key[index],0);
+        const toleranceRatio=Math.max(0,Math.min(180,clip.chromaKeyTolerance??70))/255;
+        const softness=Math.max(0,Math.min(100,clip.chromaKeySoftness??28))/100;
+        const softRange=Math.max(.08,1-toleranceRatio+softness*.35);
+        if(Math.abs(denominator)>=.015){
+          for(let i=0;i<data.length;i+=4){
+            const projection=(direction[0]*data[i]+direction[1]*data[i+1]+direction[2]*data[i+2])/255;
+            const alpha=Math.max(0,Math.min(1,1-projection/denominator/softRange));
+            data[i+3]=Math.round(data[i+3]*alpha);
+          }
         }
         keyCtx.putImageData(frame,0,0);return keyed;
       } catch { return source; }
