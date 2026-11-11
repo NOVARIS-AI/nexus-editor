@@ -5,6 +5,7 @@ import engineJobs from "../../api/engine-jobs.js";
 import engineStatus from "../../api/engine-status.js";
 import health from "../../api/health.js";
 import nexusWorker from "../../api/nexus-worker.js";
+import objectInpaint from "../../api/object-inpaint.js";
 import sitemap from "../../api/sitemap.js";
 import transcribe from "../../api/transcribe.js";
 import moderationAction from "../../api/moderation/action.js";
@@ -28,6 +29,7 @@ const routes = new Map([
   ["/api/engine-status", engineStatus],
   ["/api/health", health],
   ["/api/nexus-worker", nexusWorker],
+  ["/api/object-inpaint", objectInpaint],
   ["/api/sitemap", sitemap],
   ["/api/transcribe", transcribe],
   ["/api/moderation/action", moderationAction],
