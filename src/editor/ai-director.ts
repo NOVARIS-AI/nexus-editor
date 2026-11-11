@@ -22,7 +22,7 @@ export async function askNexusDirector(brief:string,context:Record<string,unknow
    const jobResponse=await fetch("/api/engine-jobs",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({engine:task.engine,prompt:task.prompt,options:taskOptions})});
    const job=await jobResponse.json().catch(()=>({}));
    if(!jobResponse.ok)throw new Error(job.error||"Internal execution service is not connected.");
-   engineJobs.push({engine:task.engine,sceneTitle:String(task.options?.sceneTitle||task.action||"AI Director background task").slice(0,160),state:job.state||"queued",id:job.id,message:String(job.message||"Internal task accepted."),progress:Number(job.progress)||0});
+   engineJobs.push({engine:task.engine,sceneTitle:(task.options?.sceneTitle ? "Scene · "+String(task.options.sceneTitle).replace(/^Scene · /,"").slice(0,150) : String(task.action||"AI Director background task").slice(0,160)),state:job.state||"queued",id:job.id,message:String(job.message||"Internal task accepted."),progress:Number(job.progress)||0});
   }catch(error){
    engineJobs.push({engine:task.engine,sceneTitle:String(task.options?.sceneTitle||task.action||"AI Director background task").slice(0,160),state:"unavailable",message:error instanceof Error?error.message:"Internal execution service is unavailable."});
   }
