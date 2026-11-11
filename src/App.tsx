@@ -830,6 +830,10 @@ export default function App() {
     const sourceKey = kind + ":" + id;
     const selectedKeys = selectedOverlayIds.length > 1 && selectedOverlayIds.includes(sourceKey) ? new Set(selectedOverlayIds) : new Set([sourceKey]);
     const moving = selectedOverlayEntries().filter(entry => selectedKeys.has(entry.kind + ":" + entry.id));
+    if (!moving.length) {
+      const layer = kind === "image" ? imageLayers.find(item => item.id === id) : textLayers.find(item => item.id === id);
+      if (layer) moving.push(kind === "image" ? { kind: "image", id, layer: layer as TimelineImageLayer } : { kind: "text", id, layer: layer as TimelineTextLayer });
+    }
     if (!moving.length || moving.some(entry => entry.layer.locked)) { setStatus("Locked layers cannot be moved into a folder."); return; }
     const imageIds = new Set(moving.filter(entry => entry.kind === "image").map(entry => entry.id));
     const textIds = new Set(moving.filter(entry => entry.kind === "text").map(entry => entry.id));
@@ -842,6 +846,10 @@ export default function App() {
     const sourceKey = kind + ":" + id;
     const selectedKeys = selectedOverlayIds.length > 1 && selectedOverlayIds.includes(sourceKey) ? new Set(selectedOverlayIds) : new Set([sourceKey]);
     const moving = selectedOverlayEntries().filter(entry => selectedKeys.has(entry.kind + ":" + entry.id) && (entry.layer as any).groupId);
+    if (!moving.length) {
+      const layer = kind === "image" ? imageLayers.find(item => item.id === id) : textLayers.find(item => item.id === id);
+      if (layer && (layer as any).groupId) moving.push(kind === "image" ? { kind: "image", id, layer: layer as TimelineImageLayer } : { kind: "text", id, layer: layer as TimelineTextLayer });
+    }
     if (!moving.length) return;
     if (moving.some(entry => entry.layer.locked)) { setStatus("Locked layers cannot be moved out of a folder."); return; }
     const imageIds = new Set(moving.filter(entry => entry.kind === "image").map(entry => entry.id));
