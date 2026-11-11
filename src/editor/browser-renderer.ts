@@ -332,16 +332,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const orderedOverlayLayers = [
-          ...imageLayers.map((layer, index) => ({ kind: "image" as const, layer, order: layer.stackOrder ?? index })),
-          ...input.textLayers.map((layer, index) => ({ kind: "text" as const, layer, order: layer.stackOrder ?? imageLayers.length + index }))
-        ].sort((a, b) => a.order - b.order);
-        orderedOverlayLayers.forEach(entry => {
-          if (entry.kind === "image") {
-            const layer = entry.layer;
-            const track = tracks.get(layer.trackId);
-            if (layer.fit === "cover" || !layer.visible || track?.hidden || time < layer.start || time >= layer.start + layer.duration) return;
-
+        imageLayers.filter(layer => {
+          const track = tracks.get(layer.trackId);
+          return layer.fit === "cover" && layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
+        }).forEach(layer => {
           const image = imageLayerImages.get(layer.id); if (!image) return;
           const track = tracks.get(layer.trackId);
           const scale = Math.max(.05, Math.min(4, layer.scale));
@@ -426,17 +420,30 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           } else ctx.drawImage(image,-width/2,-height/2,width,height);
           ctx.restore();
         });
-        
-          } else {
-            const layer = entry.layer;
-            const track = tracks.get(layer.trackId);
-            if (track?.hidden || layer.visible === false || time < layer.start || time >= layer.start + layer.duration) return;
-
+        input.textLayers.filter(layer => {
           const track = tracks.get(layer.trackId);
           return !track?.hidden && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration;
-        
-          }
-        });
+        }).forEach(layer => {
+          ctx.save();
+          const local = time - layer.start;
+          const fade = layer.animation === "fade" ? Math.min(1, local / .35, (layer.duration - local) / .35) : layer.animation === "pop" ? Math.min(1, local / .2) : 1;
+          ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 1) * fade));
+          const textBlendModes: Record<string, GlobalCompositeOperation> = { normal: "source-over", multiply: "multiply", screen: "screen", overlay: "overlay", darken: "darken", lighten: "lighten", "soft-light": "soft-light", "hard-light": "hard-light" };
+          ctx.globalCompositeOperation = textBlendModes[layer.blendMode || "normal"] || "source-over";
+          const fontSize = Math.max(12, layer.fontSize * canvas.height / 1080);
+          const maxWidth = canvas.width * .88;
+          const lineHeight = fontSize * 1.2;
+          ctx.font = `bold ${fontSize}px ${layer.fontFamily || "Arial"}`;
+          const lines: string[] = [];
+          (layer.text || "").split(/\r?\n/).forEach(paragraph => {
+            const words = paragraph.split(/\s+/).filter(Boolean);
+            if (!words.length) { lines.push(""); return; }
+            let line = "";
+            words.forEach(word => {
+              const candidate = line ? line + " " + word : word;
+              if (line && ctx.measureText(candidate).width > maxWidth) { lines.push(line); line = word; }
+              else line = candidate;
+            });
             lines.push(line);
           });
           const textWidth = Math.min(maxWidth, Math.max(1, ...lines.map(line => ctx.measureText(line).width)));
