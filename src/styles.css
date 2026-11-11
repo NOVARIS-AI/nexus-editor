@@ -1720,3 +1720,5 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .nexus-shell .editor-screen[data-tool-panel-open="true"] .editor-bottom-tools .nexus-subtool-ribbon{padding:12px!important}
  .nexus-shell .nexus-effect-grid{grid-template-columns:repeat(3,minmax(0,1fr));max-height:210px}
 }
+
+.nexus-shell .nexus-effect-thumb>img{width:100%;height:100%;object-fit:cover;display:block}
