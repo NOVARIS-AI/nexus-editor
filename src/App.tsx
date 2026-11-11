@@ -23,6 +23,7 @@ import { trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbac
 import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
 
 import { askNexusDirector } from "./editor/ai-director";
+import { getInternalEngineOutputKind, isRemoteInternalEngineTool } from "./editor/internal-engine-routing";
 import { transcribeMediaInternally, type TranscriptSegment } from "./editor/transcription-engines";
 import { createApostleQuotePosterLayers, getImageStylePreset, generateNexusWorkerImage } from "./editor/image-engine";
 import { buildSceneVisualPrompt, createSceneAudioPreset, resolveSceneGenerationRoute, validateGeneratedImage } from "./editor/scene-creation-pipeline";
@@ -1289,6 +1290,21 @@ export default function App() {
       setAiReply((error instanceof Error?error.message:"Local audio synthesis failed.")+" The existing project remains unchanged.");
     } finally {setGenerationBusy(null);}
   }
+  function registerDirectorEngineJobs(jobs: unknown) {
+    const accepted = (Array.isArray(jobs) ? jobs : [])
+      .filter((job: any) => job && typeof job.id === "string" && isRemoteInternalEngineTool(job.engine) && ["queued", "running", "succeeded", "failed", "cancelled"].includes(job.state))
+      .slice(0, 8)
+      .map((job: any) => ({
+        id: job.id,
+        engine: job.engine,
+        state: job.state as NexusEngineJob["state"],
+        progress: Math.max(0, Math.min(100, Number(job.progress) || 0)),
+        message: String(job.message || "Background creative task accepted.").slice(0, 500),
+        sceneTitle: "AI Director background task"
+      }));
+    if (!accepted.length) return;
+    setGenerationJobs(old => [...accepted.filter(job => !old.some(item => item.id === job.id)), ...old].slice(0, 30));
+  }
   const importedGenerationOutputs = useRef<Set<string>>(new Set());
   const generationRefreshInFlight = useRef<Set<string>>(new Set());
   async function refreshGenerationJob(job:NexusEngineJob & {sceneTitle:string}) {
@@ -1310,9 +1326,10 @@ export default function App() {
       const expectedKind=job.engine as "image"|"video"|"audio";
       const declared=(latest.output.mimeType||"").split(";")[0].trim().toLowerCase();
       const actual=(blob.type||"").split(";")[0].trim().toLowerCase();
-      const mimeType=actual||declared;
+      const mimeType=!actual || actual==="application/octet-stream" ? declared : actual;
       if(!mimeType || mimeType==="application/octet-stream") throw new Error("The worker did not provide a verifiable media MIME type. The output was not imported.");
-      if(!mimeType.startsWith(expectedKind+"/")) throw new Error("The "+job.engine+" worker returned "+mimeType+" instead of "+expectedKind+" media. Nothing was added to the project.");
+      const expectedKind=getInternalEngineOutputKind(job.engine,mimeType);
+      if(!expectedKind) throw new Error("The completed background task returned an unsupported media type ("+mimeType+"). Nothing was added to the project.");
       const extension=mimeType.split("/")[1]?.replace(/[^a-z0-9.+-]/gi,"")||"bin";
       const safeName=job.sceneTitle.replace(/[^a-z0-9-_]+/gi,"-").slice(0,70)||"nexus";
       const file=new File([blob],safeName+"-generated."+extension,{type:mimeType});
@@ -1469,6 +1486,7 @@ export default function App() {
       const promptUnderstanding = understandDirectorPrompt(brief);
       const referenceDocuments = await Promise.all(aiFiles.slice(0,5).map(async file => ({ name:file.name.slice(0,180), mimeType:file.type || "text/plain", text:(await file.text()).slice(0,12000) })));
       const result = await askNexusDirector(brief, { mode: "create-storyboard", aspectRatio: aiFormat, style: aiStyle, assets: assets.map(item => ({name:item.name,kind:item.kind,source:item.source?.type})), referenceWorkflow, referenceFusion, referenceDocuments, visualSamples, promptUnderstanding, existingClips: clips.length, hasPersonalReference: assets.some(item => item.source?.type === "personal"), fabricIntelligence: directorFabricContext, audioTranscript: internalSpeechText.slice(0, 12000) });
+      registerDirectorEngineJobs(result.engineJobs);
       const rawScenes = Array.isArray(result.plan.scenes) ? result.plan.scenes.slice(0, 8) : [];
       if (rawScenes.length < 3) throw new Error("The AI Director returned too few scenes. Please try the brief again.");
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
@@ -1602,6 +1620,7 @@ export default function App() {
       internalSpeechInsights: internalSpeechText.slice(0, 12000),
       speechSegmentCount: Object.values(internalTranscripts).reduce((sum, segments) => sum + segments.length, 0)
     });
+    registerDirectorEngineJobs(result.engineJobs);
     const plan = result.plan;
     setEngineReport(["Creative coach reviewed your current project", ...plan.assetNeeds.map(item => "Suggested asset: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
     return plan.summary + (plan.editPlan.length ? "\n\nYour next steps:\n" + plan.editPlan.map((step,index) => (index+1) + ". " + step.action + " · " + step.target + ": " + step.details).join("\n") : "") + (plan.userReferenceNeeded ? "\n\nA reference photo or video would help represent your subject accurately." : "");
@@ -1637,6 +1656,7 @@ export default function App() {
           internalSpeechInsights: internalSpeechText.slice(0, 12000), speechSegmentCount: Object.values(internalTranscripts).reduce((sum, segments) => sum + segments.length, 0),
           activeTool, aspectRatio, hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
+        registerDirectorEngineJobs(result.engineJobs);
         const plan = result.plan;
         respond(plan.summary + "\n\n" + plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") + (plan.userReferenceNeeded ? "\n\nA reference photo/video is needed to represent you accurately." : ""));
         setEngineReport(["AI Director ready", ...plan.assetNeeds.map(item => "Asset needed: " + item.kind + " — " + item.query + " (" + item.reason + ")")]);
@@ -1693,6 +1713,7 @@ export default function App() {
           referenceWorkflow: referenceContext, visualSamples, clipCount: clips.length,
           hasPersonalReference: assets.some(item => item.source?.type === "personal")
         });
+        registerDirectorEngineJobs(result.engineJobs);
         const applied = applyReferencePlanToTimeline(result.plan, referenceContext);
         if (!applied) respond(result.plan.summary + "\n\n" +
           result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details).join("\n") +
