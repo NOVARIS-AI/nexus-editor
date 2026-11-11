@@ -2,6 +2,7 @@ const env = (key) => Boolean(process.env[key]);
 export default function handler(_req, res) {
   res.setHeader("Cache-Control", "no-store");
   const cloudflareConfigured = env("CLOUDFLARE_ACCOUNT_ID") && env("CLOUDFLARE_API_TOKEN");
+  const mediaWorkerConfigured = env("NEXUS_ENGINE_WORKER_URL") && env("NEXUS_ENGINE_WORKER_TOKEN");
   const workerConfigured = env("NEXUS_WORKER_URL") && env("NEXUS_WORKER_TOKEN");
   const cloudflareAvailable = cloudflareConfigured || workerConfigured;
   res.status(200).json({
@@ -18,11 +19,11 @@ export default function handler(_req, res) {
       video: { configured: env("NEXUS_VIDEO_ENGINE_URL") && env("NEXUS_VIDEO_ENGINE_TOKEN"), provider: "NEXUS-managed video worker", fallback: "Licensed sourced footage and native animated timeline scenes" },
       audio: { configured: env("NEXUS_AUDIO_ENGINE_URL") && env("NEXUS_AUDIO_ENGINE_TOKEN"), provider: "NEXUS-managed audio worker", fallback: "Web Audio API and native audio playback" },
       render: { configured: env("NEXUS_RENDER_ENGINE_URL") && env("NEXUS_RENDER_ENGINE_TOKEN"), provider: "NEXUS-managed render worker", fallback: "Browser MediaRecorder WebM where supported" },
-      remotion: { configured: env("NEXUS_REMOTION_ENGINE_URL") && env("NEXUS_REMOTION_ENGINE_TOKEN"), provider: "Remotion composition worker", fallback: "Existing editable browser timeline composition" },
-      hyperframes: { configured: env("NEXUS_HYPERFRAMES_ENGINE_URL") && env("NEXUS_HYPERFRAMES_ENGINE_TOKEN"), provider: "HyperFrames motion-graphics worker", fallback: "Existing SVG/Canvas text and motion layers" },
-      ffmpeg: { configured: env("NEXUS_FFMPEG_ENGINE_URL") && env("NEXUS_FFMPEG_ENGINE_TOKEN"), provider: "FFmpeg media-processing worker", fallback: "Existing browser/native media processing" },
-      whisper: { configured: env("GROQ_API_KEY"), provider: "Whisper-compatible speech service + local Whisper fallback", fallback: "Existing on-device Whisper Tiny pipeline" },
-      ytdlp: { configured: env("NEXUS_YTDLP_ENGINE_URL") && env("NEXUS_YTDLP_ENGINE_TOKEN"), provider: "yt-dlp authorized-media worker", fallback: "Existing licensed media search and user imports" }
+      remotion: { configured: mediaWorkerConfigured || (env("NEXUS_REMOTION_ENGINE_URL") && env("NEXUS_REMOTION_ENGINE_TOKEN")), provider: "Remotion composition worker", fallback: "Existing editable browser timeline composition" },
+      hyperframes: { configured: mediaWorkerConfigured || (env("NEXUS_HYPERFRAMES_ENGINE_URL") && env("NEXUS_HYPERFRAMES_ENGINE_TOKEN")), provider: "HyperFrames motion-graphics worker", fallback: "Existing SVG/Canvas text and motion layers" },
+      ffmpeg: { configured: mediaWorkerConfigured || (env("NEXUS_FFMPEG_ENGINE_URL") && env("NEXUS_FFMPEG_ENGINE_TOKEN")), provider: "FFmpeg media-processing worker", fallback: "Existing browser/native media processing" },
+      whisper: { configured: true, provider: env("GROQ_API_KEY") ? "Existing online-first speech pipeline" : "Existing on-device Whisper Tiny pipeline", onlineConfigured: env("GROQ_API_KEY"), fallback: "Existing on-device Whisper Tiny pipeline" },
+      ytdlp: { configured: mediaWorkerConfigured || (env("NEXUS_YTDLP_ENGINE_URL") && env("NEXUS_YTDLP_ENGINE_TOKEN")), provider: "yt-dlp authorized-media worker", fallback: "Existing licensed media search and user imports" }
     }
   });
 }
