@@ -1741,3 +1741,15 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 }
 
 .nexus-shell .editor-preview-frame{isolation:isolate}
+
+
+/* Live Camera Studio */
+.nexus-live-camera { display: grid; gap: 12px; }
+.nexus-live-camera-preview { position: relative; width: 100%; min-height: 220px; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 18px; background: #151019; border: 1px solid rgba(255,255,255,.14); }
+.nexus-live-camera-preview canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+.nexus-live-camera-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.65); font-size: 13px; }
+.nexus-live-camera-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.nexus-live-camera-actions button { flex: 1 1 130px; }
+.nexus-live-background-thumb { width: 100%; max-height: 110px; object-fit: cover; border-radius: 12px; }
+.nexus-live-note { font-size: 11px; line-height: 1.5; opacity: .72; }
+.nexus-live-file input { max-width: 100%; }
