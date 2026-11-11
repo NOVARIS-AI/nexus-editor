@@ -1300,7 +1300,7 @@ export default function App() {
         state: job.state as NexusEngineJob["state"],
         progress: Math.max(0, Math.min(100, Number(job.progress) || 0)),
         message: String(job.message || "Background creative task accepted.").slice(0, 500),
-        sceneTitle: "AI Director background task"
+        sceneTitle: String(job.sceneTitle || "AI Director background task").slice(0,160)
       }));
     if (!accepted.length) return;
     setGenerationJobs(old => [...accepted.filter(job => !old.some(item => item.id === job.id)), ...old].slice(0, 30));
