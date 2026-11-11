@@ -810,18 +810,42 @@ export default function App() {
   }
   function reorderOverlayLayerByDrop(kind: "image" | "text", id: string, targetId: string) {
     if (id === targetId) return;
-    const source = kind === "image" ? imageLayers.find(layer => layer.id === id) : textLayers.find(layer => layer.id === id);
-    if (!source || source.locked) return;
     const overlayImages = imageLayers.filter(layer => layer.fit !== "cover");
-    const ordered = [...overlayImages.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? index })), ...textLayers.map((layer, index) => ({ id: layer.id, order: layer.stackOrder ?? overlayImages.length + index }))].sort((a, b) => a.order - b.order);
-    const from = ordered.findIndex(item => item.id === id), to = ordered.findIndex(item => item.id === targetId);
-    if (from < 0 || to < 0) return;
-    const [moving] = ordered.splice(from, 1); ordered.splice(to, 0, moving);
+    const ordered = [...overlayImages.map((layer, index) => ({ id: layer.id, kind: "image" as const, order: layer.stackOrder ?? index })), ...textLayers.map((layer, index) => ({ id: layer.id, kind: "text" as const, order: layer.stackOrder ?? overlayImages.length + index }))].sort((a, b) => a.order - b.order);
+    const sourceKey = kind + ":" + id, targetKey = ordered.find(item => item.id === targetId)?.kind + ":" + targetId;
+    const selectedKeys = selectedOverlayIds.length > 1 && selectedOverlayIds.includes(sourceKey) ? new Set(selectedOverlayIds) : new Set([sourceKey]);
+    const moving = ordered.filter(item => selectedKeys.has(item.kind + ":" + item.id));
+    if (!moving.length || moving.some(item => item.kind === "image" ? imageLayers.find(layer => layer.id === item.id)?.locked : textLayers.find(layer => layer.id === item.id)?.locked)) return;
+    const remaining = ordered.filter(item => !selectedKeys.has(item.kind + ":" + item.id));
+    const targetIndex = remaining.findIndex(item => item.kind + ":" + item.id === targetKey);
+    if (targetIndex < 0) return;
+    remaining.splice(targetIndex, 0, ...moving);
     recordProjectHistory();
-    const orders = new Map(ordered.map((entry, index) => [entry.id, index]));
+    const orders = new Map(remaining.map((entry, index) => [entry.id, index]));
     setImageLayers(old => old.map(layer => layer.fit === "cover" ? layer : ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
     setTextLayers(old => old.map(layer => ({ ...layer, stackOrder: orders.get(layer.id) ?? 0 })));
-    setStatus("Layer order updated. Preview and export use this same stack.");
+    setStatus(moving.length > 1 ? "Selected layers moved together. Preview and export order updated." : "Layer order updated. Preview and export use this same stack.");
+  }
+  function groupSelectedOverlays() {
+    const entries = selectedOverlayEntries();
+    if (entries.length < 2) { setStatus("Select at least two overlay layers to create a folder."); return; }
+    const groupId = uid(), groupName = "Folder " + (new Set([...imageLayers, ...textLayers].map(layer => (layer as any).groupId).filter(Boolean)).size + 1);
+    const imageIds = new Set(entries.filter(entry => entry.kind === "image").map(entry => entry.id));
+    const textIds = new Set(entries.filter(entry => entry.kind === "text").map(entry => entry.id));
+    recordProjectHistory();
+    setImageLayers(old => old.map(layer => imageIds.has(layer.id) ? { ...layer, groupId, groupName } : layer));
+    setTextLayers(old => old.map(layer => textIds.has(layer.id) ? { ...layer, groupId, groupName } : layer));
+    setStatus(groupName + " created with " + entries.length + " layers.");
+  }
+  function ungroupSelectedOverlays() {
+    const entries = selectedOverlayEntries();
+    const imageIds = new Set(entries.filter(entry => entry.kind === "image").map(entry => entry.id));
+    const textIds = new Set(entries.filter(entry => entry.kind === "text").map(entry => entry.id));
+    if (!entries.some(entry => (entry.layer as any).groupId)) return;
+    recordProjectHistory();
+    setImageLayers(old => old.map(layer => imageIds.has(layer.id) ? (({ groupId, groupName, ...rest }) => rest)(layer as any) : layer));
+    setTextLayers(old => old.map(layer => textIds.has(layer.id) ? (({ groupId, groupName, ...rest }) => rest)(layer as any) : layer));
+    setStatus("Selected layers removed from their folders.");
   }
   function reorderSelectedImageLayer(direction: -1 | 1) { reorderSelectedOverlayLayer("image", direction); }
   function moveSelectedOverlayStackPosition(kind: "image" | "text", position: "front" | "back") {
@@ -2387,10 +2411,11 @@ export default function App() {
             </div>
             {selectedOverlayIds.length>1&&<div className="editor-transport" style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center"}}><b style={{fontSize:11,marginRight:6}}>SELECTED {selectedOverlayEntries().length} LAYERS</b><button onClick={updateSelectedOverlayVisibility}>{selectedOverlayEntries().some(entry=>entry.layer.visible===false)?"Show selected":"Hide selected"}</button><button onClick={updateSelectedOverlayLock}>{selectedOverlayEntries().some(entry=>entry.layer.locked)?"Unlock selected":"Lock selected"}</button><button onClick={deleteSelectedOverlays}>Delete selected</button><span style={{fontSize:10,opacity:.7}}>Align</span>{[{id:"left",label:"Left"},{id:"center-x",label:"Centre X"},{id:"right",label:"Right"},{id:"top",label:"Top"},{id:"center-y",label:"Middle"},{id:"bottom",label:"Bottom"}].map(item=><button key={item.id} onClick={()=>alignSelectedOverlays(item.id as "left"|"center-x"|"right"|"top"|"center-y"|"bottom")}>{item.label}</button>)}<button onClick={()=>setSelectedOverlayIds([])}>Clear selection</button></div>}\n            <details className="editor-transport" style={{display:"block",padding:10,margin:"8px 0"}}>
               <summary style={{cursor:"pointer",fontWeight:700}}>LAYER MANAGER · {imageLayers.filter(layer=>layer.fit!=="cover").length+textLayers.length} overlays</summary>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}><button onClick={groupSelectedOverlays} disabled={selectedOverlayIds.length<2}>Group selected into folder</button><button onClick={ungroupSelectedOverlays} disabled={!selectedOverlayEntries().some(entry=>(entry.layer as any).groupId)}>Ungroup selected</button><small style={{alignSelf:"center",opacity:.7}}>Shift-select layers to move them together</small></div>
               <div style={{display:"grid",gap:6,marginTop:10}}>
-                {[...imageLayers.filter(layer=>layer.fit!=="cover").map((layer,index)=>({kind:"image" as const,id:layer.id,order:layer.stackOrder??index,name:assets.find(asset=>asset.id===layer.assetId)?.name||"Image layer",visible:layer.visible!==false,locked:!!layer.locked,asset:assets.find(asset=>asset.id===layer.assetId)})),...textLayers.map((layer,index)=>({kind:"text" as const,id:layer.id,order:layer.stackOrder??imageLayers.filter(item=>item.fit!=="cover").length+index,name:layer.text||"Text layer",visible:layer.visible!==false,locked:!!layer.locked,asset:undefined}))].sort((a,b)=>b.order-a.order).map(entry=><div key={entry.kind+":"+entry.id} draggable={!entry.locked} onDragStart={e=>{e.dataTransfer.setData("application/x-nexus-layer",JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed="move";}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();try{const moving=JSON.parse(e.dataTransfer.getData("application/x-nexus-layer"));reorderOverlayLayerByDrop(moving.kind,moving.id,entry.id);}catch{}}} style={{display:"grid",gridTemplateColumns:"32px minmax(0,1fr) auto auto auto",gap:7,alignItems:"center",padding:"6px 4px",borderRadius:8,background:(selectedOverlayIds.includes(entry.kind+":"+entry.id)||selectedImageLayer===entry.id||selectedTextLayer===entry.id)?"rgba(56,189,248,.13)":"rgba(255,255,255,.035)"}}>
+                {[...imageLayers.filter(layer=>layer.fit!=="cover").map((layer,index)=>({kind:"image" as const,id:layer.id,order:layer.stackOrder??index,groupId:layer.groupId,groupName:layer.groupName,name:assets.find(asset=>asset.id===layer.assetId)?.name||"Image layer",visible:layer.visible!==false,locked:!!layer.locked,asset:assets.find(asset=>asset.id===layer.assetId)})),...textLayers.map((layer,index)=>({kind:"text" as const,id:layer.id,order:layer.stackOrder??imageLayers.filter(item=>item.fit!=="cover").length+index,groupId:layer.groupId,groupName:layer.groupName,name:layer.text||"Text layer",visible:layer.visible!==false,locked:!!layer.locked,asset:undefined}))].sort((a,b)=>b.order-a.order).map(entry=><div key={entry.kind+":"+entry.id} draggable={!entry.locked} onDragStart={e=>{e.dataTransfer.setData("application/x-nexus-layer",JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed="move";}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();try{const moving=JSON.parse(e.dataTransfer.getData("application/x-nexus-layer"));reorderOverlayLayerByDrop(moving.kind,moving.id,entry.id);}catch{}}} style={{display:"grid",gridTemplateColumns:"32px minmax(0,1fr) auto auto auto",gap:7,alignItems:"center",padding:"6px 4px",borderRadius:8,background:(selectedOverlayIds.includes(entry.kind+":"+entry.id)||selectedImageLayer===entry.id||selectedTextLayer===entry.id)?"rgba(56,189,248,.13)":"rgba(255,255,255,.035)"}}>
                   <button title="Select layer" onClick={e=>{if(entry.kind==="image"){setSelectedImageLayer(entry.id);setSelectedTextLayer(null);}else{setSelectedTextLayer(entry.id);setSelectedImageLayer(null);}setPlayhead(entry.kind==="image"?imageLayers.find(layer=>layer.id===entry.id)?.start??playhead:textLayers.find(layer=>layer.id===entry.id)?.start??playhead);setSelectedOverlayIds(old=>e.shiftKey?(old.includes(entry.kind+":"+entry.id)?old.filter(id=>id!==entry.kind+":"+entry.id):[...old,entry.kind+":"+entry.id]):[entry.kind+":"+entry.id]);}} style={{padding:2,minWidth:28}}>{entry.kind==="image"?(entry.asset?.objectUrl?<img src={entry.asset.objectUrl} alt="" style={{width:26,height:26,objectFit:"cover",borderRadius:5}}/>:"▧"):"T"}</button>
-                  <button title="Select layer" onClick={()=>{if(entry.kind==="image"){setSelectedImageLayer(entry.id);setSelectedTextLayer(null);}else{setSelectedTextLayer(entry.id);setSelectedImageLayer(null);}setPlayhead(entry.kind==="image"?imageLayers.find(layer=>layer.id===entry.id)?.start??playhead:textLayers.find(layer=>layer.id===entry.id)?.start??playhead);setSelectedOverlayIds([entry.kind+":"+entry.id]);}} style={{textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",background:"transparent",border:0,color:"inherit"}}><span style={{display:"block",fontSize:11,opacity:.65}}>{entry.kind.toUpperCase()}</span><span style={{fontSize:12}}>{entry.name}</span></button>
+                  <button title="Select layer" onClick={()=>{if(entry.kind==="image"){setSelectedImageLayer(entry.id);setSelectedTextLayer(null);}else{setSelectedTextLayer(entry.id);setSelectedImageLayer(null);}setPlayhead(entry.kind==="image"?imageLayers.find(layer=>layer.id===entry.id)?.start??playhead:textLayers.find(layer=>layer.id===entry.id)?.start??playhead);setSelectedOverlayIds([entry.kind+":"+entry.id]);}} style={{textAlign:"left",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",background:"transparent",border:0,color:"inherit"}}><span style={{display:"block",fontSize:11,opacity:.65}}>{entry.kind.toUpperCase()}</span><span style={{fontSize:10,opacity:.65}}>{(entry as any).groupName?"▰ "+(entry as any).groupName+" · ":""}{entry.name}</span></button>
                   <button title={entry.visible?"Hide layer":"Show layer"} onClick={()=>{recordProjectHistory();if(entry.kind==="image")setImageLayers(old=>old.map(layer=>layer.id===entry.id?{...layer,visible:!entry.visible}:layer));else setTextLayers(old=>old.map(layer=>layer.id===entry.id?{...layer,visible:!entry.visible}:layer));}} style={{padding:"4px 7px"}}>{entry.visible?"◉":"○"}</button>
                   <button title={entry.locked?"Unlock layer":"Lock layer"} onClick={()=>{if(entry.kind==="image")updateSelectedImageLayer({locked:!entry.locked});else{recordProjectHistory();setTextLayers(old=>old.map(layer=>layer.id===entry.id?{...layer,locked:!entry.locked}:layer));}}} style={{padding:"4px 7px"}}>{entry.locked?"🔒":"🔓"}</button>
                   <button title="Delete layer" onClick={()=>{recordProjectHistory();if(entry.kind==="image"){setImageLayers(old=>old.filter(layer=>layer.id!==entry.id));if(selectedImageLayer===entry.id)setSelectedImageLayer(null);}else{setTextLayers(old=>old.filter(layer=>layer.id!==entry.id));if(selectedTextLayer===entry.id)setSelectedTextLayer(null);}setSelectedOverlayIds(old=>old.filter(id=>id!==entry.kind+":"+entry.id));setStatus("Layer deleted. Undo is available.");}} style={{padding:"4px 7px"}}>×</button>
