@@ -332,10 +332,22 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        imageLayers.filter(layer => {
-          const track = tracks.get(layer.trackId);
-          return layer.fit === "cover" && layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
-        }).forEach(layer => {
+        const orderedOverlayLayers = [
+          ...imageLayers.filter(layer => layer.fit !== "cover").map((layer, index) => ({
+            kind: "image" as const,
+            layer,
+            order: layer.stackOrder ?? index
+          })),
+          ...input.textLayers.map((layer, index) => ({
+            kind: "text" as const,
+            layer,
+            order: layer.stackOrder ?? imageLayers.length + index
+          }))
+        ].sort((a, b) => a.order - b.order);
+        orderedOverlayLayers.forEach(entry => {
+          if (entry.kind === "image") {
+            const layer = entry.layer;
+
           const image = imageLayerImages.get(layer.id); if (!image) return;
           const track = tracks.get(layer.trackId);
           const scale = Math.max(.05, Math.min(4, layer.scale));
@@ -349,81 +361,9 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             else { const cropHeight=image.naturalWidth/targetAspect; ctx.drawImage(image,0,(image.naturalHeight-cropHeight)/2,image.naturalWidth,cropHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
           } else ctx.drawImage(image,-width/2,-height/2,width,height);
           ctx.restore();
-        });
-        for (const clip of orderedVisualClips) {
-          const length = timingFor(clip).duration;
-          if (time < clip.start || time >= clip.start + length) continue;
-          const image = imageByClip.get(clip.id), video = mediaByClip.get(clip.id);
-          if (image) drawCover(chromaSource(image, image.naturalWidth, image.naturalHeight, clip), image.naturalWidth, image.naturalHeight, clip, time);
-          else if (video && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
-        }
-        for (const clip of input.clips) {
-          const local = time - clip.start;
-          const active = local >= 0 && local < timingFor(clip).duration && !trackHidden(clip);
-          const timing = timingFor(clip);
-          const wanted = timing.sourceAtTimeline(Math.max(0, local));
-          const speed = timing.speedAtSource(wanted);
-          const video = mediaByClip.get(clip.id);
-          if (video) {
-            if (active) {
-              if (Math.abs(video.currentTime - wanted) > .25) { try { video.currentTime = wanted; } catch {} }
-              video.playbackRate = speed;
-              if (video.paused) void video.play().catch(() => {});
-            } else if (!video.paused) video.pause();
-          }
-          const audio = audioNodes.get(clip.id);
-          if (audio) {
-            // Apply the same mute, track visibility, clip gain and fades to audio-only
-            // clips and the audio channel embedded in video clips.
-            if (active && !clip.muted && !trackMuted(clip)) {
-              if (Math.abs(audio.element.currentTime - wanted) > .3) { try { audio.element.currentTime = wanted; } catch {} }
-              audio.element.playbackRate = speed;
-              if (audio.element.paused) void audio.element.play().catch(() => {});
-              const elapsed = Math.max(0, local), remaining = Math.max(0, timingFor(clip).duration - elapsed);
-              const fadeIn = clip.fadeIn ? Math.min(1, elapsed / clip.fadeIn) : 1;
-              const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
-              const track = trackFor(clip);
-              audio.highPass.frequency.value = Math.max(20, Math.min(1200, clip.highPassHz ?? 20));
-              audio.lowPass.frequency.value = Math.max(1500, Math.min(20000, clip.lowPassHz ?? 20000));
-              const compression = Math.max(0, Math.min(100, clip.compression ?? 0));
-              audio.compressor.threshold.value = compression ? -6 - compression * 0.24 : 0;
-              audio.compressor.ratio.value = compression ? 1 + compression * 0.09 : 1;
-              let gateLevel = 1;
-              const gateStrength = Math.max(0, Math.min(100, clip.noiseGate ?? 0));
-              if (gateStrength > 0) {
-                audio.analyser.getFloatTimeDomainData(audio.gateBuffer);
-                let energy = 0;
-                for (let sample = 0; sample < audio.gateBuffer.length; sample++) energy += audio.gateBuffer[sample] * audio.gateBuffer[sample];
-                gateLevel = getSoftNoiseGateGain(Math.sqrt(energy / audio.gateBuffer.length), gateStrength);
-              }
-              const targetGain = Math.max(0, Math.min(2, clip.gain ?? 1)) * Math.max(0, Math.min(2, track?.volume ?? 1)) * Math.min(fadeIn, fadeOut) * gateLevel;
-              audio.gain.gain.setTargetAtTime(targetGain, audioContext!.currentTime, gateStrength > 0 ? 0.075 : 0.025);
-              if (audio.panner) audio.panner.pan.value = Math.max(-1, Math.min(1, (track?.pan ?? 0) + (clip.pan ?? 0)));
-            } else { audio.element.pause(); audio.gain.gain.value = 0; }
-          }
-        }
-        imageLayers.filter(layer => {
-          const track = tracks.get(layer.trackId);
-          return layer.fit !== "cover" && layer.visible && !track?.hidden && time >= layer.start && time < layer.start + layer.duration;
-        }).forEach(layer => {
-          const image = imageLayerImages.get(layer.id); if (!image) return;
-          const track = tracks.get(layer.trackId);
-          const scale = Math.max(.05, Math.min(4, layer.scale));
-          const aspect = image.naturalWidth / Math.max(1, image.naturalHeight); const maxWidth = canvas.width * .5 * scale, maxHeight = canvas.height * .9; const naturalHeight = maxWidth / Math.max(.0001, aspect); const height = Math.min(naturalHeight, maxHeight), width = height < naturalHeight ? height * aspect : maxWidth;
-          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
-          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
-          ctx.rotate(layer.rotation * Math.PI / 180);
-          if(layer.fit==="cover") {
-            const targetAspect=canvas.width/canvas.height, sourceAspect=image.naturalWidth/Math.max(1,image.naturalHeight);
-            if(sourceAspect>targetAspect) { const cropWidth=image.naturalHeight*targetAspect; ctx.drawImage(image,(image.naturalWidth-cropWidth)/2,0,cropWidth,image.naturalHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
-            else { const cropHeight=image.naturalWidth/targetAspect; ctx.drawImage(image,0,(image.naturalHeight-cropHeight)/2,image.naturalWidth,cropHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
-          } else ctx.drawImage(image,-width/2,-height/2,width,height);
-          ctx.restore();
-        });
-        input.textLayers.filter(layer => {
-          const track = tracks.get(layer.trackId);
-          return !track?.hidden && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration;
-        }).forEach(layer => {
+          } else {
+            const layer = entry.layer;
+
           ctx.save();
           const local = time - layer.start;
           const fade = layer.animation === "fade" ? Math.min(1, local / .35, (layer.duration - local) / .35) : layer.animation === "pop" ? Math.min(1, local / .2) : 1;
@@ -476,6 +416,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ctx.shadowBlur = layer.shadow === false ? 0 : 12;
           lines.forEach((line, index) => ctx.fillText(line, 0, (index - (lines.length - 1) / 2) * lineHeight, maxWidth));
           ctx.restore();
+          }
         });
         const progress = Math.min(99, Math.round(time / input.duration * 100));
         if (progress !== lastProgress) { lastProgress = progress; input.onProgress?.(progress); }
