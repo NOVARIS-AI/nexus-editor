@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 
 type Props = { file?: File; onApply: (file: File) => void; disabled?: boolean };
 
-async function smartFill(file: File, maskCanvas: HTMLCanvasElement): Promise<File> {
+async function smartFill(file: File, maskCanvas: HTMLCanvasElement, feather: number): Promise<File> {
   const bitmap = await createImageBitmap(file);
   try {
     const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height));
@@ -19,6 +19,18 @@ async function smartFill(file: File, maskCanvas: HTMLCanvasElement): Promise<Fil
     const maskCtx = mask.getContext("2d", { willReadFrequently: true });
     if (!maskCtx) throw new Error("Could not read the object selection.");
     maskCtx.drawImage(maskCanvas, 0, 0, width, height);
+    if (feather > 0) {
+      const softened = document.createElement("canvas");
+      softened.width = width; softened.height = height;
+      const softCtx = softened.getContext("2d");
+      if (softCtx) {
+        softCtx.filter = "blur(" + Math.max(0, Math.min(24, feather * scale)) + "px)";
+        softCtx.drawImage(mask, 0, 0);
+        maskCtx.clearRect(0, 0, width, height);
+        maskCtx.filter = "none";
+        maskCtx.drawImage(softened, 0, 0);
+      }
+    }
     const maskPixels = maskCtx.getImageData(0, 0, width, height).data;
     const total = width * height;
     const marked = new Uint8Array(total);
@@ -81,6 +93,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
   const imageRef=useRef<HTMLImageElement>(null);
   const maskRef=useRef<HTMLCanvasElement>(null);
   const [brush,setBrush]=useState(26);
+  const [feather,setFeather]=useState(6);
   const [mode,setMode]=useState<"erase"|"restore">("erase");
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
@@ -131,7 +144,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
   async function apply(){
     if(!file||!maskRef.current||busy)return;
     setBusy(true);setMessage("Reconstructing the selected area…");
-    try{const result=await smartFill(file,maskRef.current);onApply(result);setMessage("Object removed. The repaired image has replaced the selected still.");}
+    try{const result=await smartFill(file,maskRef.current,feather);onApply(result);setMessage("Object removed. The repaired image has replaced the selected still.");}
     catch(error){setMessage(error instanceof Error?error.message:"The selected area could not be reconstructed.");}
     finally{setBusy(false);}
   }
@@ -153,6 +166,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
       <button type="button" onClick={clear}>Clear</button>
     </div>
     <label className="nexus-object-brush">Brush size <b>{brush}px</b><input type="range" min="8" max="100" value={brush} onChange={e=>setBrush(Number(e.target.value))}/></label>
+    <label className="nexus-object-brush">Edge feather <b>{feather}px</b><input type="range" min="0" max="24" value={feather} onChange={e=>setFeather(Number(e.target.value))}/></label>
     <button type="button" className="nexus-object-apply" disabled={!ready||busy||disabled} onClick={()=>void apply()}>{busy?"Reconstructing…":"✦ Remove object & Smart Fill"}</button>
     <small className="nexus-object-note">Runs locally on this device. This is patch-based reconstruction, not generative AI: it blends nearby pixels for simple textures, but cannot know what was hidden behind a large object or perfectly recreate a covered face.</small>
     {message&&<small role="status">{message}</small>}
