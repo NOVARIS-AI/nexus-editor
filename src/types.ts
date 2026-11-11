@@ -18,12 +18,12 @@ export interface TimelineTrack {
 export interface TimelineTextLayer {
   id: string; trackId: string; start: number; duration: number; text: string;
   blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
-  color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; visible?: boolean; locked?: boolean; stackOrder?: number; animation?: "none" | "fade" | "pop";
+  color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; visible?: boolean; locked?: boolean; stackOrder?: number; groupId?: string; groupName?: string; animation?: "none" | "fade" | "pop";
 }
 export interface TimelineImageLayer {
   id: string; assetId: string; trackId: string; start: number; duration: number;
   x: number; y: number; scale: number; rotation: number; opacity: number;
-  visible: boolean; locked: boolean; stackOrder?: number; fit?: "contain" | "cover"; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
+  visible: boolean; locked: boolean; stackOrder?: number; groupId?: string; groupName?: string; fit?: "contain" | "cover"; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
   generationPrompt?: string; generationJobId?: string;
 }
 export interface NexusProject {
