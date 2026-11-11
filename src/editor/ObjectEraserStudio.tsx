@@ -28,8 +28,6 @@ async function smartFill(file: File, maskCanvas: HTMLCanvasElement): Promise<Fil
     for (let i = 0; i < total; i++) if (maskPixels[i * 4 + 3] > 24) { marked[i] = 1; markedCount++; }
     if (markedCount < 8) throw new Error("Brush over the object you want to remove first.");
     if (markedCount > total * .62) throw new Error("That selection is too large. Use a smaller brush area for a cleaner reconstruction.");
-    const offsets = [-1,0,1];
-    const weights = [0.7,1,0.7,1,1,0.7,1,0.7];
     const isInside = (x:number,y:number) => x >= 0 && x < width && y >= 0 && y < height;
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
       const i = y * width + x;
@@ -47,15 +45,15 @@ async function smartFill(file: File, maskCanvas: HTMLCanvasElement): Promise<Fil
       const currentEnd = tail;
       for (; head < currentEnd; head++) {
         const i = queue[head], x = i % width, y = Math.floor(i / width);
-        let r=0,g=0,b=0,w=0,k=0;
+        let r=0,g=0,b=0,w=0;
         for (let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) {
           if(!dx&&!dy)continue;
           const nx=x+dx,ny=y+dy;
           if(!isInside(nx,ny))continue;
           const ni=ny*width+nx;
           if(marked[ni]&&!filled[ni])continue;
-          const weight=dx&&dy?.7:1;
-          r+=pixels.data[ni*4]*weight;g+=pixels.data[ni*4+1]*weight;b+=pixels.data[ni*4+2]*weight;w+=weight;k++;
+          const weight = dx !== 0 && dy !== 0 ? 0.7 : 1;
+          r+=pixels.data[ni*4]*weight;g+=pixels.data[ni*4+1]*weight;b+=pixels.data[ni*4+2]*weight;w+=weight;
         }
         if(w){pixels.data[i*4]=r/w;pixels.data[i*4+1]=g/w;pixels.data[i*4+2]=b/w;pixels.data[i*4+3]=255;}
         for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
