@@ -86,6 +86,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
   const [message,setMessage]=useState("");
   const [history,setHistory]=useState<ImageData[]>([]);
   const [ready,setReady]=useState(false);
+  const lastPoint=useRef<{x:number;y:number}|null>(null);
   useEffect(()=>{
     setReady(false); setHistory([]); setMessage("");
     const image=imageRef.current, mask=maskRef.current;
@@ -113,14 +114,18 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
   function stroke(event:ReactPointerEvent<HTMLCanvasElement>){
     const canvas=maskRef.current,ctx=canvas?.getContext("2d");
     if(!canvas||!ctx)return;
-    const p=point(event);
+    const p=point(event), previous=lastPoint.current;
     ctx.globalCompositeOperation=mode==="erase"?"source-over":"destination-out";
     ctx.fillStyle="rgba(255,50,120,.72)";
-    ctx.beginPath();ctx.arc(p.x,p.y,brush/2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle="rgba(255,50,120,.72)";
+    ctx.lineWidth=brush;ctx.lineCap="round";ctx.lineJoin="round";
+    if(previous){ctx.beginPath();ctx.moveTo(previous.x,previous.y);ctx.lineTo(p.x,p.y);ctx.stroke();}
+    else {ctx.beginPath();ctx.arc(p.x,p.y,brush/2,0,Math.PI*2);ctx.fill();}
+    lastPoint.current=p;
   }
   function start(event:ReactPointerEvent<HTMLCanvasElement>){
     if(busy||disabled)return;
-    event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);snapshot();stroke(event);
+    event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);snapshot();lastPoint.current=null;stroke(event);
   }
   function move(event:ReactPointerEvent<HTMLCanvasElement>){if(event.buttons===1){event.preventDefault();stroke(event);}}
   async function apply(){
@@ -138,7 +143,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
     <p>Brush over the object, including its shadow if needed. Use Restore to tidy the selection. Best for small areas and simple backgrounds; detailed scenes may need manual touch-up.</p>
     <div className="nexus-object-canvas" style={{aspectRatio:imageRef.current?.naturalWidth&&imageRef.current?.naturalHeight?String(imageRef.current.naturalWidth)+"/"+String(imageRef.current.naturalHeight):"4/3"}}>
       <img ref={imageRef} alt="Selected photo for object removal"/>
-      <canvas ref={maskRef} onPointerDown={start} onPointerMove={move}/>
+      <canvas ref={maskRef} onPointerDown={start} onPointerMove={move} onPointerUp={()=>{lastPoint.current=null;}} onPointerCancel={()=>{lastPoint.current=null;}}/>
       {!ready&&<span>Loading selected photo…</span>}
     </div>
     <div className="nexus-object-controls">
