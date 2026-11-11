@@ -11,7 +11,7 @@ export const EDITOR_TOOL_REGISTRY: EditorToolEntry[] = [
   { id: "adjust", label: "Adjust", actions: ["image finishing presets", "brightness", "contrast", "saturation", "exposure", "temperature", "HSL"], capability: "working" },
   { id: "media", label: "Media", actions: ["import photos", "import videos", "import audio", "browse files", "media library"], capability: "working" },
   { id: "stickers", label: "Stickers", actions: ["80+ categorized emoji and graphic stickers", "import transparent PNG/WebP sticker", "place and transform on timeline"], capability: "working" },
-  { id: "background", label: "Background", actions: ["local AI subject segmentation for still photos", "soft colour eraser", "12 generated gradient backdrops", "import custom background image", "full-frame editable background layer"], capability: "working" },
+  { id: "background", label: "Background", actions: ["local AI subject segmentation for still photos", "brush-based object selection", "undo and restore selection", "local patch-based object reconstruction for small areas", "soft colour eraser", "12 generated gradient backdrops", "import custom background image", "full-frame editable background layer"], capability: "working" },
   { id: "ratio", label: "Ratio", actions: ["9:16", "16:9", "1:1", "4:5", "3:4"], capability: "working" },
   { id: "export", label: "Export", actions: ["browser timeline render", "resolution", "frame rate", "download", "share"], capability: "working" },
   // Hidden execution tools available to the existing NEXUS AI Director; never render these as user-facing controls.
