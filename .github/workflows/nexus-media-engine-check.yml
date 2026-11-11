@@ -1,0 +1,52 @@
+name: NEXUS Media Engine Service Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/media-engine/**"
+      - ".github/workflows/nexus-media-engine-check.yml"
+  pull_request:
+    paths:
+      - "workers/media-engine/**"
+      - ".github/workflows/nexus-media-engine-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install worker dependencies
+        working-directory: workers/media-engine
+        run: npm install
+      - name: Check server syntax
+        working-directory: workers/media-engine
+        run: npm run check
+      - name: Start service and verify health endpoint
+        working-directory: workers/media-engine
+        env:
+          PORT: 8787
+          NEXUS_ENGINE_WORKER_TOKEN: ci-test-token
+          NEXUS_ENGINE_OUTPUT_SECRET: ci-output-secret
+          PUBLIC_BASE_URL: https://media-engine.invalid
+        run: |
+          set -euo pipefail
+          node server.mjs > /tmp/nexus-media-engine.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/health > /tmp/nexus-media-engine-health.json; then
+              break
+            fi
+            sleep 2
+          done
+          cat /tmp/nexus-media-engine-health.json
+          grep -q '"ok":true' /tmp/nexus-media-engine-health.json
