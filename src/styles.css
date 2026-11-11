@@ -1722,3 +1722,20 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 }
 
 .nexus-shell .nexus-effect-thumb>img{width:100%;height:100%;object-fit:cover;display:block}
+
+
+/* NEXUS creative asset browsers: sticker and backdrop libraries. */
+.nexus-shell .nexus-sticker-grid{display:grid;gap:10px;max-height:260px;overflow:auto}
+.nexus-shell .nexus-sticker-row{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.nexus-shell .nexus-sticker-row button{display:grid;place-items:center;min-width:0;min-height:42px;padding:4px;border:1px solid var(--nx-line);border-radius:10px;background:var(--nx-surface-2);font-size:21px}
+.nexus-shell .nexus-sticker-row button:active{transform:scale(.94);border-color:var(--nx-accent)}
+.nexus-shell .nexus-background-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nexus-shell .nexus-background-grid button{display:grid;gap:5px;min-width:0;padding:6px;border:1px solid var(--nx-line);border-radius:11px;background:var(--nx-surface-2);color:var(--nx-text);text-align:left}
+.nexus-shell .nexus-background-grid button span{display:block;width:100%;aspect-ratio:16/10;border-radius:7px}
+.nexus-shell .nexus-background-grid button b{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nexus-shell .nexus-effect-group input[type=color]{width:42px;height:34px;padding:2px;border:1px solid var(--nx-line);border-radius:8px;background:var(--nx-surface-2)}
+.nexus-shell .nexus-effect-group p{font-size:10px;line-height:1.5;color:var(--nx-muted)}
+@media(max-width:700px){
+ .nexus-shell .nexus-sticker-row{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .nexus-shell .nexus-background-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
