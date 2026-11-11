@@ -2,6 +2,56 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 
 type Props = { file?: File; onApply: (file: File) => void; disabled?: boolean };
 
+async function generativeFill(file: File, maskCanvas: HTMLCanvasElement, prompt: string): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(256, Math.round(bitmap.width * scale));
+    const height = Math.max(256, Math.round(bitmap.height * scale));
+    const source = document.createElement("canvas");
+    source.width = width; source.height = height;
+    const sourceContext = source.getContext("2d");
+    if (!sourceContext) throw new Error("This browser cannot prepare the photo for AI reconstruction.");
+    sourceContext.drawImage(bitmap, 0, 0, width, height);
+    const mask = document.createElement("canvas");
+    mask.width = width; mask.height = height;
+    const maskContext = mask.getContext("2d", { willReadFrequently: true });
+    if (!maskContext) throw new Error("This browser cannot prepare the object selection.");
+    maskContext.drawImage(maskCanvas, 0, 0, width, height);
+    const pixels = maskContext.getImageData(0, 0, width, height);
+    let selected = 0;
+    for (let i = 0; i < pixels.data.length; i += 4) {
+      const active = pixels.data[i + 3] > 20;
+      pixels.data[i] = active ? 255 : 0;
+      pixels.data[i + 1] = active ? 255 : 0;
+      pixels.data[i + 2] = active ? 255 : 0;
+      pixels.data[i + 3] = 255;
+      if (active) selected++;
+    }
+    if (selected < 8) throw new Error("Brush over the object you want to remove first.");
+    if (selected > width * height * .55) throw new Error("The selection is too large for one reconstruction. Reduce the marked area.");
+    maskContext.putImageData(pixels, 0, 0);
+    const imageData = source.toDataURL("image/png").split(",")[1];
+    const maskData = mask.toDataURL("image/png").split(",")[1];
+    const response = await fetch("/api/object-inpaint", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: imageData, mask: maskData, width, height, prompt })
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || typeof payload?.image !== "string") throw new Error(payload?.error || "Generative reconstruction could not complete. Try Local Smart Fill.");
+    const generated = await createImageBitmap(await (await fetch(payload.image)).blob());
+    try {
+      const output = document.createElement("canvas");
+      output.width = bitmap.width; output.height = bitmap.height;
+      const outputContext = output.getContext("2d");
+      if (!outputContext) throw new Error("Could not prepare the reconstructed photo.");
+      outputContext.drawImage(generated, 0, 0, output.width, output.height);
+      const blob = await new Promise<Blob>((resolve, reject) => output.toBlob(value => value ? resolve(value) : reject(new Error("Could not export the reconstructed photo.")), "image/png"));
+      return new File([blob], file.name.replace(/\\.[^.]+$/, "") + "-ai-object-removed.png", { type: "image/png" });
+    } finally { generated.close(); }
+  } finally { bitmap.close(); }
+}
+
 async function smartFill(file: File, maskCanvas: HTMLCanvasElement, feather: number): Promise<File> {
   const bitmap = await createImageBitmap(file);
   try {
@@ -94,6 +144,7 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
   const maskRef=useRef<HTMLCanvasElement>(null);
   const [brush,setBrush]=useState(26);
   const [feather,setFeather]=useState(6);
+  const [prompt,setPrompt]=useState("Seamlessly reconstruct the original background where the selected object was removed. Preserve the scene, lighting, perspective, textures and surrounding details. Do not add a new object.");
   const [mode,setMode]=useState<"erase"|"restore">("erase");
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
@@ -141,11 +192,18 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
     event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);snapshot();lastPoint.current=null;stroke(event);
   }
   function move(event:ReactPointerEvent<HTMLCanvasElement>){if(event.buttons===1){event.preventDefault();stroke(event);}}
-  async function apply(){
+  async function applyGenerative(){
     if(!file||!maskRef.current||busy)return;
-    setBusy(true);setMessage("Reconstructing the selected area…");
-    try{const result=await smartFill(file,maskRef.current,feather);onApply(result);setMessage("Object removed. The repaired image has replaced the selected still.");}
-    catch(error){setMessage(error instanceof Error?error.message:"The selected area could not be reconstructed.");}
+    setBusy(true);setMessage("AI is reconstructing the selected area. This may take a little while…");
+    try{const result=await generativeFill(file,maskRef.current,prompt);onApply(result);setMessage("AI reconstruction complete. The generated photo has replaced the selected still.");}
+    catch(error){setMessage(error instanceof Error?error.message:"AI reconstruction could not finish.");}
+    finally{setBusy(false);}
+  }
+  async function applyLocal(){
+    if(!file||!maskRef.current||busy)return;
+    setBusy(true);setMessage("Running local Smart Fill…");
+    try{const result=await smartFill(file,maskRef.current,feather);onApply(result);setMessage("Local Smart Fill complete. The repaired image has replaced the selected still.");}
+    catch(error){setMessage(error instanceof Error?error.message:"Local reconstruction could not finish.");}
     finally{setBusy(false);}
   }
   const undo=()=>{const c=maskRef.current,ctx=c?.getContext("2d"),last=history[history.length-1];if(!c||!ctx||!last)return;ctx.putImageData(last,0,0);setHistory(old=>old.slice(0,-1));};
@@ -167,8 +225,10 @@ export function ObjectEraserStudio({ file, onApply, disabled=false }: Props) {
     </div>
     <label className="nexus-object-brush">Brush size <b>{brush}px</b><input type="range" min="8" max="100" value={brush} onChange={e=>setBrush(Number(e.target.value))}/></label>
     <label className="nexus-object-brush">Edge feather <b>{feather}px</b><input type="range" min="0" max="24" value={feather} onChange={e=>setFeather(Number(e.target.value))}/></label>
-    <button type="button" className="nexus-object-apply" disabled={!ready||busy||disabled} onClick={()=>void apply()}>{busy?"Reconstructing…":"✦ Remove object & Smart Fill"}</button>
-    <small className="nexus-object-note">Runs locally on this device. This is patch-based reconstruction, not generative AI: it blends nearby pixels for simple textures, but cannot know what was hidden behind a large object or perfectly recreate a covered face.</small>
+    <label className="nexus-object-prompt">Reconstruction guidance <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} rows={2} maxLength={500} placeholder="Describe what should naturally appear behind the removed object"/></label>
+    <button type="button" className="nexus-object-apply" disabled={!ready||busy||disabled} onClick={()=>void applyGenerative()}>{busy?"Reconstructing…":"✦ AI Generative Object Removal"}</button>
+    <button type="button" className="nexus-object-local" disabled={!ready||busy||disabled} onClick={()=>void applyLocal()}>Use local Smart Fill instead</button>
+    <small className="nexus-object-note">AI reconstruction needs the configured Cloudflare AI service and an internet connection. Generative fill creates a plausible replacement; it cannot know exactly what was hidden behind an object. Large selections may alter nearby details.</small>
     {message&&<small role="status">{message}</small>}
   </section>;
 }
