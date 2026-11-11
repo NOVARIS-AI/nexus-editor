@@ -1,6 +1,7 @@
 import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
+import { createReadStream } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
@@ -117,6 +118,7 @@ function mimeFor(engine, ext) {
   if (value.endsWith(".webm")) return "video/webm";
   if (value.endsWith(".mov")) return "video/quicktime";
   if (value.endsWith(".mp3")) return "audio/mpeg";
+  if (value.endsWith(".m4a")) return "audio/mp4";
   if (value.endsWith(".wav")) return "audio/wav";
   if (value.endsWith(".m4a")) return "audio/mp4";
   if (value.endsWith(".ogg")) return "audio/ogg";
@@ -184,7 +186,7 @@ async function runYtDlp(job, folder, output) {
 }
 async function execute(job) {
   const folder = await fs.mkdtemp(path.join(os.tmpdir(), "nexus-engine-"));
-  const outputExt = job.engine === "ffmpeg" ? (String(job.options.format || "mp4") === "mp3" ? "mp3" : String(job.options.format || "mp4") === "wav" ? "wav" : String(job.options.format || "mp4") === "webm" ? "webm" : "mp4") : job.engine === "ytdlp" ? (String(job.options.action || "metadata") === "metadata" ? "json" : "mp4") : "mp4";
+  const outputExt = job.engine === "ffmpeg" ? (String(job.options.action || "") === "extract-audio" ? "m4a" : String(job.options.format || "mp4") === "mp3" ? "mp3" : String(job.options.format || "mp4") === "wav" ? "wav" : String(job.options.format || "mp4") === "webm" ? "webm" : "mp4") : job.engine === "ytdlp" ? (String(job.options.action || "metadata") === "metadata" ? "json" : "mp4") : "mp4";
   const output = path.join(folder, "nexus-output." + outputExt);
   try {
     job.state = "running"; job.progress = 5; job.message = "Preparing internal media engine…"; await saveJob(job);
@@ -226,7 +228,7 @@ const server = http.createServer(async (req, res) => {
     try {
       const file = path.join(OUTPUTS, name), stat = await fs.stat(file);
       res.writeHead(200, { "content-type": mimeFor("output", name), "content-length": stat.size, "cache-control": "private, max-age=300" });
-      return fs.createReadStream(file).pipe(res);
+      return createReadStream(file).pipe(res);
     } catch { return json(res, 404, { error: "Output not found." }); }
   }
   if (!authOK(req)) return json(res, 401, { error: "Invalid internal worker authorization." });
