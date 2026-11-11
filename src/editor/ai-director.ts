@@ -1,3 +1,5 @@
+import { isRemoteInternalEngineTool } from "./internal-engine-routing";
+
 export type DirectorPlan = { summary:string; engineTasks?:{engine:"remotion"|"hyperframes"|"ffmpeg"|"whisper"|"ytdlp";action:string;prompt:string;options?:Record<string,unknown>}[]; scenes:{title:string;visual:string;duration:number;narration:string;searchTerms:string[];assetMatches?:string[];matchReason?:string;overlayText?:string;referenceStart?:number;referenceEnd?:number;transitionStyle?:"fade"|"zoom"|"wipe"|"slide"|"blur"|"none";transitionDuration?:number;textX?:number;textY?:number;audioCueTime?:number;audioCueType?:string}[]; editPlan:{action:string;target:string;details:string}[]; assetNeeds:{kind:string;query:string;reason:string}[]; userReferenceNeeded:boolean };
 export type DirectorEngineJob = {engine:string;state:"queued"|"running"|"succeeded"|"failed"|"unavailable";id?:string;message:string;progress?:number};
 export async function askNexusDirector(brief:string,context:Record<string,unknown>,signal?:AbortSignal):Promise<{plan:DirectorPlan;model:string;provider:string;engineJobs?:DirectorEngineJob[]}> {
@@ -8,8 +10,8 @@ export async function askNexusDirector(brief:string,context:Record<string,unknow
  const engineJobs:DirectorEngineJob[]=[];
  // Speech recognition is already callable through the existing online-first/local Whisper pipeline.
  for(const task of tasks){
-  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",state:"succeeded",message:"Routed through the existing internal speech pipeline when source audio is available."});continue;}
-  if(!["remotion","hyperframes","ffmpeg","ytdlp"].includes(task.engine))continue;
+  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",state:"unavailable",message:"No new transcription job was started. Whisper runs through the existing selected-audio speech pipeline."});continue;}
+  if(!isRemoteInternalEngineTool(task.engine))continue;
   try{
    const jobResponse=await fetch("/api/engine-jobs",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({engine:task.engine,prompt:task.prompt,options:{...(task.options&&typeof task.options==="object"?task.options:{}),action:task.action,source:"nexus-ai-director"}})});
    const job=await jobResponse.json().catch(()=>({}));
