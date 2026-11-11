@@ -1315,6 +1315,13 @@ export default function App() {
     try {
       const latest=await getEngineJob(job.engine,job.id);
       setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
+      if(latest.state==="succeeded" && latest.metadata && job.engine==="ytdlp") {
+        const title=String(latest.metadata.title||"Reference media");
+        const duration=Number(latest.metadata.duration);
+        setAiReply("Reference source metadata retrieved: "+title+(Number.isFinite(duration)&&duration>0?" · "+Math.round(duration)+" seconds":"")+".");
+        setEngineReport(old=>[...old,"Reference metadata retrieved: "+title]);
+        return;
+      }
       if(latest.state!=="succeeded" || !latest.output?.url || job.engine==="render") return;
       const url=latest.output.url;
       if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
