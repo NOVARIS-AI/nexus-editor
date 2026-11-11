@@ -10,10 +10,16 @@ export async function askNexusDirector(brief:string,context:Record<string,unknow
  const engineJobs:DirectorEngineJob[]=[];
  // Speech recognition is already callable through the existing online-first/local Whisper pipeline.
  for(const task of tasks){
-  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",state:"unavailable",message:"No new transcription job was started. Whisper runs through the existing selected-audio speech pipeline."});continue;}
+  if(task.engine==="whisper"){engineJobs.push({engine:"whisper",sceneTitle:String(task.options?.sceneTitle||task.action||"Speech analysis").slice(0,160),state:"unavailable",message:"Whisper is handled by NEXUS existing online-first/on-device speech pipeline. Select or analyse the audio asset to run transcription."});continue;}
   if(!isRemoteInternalEngineTool(task.engine))continue;
+  const taskOptions={...(task.options&&typeof task.options==="object"?task.options:{}),action:task.action,source:"nexus-ai-director"};
+  if(task.engine==="ytdlp" && String(taskOptions.action||"metadata")!=="metadata"){
+   const authorized=typeof window!=="undefined" && window.confirm("NEXUS AI wants to retrieve reference media. Continue only if you own this media or have permission to download it. Do you authorize this download?");
+   if(!authorized){engineJobs.push({engine:task.engine,sceneTitle:String(taskOptions.sceneTitle||task.action||"Reference media").slice(0,160),state:"unavailable",message:"Reference-media download was not authorized, so no download was started."});continue;}
+   taskOptions.userAuthorized=true;
+  } else if(task.engine==="ytdlp") taskOptions.userAuthorized=false;
   try{
-   const jobResponse=await fetch("/api/engine-jobs",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({engine:task.engine,prompt:task.prompt,options:{...(task.options&&typeof task.options==="object"?task.options:{}),action:task.action,source:"nexus-ai-director"}})});
+   const jobResponse=await fetch("/api/engine-jobs",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({engine:task.engine,prompt:task.prompt,options:taskOptions})});
    const job=await jobResponse.json().catch(()=>({}));
    if(!jobResponse.ok)throw new Error(job.error||"Internal execution service is not connected.");
    engineJobs.push({engine:task.engine,sceneTitle:String(task.options?.sceneTitle||task.action||"AI Director background task").slice(0,160),state:job.state||"queued",id:job.id,message:String(job.message||"Internal task accepted."),progress:Number(job.progress)||0});
