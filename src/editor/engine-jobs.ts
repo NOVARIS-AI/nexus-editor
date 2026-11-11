@@ -1,5 +1,5 @@
 export type NexusJobState = "queued" | "running" | "succeeded" | "failed" | "cancelled";
-export type NexusEngineJob = { id:string; engine:"image"|"video"|"audio"|"render"|"remotion"|"hyperframes"|"ffmpeg"|"ytdlp"; state:NexusJobState; progress:number; message:string; output?:{url?:string;mimeType?:string;assetId?:string}; error?:string };
+export type NexusEngineJob = { id:string; engine:"image"|"video"|"audio"|"render"|"remotion"|"hyperframes"|"ffmpeg"|"ytdlp"; state:NexusJobState; progress:number; message:string; output?:{url?:string;mimeType?:string;assetId?:string}; metadata?:Record<string,unknown>; error?:string };
 export type NexusWorkerHealth = { ok:boolean; status:"online"|"unavailable"; message:string; provider?:string; checkedAt:number };
 export async function checkNexusWorker(signal?:AbortSignal):Promise<NexusWorkerHealth>{
  const response=await fetch("/api/nexus-worker",{method:"GET",signal,headers:{Accept:"application/json", "Cache-Control":"no-cache"}});
