@@ -340,7 +340,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const track = tracks.get(layer.trackId);
           const scale = Math.max(.05, Math.min(4, layer.scale));
           const width = canvas.width * .5 * scale, height = width * image.naturalHeight / Math.max(1,image.naturalWidth);
-          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[track?.blendMode || "normal"] || "source-over";
+          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[track?.blendMode || layer.blendMode || "normal"] || "source-over";
           ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
           ctx.rotate(layer.rotation * Math.PI / 180);
           if(layer.fit==="cover") {
@@ -410,7 +410,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const track = tracks.get(layer.trackId);
           const scale = Math.max(.05, Math.min(4, layer.scale));
           const aspect = image.naturalWidth / Math.max(1, image.naturalHeight); const maxWidth = canvas.width * .5 * scale, maxHeight = canvas.height * .9; const naturalHeight = maxWidth / Math.max(.0001, aspect); const height = Math.min(naturalHeight, maxHeight), width = height < naturalHeight ? height * aspect : maxWidth;
-          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[track?.blendMode || "normal"] || "source-over";
+          ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[track?.blendMode || layer.blendMode || "normal"] || "source-over";
           ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
           ctx.rotate(layer.rotation * Math.PI / 180);
           if(layer.fit==="cover") {
