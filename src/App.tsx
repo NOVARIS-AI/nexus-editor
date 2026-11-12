@@ -859,6 +859,17 @@ export default function App() {
     setTextLayers(old => old.map(layer => textIds.has(layer.id) ? (({ groupId, groupName, ...rest }) => rest)(layer as any) : layer));
     setStatus(moving.length + " layer" + (moving.length === 1 ? "" : "s") + " moved out of its folder.");
   }
+  function renameOverlayFolder(groupId: string, currentName: string) {
+    const nextName = window.prompt("Rename folder", currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+    const imageHas = imageLayers.some(layer => layer.groupId === groupId);
+    const textHas = textLayers.some(layer => layer.groupId === groupId);
+    if (!imageHas && !textHas) return;
+    recordProjectHistory();
+    setImageLayers(old => old.map(layer => layer.groupId === groupId ? { ...layer, groupName: nextName } : layer));
+    setTextLayers(old => old.map(layer => layer.groupId === groupId ? { ...layer, groupName: nextName } : layer));
+    setStatus("Folder renamed to " + nextName + ". Undo is available.");
+  }
   function groupSelectedOverlays() {
     const entries = selectedOverlayEntries();
     if (entries.length < 2) { setStatus("Select at least two overlay layers to create a folder."); return; }
@@ -2459,7 +2470,7 @@ export default function App() {
                   <div onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const moving = JSON.parse(e.dataTransfer.getData("application/x-nexus-layer")); moveOverlayLayersOutOfFolders(moving.kind, moving.id); } catch {} }} style={{ padding: "8px 10px", border: "1px dashed rgba(255,255,255,.22)", borderRadius: 8, fontSize: 10, opacity: .72 }}>DROP HERE TO MOVE LAYERS OUT OF FOLDERS</div>
                   {entries.filter(entry => !entry.groupId).map(renderRow)}
                   {groupIds.map(groupId => { const members = entries.filter(entry => entry.groupId === groupId); const name = members[0]?.groupName || "Folder"; return <details key={groupId} open onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); try { const moving = JSON.parse(e.dataTransfer.getData("application/x-nexus-layer")); moveOverlayLayersToFolder(moving.kind, moving.id, groupId, name); } catch {} }} style={{ border: "1px solid rgba(255,255,255,.12)", borderRadius: 9, padding: 7, background: "rgba(255,255,255,.025)" }}>
-                    <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 11, padding: 4 }}>▰ {name} · {members.length} layers <span style={{ fontWeight: 400, opacity: .65 }}>— drop layers here</span></summary>
+                    <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 11, padding: 4 }}>▰ {name} · {members.length} layers <span style={{ fontWeight: 400, opacity: .65 }}>— drop layers here</span></summary><button type="button" onClick={e => { e.preventDefault(); e.stopPropagation(); renameOverlayFolder(groupId, name); }} style={{ margin: "2px 4px 6px", padding: "4px 8px", fontSize: 10 }}>Rename folder</button>
                     <div style={{ display: "grid", gap: 5, marginTop: 7 }}>{members.map(renderRow)}</div>
                   </details>; })}
                   {!entries.length && <small>No overlay layers yet. Add an image or text layer to manage it here.</small>}
