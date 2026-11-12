@@ -141,7 +141,7 @@ body:has(.editor-fullscreen) .page-content{padding:0!important;margin:0!importan
 .editor-project-title b{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .editor-project-title small{font-size:8px;color:#9894b0}
 .editor-export-entry{background:linear-gradient(110deg,var(--accent-a),var(--accent-b));border:0;font-size:10px;font-weight:700}
-.editor-screen{height:calc(100dvh - 58px);min-height:0;display:grid;grid-template-rows:minmax(220px,1fr) minmax(170px,31%) 66px 20px;gap:0;overflow:hidden}
+.editor-screen{height:calc(100dvh - 58px);min-height:0;display:grid;grid-template-rows:minmax(0,1fr) minmax(190px,36%) 20px;gap:0;overflow:hidden}
 .editor-preview-zone{min-height:0;display:flex;flex-direction:column;align-items:center;padding:9px 14px 5px}
 .editor-preview-meta{width:min(100%,850px);display:flex;justify-content:space-between;align-items:center;color:#9692ad;font-size:9px;letter-spacing:1px}
 .editor-preview-meta button{display:flex;align-items:center;gap:5px;border:0;background:transparent;color:#b8b3cf;font-size:9px}
@@ -154,11 +154,11 @@ body:has(.editor-fullscreen) .page-content{padding:0!important;margin:0!importan
 .editor-transport button{padding:6px 10px;border:1px solid #302d50;border-radius:7px;background:#19182d;color:#e8e4f5;font-size:9px}
 .editor-transport .editor-play{width:32px;height:32px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(110deg,var(--accent-a),var(--accent-b))}
 .editor-transport span{font-size:9px;color:#c4bfd7;font-variant-numeric:tabular-nums}
-.editor-timeline-zone{min-height:0;padding:9px 14px;border-top:1px solid #292747;background:#101020}
+.editor-timeline-zone{min-height:0;min-width:0;display:flex;flex-direction:column;padding:9px 14px 0;border-top:1px solid #292747;background:#101020;overflow:hidden}
 .editor-timeline-head{height:34px;display:flex;align-items:center;justify-content:space-between}
 .editor-timeline-head>div:first-child{display:grid;gap:3px}.editor-timeline-head b{font-size:11px}.editor-timeline-head small{font-size:8px;color:#9692ad}
 .editor-timeline-actions{display:flex;gap:5px}.editor-timeline-actions button{width:30px;height:28px;display:grid;place-items:center;border:1px solid #302d50;border-radius:6px;background:#1a1931;color:#e1dced}.editor-timeline-actions button:disabled{opacity:.35}
-.editor-timeline-scroll{height:calc(100% - 38px);overflow:auto}
+.editor-timeline-scroll{height:auto;min-height:0;flex:1 1 auto;overflow:auto}
 .editor-timeline-ruler{height:20px;min-width:700px;display:flex;justify-content:space-between;margin-left:65px;padding:3px 7px;color:#817d9b;font-size:8px;border-bottom:1px solid #292747}
 .editor-timeline-rows{display:grid;grid-template-columns:65px minmax(0,1fr);min-width:765px;height:calc(100% - 20px)}
 .editor-lane-labels{display:grid;grid-template-rows:repeat(4,1fr)}
@@ -172,7 +172,7 @@ body:has(.editor-fullscreen) .page-content{padding:0!important;margin:0!importan
 .empty-lane-note{padding-left:8px;color:#65617e;font-size:8px}
 .editor-playhead{position:absolute;top:0;bottom:0;width:2px;background:#ffd166;z-index:2;pointer-events:none}
 .editor-timeline-scrub{position:absolute;inset:0;width:100%;height:100%;opacity:0;z-index:3;cursor:ew-resize}
-.editor-tool-dock{display:flex;align-items:stretch;justify-content:center;gap:clamp(5px,2vw,22px);padding:5px 8px;border-top:1px solid #292747;background:#101020}
+.editor-tool-dock{height:62px;min-height:62px;flex:0 0 62px;display:flex;align-items:stretch;justify-content:center;gap:clamp(5px,2vw,22px);padding:5px 8px;border-top:1px solid #292747;background:#101020;overflow-x:auto;overflow-y:hidden}
 .editor-tool-dock button{min-width:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:0;border-radius:8px;background:transparent;color:#c5c0d9;font-size:8px}
 .editor-tool-dock button:active{background:var(--accent-soft);color:var(--accent-text)}
 .editor-status-line{display:flex;align-items:center;gap:7px;padding:0 13px;color:#8e8aa6;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:#0b0b16}
@@ -204,18 +204,18 @@ body:has(.editor-fullscreen) .page-content{padding:0!important;margin:0!importan
  .editor-back{padding:7px 8px}.editor-back span{font-size:9px}
  .editor-project-title b{font-size:10px}.editor-project-title small{font-size:7px}
  .editor-export-entry{padding:8px 9px;font-size:9px}
- .editor-screen{height:calc(100dvh - 52px);grid-template-rows:minmax(0,1fr) minmax(150px,27%) 62px 18px}
+ .editor-screen{height:calc(100dvh - 52px);grid-template-rows:minmax(0,1fr) minmax(190px,39%) 18px}
  .editor-preview-zone{padding:6px 8px 3px}
  .editor-preview-frame{height:calc(100% - 82px);max-height:100%;width:auto;max-width:100%;aspect-ratio:9/16}
  .editor-preview-meta{font-size:8px}
  .editor-transport{height:34px;min-height:34px}
- .editor-timeline-zone{padding:6px 7px}
+ .editor-timeline-zone{padding:6px 7px 0}
  .editor-timeline-head{height:30px}
- .editor-timeline-scroll{height:calc(100% - 32px)}
+ .editor-timeline-scroll{height:auto;min-height:0;flex:1 1 auto}
  .editor-timeline-ruler{margin-left:52px}
  .editor-timeline-rows{grid-template-columns:52px minmax(0,1fr);min-width:700px}
- .editor-tool-dock{gap:2px;padding:4px 2px}
- .editor-tool-dock button{min-width:0;flex:1;font-size:7px;gap:3px}
+ .editor-tool-dock{height:58px;min-height:58px;flex-basis:58px;gap:2px;padding:4px 2px;justify-content:flex-start}
+ .editor-tool-dock button{min-width:52px;flex:0 0 52px;font-size:7px;gap:3px}
  .editor-tool-dock button svg{width:17px;height:17px}
  .editor-subpage{height:calc(100dvh - 52px);padding:17px 13px}
  .huge-import-zone{min-height:210px}
@@ -1834,4 +1834,21 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .editor-preview-actionbar button{height:30px;min-width:34px;padding:0 8px}
  .editor-preview-actionbar .preview-keyframe-action{min-width:96px;font-size:9px}
  .editor-preview-actionbar button[aria-label="Undo"],.editor-preview-actionbar button[aria-label="Redo"]{width:34px;min-width:34px}
+}
+
+/* CapCut-like editor hierarchy: preview, timeline, then persistent tools */
+.editor-preview-zone{min-width:0;overflow-y:auto;overflow-x:hidden;justify-content:flex-start}
+.editor-preview-frame{flex:1 1 auto;min-height:120px;width:auto;max-height:calc(100% - 92px)}
+.editor-preview-actionbar{flex:0 0 38px}
+.editor-transport{flex:0 0 38px;justify-content:center}
+.editor-timeline-head{flex:0 0 34px}
+.editor-timeline-zone .editor-tool-dock{position:relative;z-index:5}
+.editor-tool-dock button.active{background:var(--accent-soft);color:var(--accent-text)}
+@media(max-width:700px){
+ .editor-preview-zone{padding:5px 7px 2px}
+ .editor-preview-frame{min-height:110px;max-height:calc(100% - 82px)}
+ .editor-preview-actionbar{flex-basis:34px}
+ .editor-transport{flex-basis:34px}
+ .editor-timeline-zone{padding-top:5px}
+ .editor-timeline-head{flex-basis:30px}
 }
