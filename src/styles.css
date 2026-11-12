@@ -1977,3 +1977,35 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .nexus-shell .editor-tool-dock{height:64px!important;min-height:64px!important;max-height:64px!important}
   .nexus-shell .editor-tool-dock button{flex-basis:57px!important;min-width:57px!important;min-height:50px!important}
 }
+
+
+/* Keep the dock in its own row when the timeline is hidden; contextual tools
+   slide up from the bottom like CapCut's selected-clip tool tray. */
+@media(max-width:700px){
+  .nexus-shell .editor-screen[data-timeline-collapsed="true"]{
+    grid-template-rows:minmax(0,1fr) 64px 12px!important;
+  }
+  .nexus-shell .editor-screen[data-tool-panel-open="true"] .editor-tool-dock{display:none!important}
+  .nexus-shell .editor-screen[data-tool-panel-open="true"] ~ .editor-bottom-tools.nexus-tool-stack{
+    position:fixed!important;
+    z-index:11000!important;
+    left:0!important;right:0!important;bottom:65px!important;
+    width:100%!important;
+    max-height:40dvh!important;
+    min-height:74px!important;
+    padding-bottom:env(safe-area-inset-bottom)!important;
+    border-top:1px solid var(--nx-line)!important;
+    background:var(--nx-surface)!important;
+    box-shadow:0 -12px 32px rgba(0,0,0,.28)!important;
+  }
+  .nexus-shell .editor-screen[data-tool-panel-open="true"] ~ .editor-bottom-tools .nexus-subtool-ribbon,
+  .nexus-shell .editor-screen[data-tool-panel-open="true"] ~ .editor-bottom-tools .nexus-context-controls{
+    display:flex!important;
+    flex-wrap:wrap!important;
+    max-height:34dvh!important;
+    overflow-y:auto!important;
+    padding:10px!important;
+    margin:0!important;
+  }
+  .nexus-shell .editor-screen[data-tool-panel-open="true"] ~ .editor-bottom-tools .nexus-context-controls{display:block!important}
+}
