@@ -1852,3 +1852,128 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .editor-timeline-zone{padding-top:5px}
  .editor-timeline-head{flex-basis:30px}
 }
+
+
+/* CapCut-reference mobile workspace layout: preview -> transport -> timeline -> fixed tool dock. */
+.nexus-shell .editor-screen{
+  height:calc(100dvh - 118px)!important;
+  min-height:0!important;
+  display:grid!important;
+  grid-template-rows:minmax(0,1fr) minmax(145px,32dvh) 66px 12px!important;
+  gap:0!important;
+  overflow:hidden!important;
+}
+.nexus-shell .editor-preview-zone{
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  overflow:hidden!important;
+  padding:7px 12px 3px!important;
+  background:transparent!important;
+}
+.nexus-shell .editor-preview-meta{flex:0 0 28px!important;min-height:28px!important}
+.nexus-shell .editor-preview-frame{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  max-height:100%!important;
+  width:auto!important;
+  height:calc(100% - 100px)!important;
+  max-width:100%!important;
+  margin:2px auto!important;
+  aspect-ratio:9/16!important;
+}
+.nexus-shell .editor-preview-frame.ratio-16-9{width:min(100%,620px)!important;height:auto!important;aspect-ratio:16/9!important}
+.nexus-shell .editor-preview-frame.ratio-1-1{height:100%!important;aspect-ratio:1/1!important}
+.nexus-shell .editor-preview-frame.ratio-4-5{height:100%!important;aspect-ratio:4/5!important}
+.nexus-shell .editor-preview-frame.ratio-3-4{height:100%!important;aspect-ratio:3/4!important}
+.nexus-shell .editor-transport{
+  order:1!important;
+  flex:0 0 34px!important;
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:0 6px!important;
+}
+.nexus-shell .editor-preview-actionbar{order:2!important;flex:0 0 32px!important;min-height:32px!important;width:100%!important;margin:0!important}
+.nexus-shell .editor-preview-zone>details{order:4!important;flex:0 0 auto!important}
+.nexus-shell .editor-preview-zone>.editor-transport[style*="flex-wrap"]{order:3!important}
+.nexus-shell .editor-timeline-zone{
+  min-height:0!important;
+  max-height:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  padding:5px 8px 2px!important;
+  border-radius:0!important;
+}
+.nexus-shell .editor-timeline-head{flex:0 0 32px!important;min-height:32px!important}
+.nexus-shell .editor-timeline-scroll{flex:1 1 auto!important;min-height:60px!important;max-height:none!important;overflow:auto!important}
+.nexus-shell .editor-tool-dock{
+  position:relative!important;
+  z-index:8!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  flex-wrap:nowrap!important;
+  gap:2px!important;
+  width:100%!important;
+  height:66px!important;
+  min-height:66px!important;
+  max-height:66px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:5px 5px max(5px,env(safe-area-inset-bottom))!important;
+  margin:0!important;
+  border-top:1px solid var(--nx-line)!important;
+  background:var(--nx-surface)!important;
+  scrollbar-width:none!important;
+}
+.nexus-shell .editor-tool-dock::-webkit-scrollbar{display:none!important}
+.nexus-shell .editor-tool-dock button{
+  flex:0 0 62px!important;
+  min-width:62px!important;
+  min-height:52px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  padding:4px 3px!important;
+  border:0!important;
+  border-radius:8px!important;
+  background:transparent!important;
+  color:var(--nx-muted)!important;
+  font-size:9px!important;
+  white-space:nowrap!important;
+}
+.nexus-shell .editor-tool-dock button svg{width:19px!important;height:19px!important}
+.nexus-shell .editor-tool-dock button.active{
+  background:color-mix(in srgb,var(--nx-accent) 15%,transparent)!important;
+  color:var(--nx-text)!important;
+}
+.nexus-shell .editor-status-line{min-height:12px!important;height:12px!important;overflow:hidden!important;padding:0 8px!important;font-size:7px!important}
+@media(max-width:700px){
+  .nexus-shell .editor-screen{
+    height:calc(100dvh - 125px)!important;
+    grid-template-rows:minmax(0,1fr) minmax(142px,30dvh) 64px 12px!important;
+  }
+  .nexus-shell .editor-screen[data-timeline-collapsed="true"]{
+    grid-template-rows:minmax(0,1fr) 0 64px 12px!important;
+  }
+  .nexus-shell .editor-preview-zone{padding:4px 7px 2px!important}
+  .nexus-shell .editor-preview-meta{flex-basis:24px!important;min-height:24px!important}
+  .nexus-shell .editor-preview-meta .preview-meta-actions select,
+  .nexus-shell .editor-preview-meta .preview-meta-actions button:has(svg.lucide-sticker){display:none!important}
+  .nexus-shell .editor-preview-frame{height:calc(100% - 92px)!important;max-width:calc(100vw - 30px)!important}
+  .nexus-shell .editor-preview-frame.ratio-16-9{width:min(100%,560px)!important;height:auto!important}
+  .nexus-shell .editor-transport{flex-basis:32px!important;min-height:32px!important}
+  .nexus-shell .editor-preview-actionbar{flex-basis:30px!important;min-height:30px!important}
+  .nexus-shell .editor-timeline-zone{padding:4px 5px 1px!important}
+  .nexus-shell .editor-timeline-head{flex-basis:29px!important;min-height:29px!important}
+  .nexus-shell .editor-tool-dock{height:64px!important;min-height:64px!important;max-height:64px!important}
+  .nexus-shell .editor-tool-dock button{flex-basis:57px!important;min-width:57px!important;min-height:50px!important}
+}
