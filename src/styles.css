@@ -2009,3 +2009,38 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   }
   .nexus-shell .editor-screen[data-tool-panel-open="true"] ~ .editor-bottom-tools .nexus-context-controls{display:block!important}
 }
+
+
+/* Mobile polish pass: remove stray text, protect track labels and prevent
+   the effects reference chips from being clipped by the tool drawer. */
+@media(max-width:700px){
+  .nexus-shell .editor-timeline-rows{
+    grid-template-columns:88px minmax(0,1fr)!important;
+    width:max-content;
+    min-width:100%;
+  }
+  .nexus-shell .editor-timeline-ruler{margin-left:88px!important}
+  .nexus-shell .editor-lane-labels>span{
+    min-width:88px!important;width:88px!important;padding:4px 5px!important;overflow:visible!important;
+  }
+  .nexus-shell .editor-lane-labels>span>b{font-size:8px!important;white-space:nowrap!important}
+  .nexus-shell .editor-track-controls{flex-wrap:nowrap!important;max-width:100%;overflow:hidden}
+  .nexus-shell .editor-track-controls button{flex:0 0 16px}
+  .nexus-shell .editor-timeline-scroll{
+    padding-right:22px!important;scroll-padding-right:22px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;
+  }
+  .nexus-shell .editor-lanes-inner{padding-right:22px!important}
+  .nexus-shell .editor-bottom-tools.nexus-tool-stack{
+    overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  }
+  .nexus-shell .nexus-effect-reference-strip{
+    flex-wrap:wrap!important;align-items:center!important;min-height:54px;height:auto!important;overflow:visible!important;
+    padding:10px 12px!important;row-gap:8px!important;
+  }
+  .nexus-shell .nexus-effect-reference-strip>span,
+  .nexus-shell .nexus-effect-reference-strip small{
+    flex:0 0 auto!important;min-height:24px;display:inline-flex;align-items:center;
+  }
+  .nexus-shell .nexus-effect-reference-strip small{flex-basis:100%!important;min-height:0}
+  .nexus-shell .nexus-effect-group,.nexus-shell .nexus-effect-library-head{min-width:0;overflow:visible}
+}
