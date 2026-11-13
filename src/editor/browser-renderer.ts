@@ -381,7 +381,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           const asset = assets.get(clip.assetId);
           if (!asset) return;
           const localTime = Math.max(0, time - clip.start);
-          const sourceTime = timingFor(clip).sourceAtTimeline(localTime) + (clip.sourceIn || 0);
+          const sourceTime = timingFor(clip).sourceAtTimeline(localTime);
           if (asset.kind === "video") {
             const video = mediaByClip.get(clip.id);
             if (!video) return;
