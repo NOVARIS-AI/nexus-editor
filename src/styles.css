@@ -2857,3 +2857,107 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .nexus-shell .editor-preview-frame{min-height:58px!important}
   .nexus-shell .editor-bottom-tools.nexus-tool-stack{max-height:22dvh!important}
 }
+
+
+/* NEXUS STUDIO — NEW EDITOR PAGE SYSTEM
+   Replaces the legacy editor-page presentation while retaining its editing engines. */
+.nexus-shell .nexus-studio-page{
+  --studio-bg:#090b10;--studio-panel:#121722;--studio-raised:#19212d;
+  --studio-line:#2b3544;--studio-text:#f1f3f8;--studio-muted:#8f9aab;--studio-accent:#a58bff;
+  position:relative!important;isolation:isolate!important;
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;height:calc(100dvh - 75px)!important;min-height:0!important;
+  padding:0!important;overflow:hidden!important;background:var(--studio-bg)!important;color:var(--studio-text)!important;
+}
+.nexus-shell .nexus-studio-page .editor-topbar{
+  order:0!important;flex:0 0 62px!important;height:62px!important;min-height:62px!important;
+  display:flex!important;align-items:center!important;gap:12px!important;padding:0 18px!important;
+  background:#10141c!important;border:0!important;border-bottom:1px solid var(--studio-line)!important;
+}
+.nexus-shell .nexus-studio-page .editor-back{background:transparent!important;border:0!important;color:#dfe4ed!important}
+.nexus-shell .nexus-studio-page .editor-project-title{min-width:0!important;flex:1!important}
+.nexus-shell .nexus-studio-page .editor-project-title b{font-size:14px!important;letter-spacing:.1px!important}
+.nexus-shell .nexus-studio-page .editor-project-title small{font-size:10px!important;letter-spacing:.35px!important}
+.nexus-shell .nexus-studio-page .editor-top-icon{height:36px!important;min-width:36px!important;padding:0 10px!important}
+.nexus-shell .nexus-studio-page .editor-export-entry{height:38px!important;padding:0 15px!important;font-weight:750!important;letter-spacing:.2px!important}
+.nexus-shell .nexus-studio-page .editor-screen{
+  flex:1 1 auto!important;min-height:0!important;height:auto!important;
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+  grid-template-rows:minmax(180px,1fr) minmax(112px,23dvh) minmax(118px,auto) 58px 14px!important;
+  gap:0!important;overflow:hidden!important;background:var(--studio-bg)!important;
+}
+.nexus-shell .nexus-studio-page .editor-preview-zone{
+  grid-row:1!important;min-height:0!important;height:100%!important;
+  display:grid!important;grid-template-rows:34px minmax(0,1fr) 34px 32px!important;
+  align-items:stretch!important;gap:5px!important;padding:10px 16px 8px!important;
+  background:#0c1017!important;border:0!important;border-bottom:1px solid var(--studio-line)!important;
+}
+.nexus-shell .nexus-studio-page .editor-preview-meta{grid-row:1!important;min-height:34px!important;display:flex!important;align-items:center!important}
+.nexus-shell .nexus-studio-page .editor-preview-frame{
+  grid-row:2!important;align-self:center!important;justify-self:center!important;
+  width:auto!important;height:100%!important;max-height:100%!important;min-height:0!important;
+  max-width:min(100%,calc((100dvh - 420px)*.5625))!important;
+  aspect-ratio:9/16!important;margin:0!important;border:1px solid #364153!important;
+  border-radius:3px!important;background:#030508!important;box-shadow:0 10px 28px #0008!important;
+}
+.nexus-shell .nexus-studio-page .editor-preview-frame.ratio-16-9{
+  width:min(100%,760px)!important;max-width:100%!important;height:auto!important;aspect-ratio:16/9!important;
+}
+.nexus-shell .nexus-studio-page .editor-transport{grid-row:3!important;min-height:34px!important;height:34px!important}
+.nexus-shell .nexus-studio-page .editor-preview-actionbar{grid-row:4!important;min-height:32px!important;height:32px!important}
+.nexus-shell .nexus-studio-page .editor-timeline-zone{
+  grid-row:2!important;flex:none!important;width:calc(100% - 24px)!important;
+  min-height:0!important;height:100%!important;max-height:none!important;
+  margin:7px 12px!important;padding:7px 8px!important;
+  background:#111720!important;border:1px solid var(--studio-line)!important;border-radius:4px!important;
+}
+.nexus-shell .nexus-studio-page .editor-timeline-head{min-height:26px!important}
+.nexus-shell .nexus-studio-page .editor-timeline-scroll{min-height:0!important;max-height:none!important;overflow:auto!important}
+.nexus-shell .nexus-studio-page .editor-bottom-tools.nexus-tool-stack{
+  grid-row:3!important;min-height:0!important;max-height:none!important;overflow:auto!important;
+  margin:0 12px 7px!important;padding:8px!important;background:#121822!important;
+  border:1px solid var(--studio-line)!important;border-radius:4px!important;
+}
+.nexus-shell .nexus-studio-page .nexus-subtool-ribbon{min-height:36px!important;margin-bottom:8px!important}
+.nexus-shell .nexus-studio-page .editor-tool-dock{
+  grid-row:4!important;position:relative!important;left:auto!important;right:auto!important;bottom:auto!important;
+  height:58px!important;min-height:58px!important;max-height:58px!important;
+  display:flex!important;justify-content:center!important;gap:7px!important;padding:5px 10px!important;
+  background:#0f141c!important;border:0!important;border-top:1px solid var(--studio-line)!important;
+}
+.nexus-shell .nexus-studio-page .editor-tool-dock button{
+  flex:1 1 0!important;max-width:94px!important;min-width:0!important;min-height:46px!important;
+  border-radius:3px!important;background:#171e29!important;border:1px solid #2d3848!important;
+}
+.nexus-shell .nexus-studio-page .editor-status-line{grid-row:5!important;height:14px!important;min-height:14px!important}
+.nexus-shell .nexus-studio-page .nexus-assistant-orb{z-index:130!important}
+.nexus-shell .nexus-studio-page .nexus-assistant-window{z-index:131!important}
+.nexus-shell .nexus-studio-page .nexus-assistant-window,
+.nexus-shell .nexus-studio-page .nexus-assistant-head,
+.nexus-shell .nexus-studio-page .nexus-assistant-message,
+.nexus-shell .nexus-studio-page .nexus-assistant-tools-grid button{border-radius:3px!important}
+@media(max-width:700px){
+ .nexus-shell .nexus-studio-page{height:calc(100dvh - 58px)!important}
+ .nexus-shell .nexus-studio-page .editor-topbar{flex-basis:52px!important;height:52px!important;min-height:52px!important;padding:0 7px!important;gap:5px!important}
+ .nexus-shell .nexus-studio-page .editor-project-title b{font-size:11px!important;max-width:30vw!important}
+ .nexus-shell .nexus-studio-page .editor-project-title small{font-size:8px!important}
+ .nexus-shell .nexus-studio-page .editor-top-icon{padding:0 6px!important;min-width:30px!important;height:32px!important}
+ .nexus-shell .nexus-studio-page .editor-top-icon span{display:none!important}
+ .nexus-shell .nexus-studio-page .editor-export-entry{height:32px!important;padding:0 8px!important;font-size:10px!important}
+ .nexus-shell .nexus-studio-page .editor-screen{
+  grid-template-rows:minmax(150px,1fr) minmax(94px,20dvh) minmax(104px,auto) 56px 13px!important;
+ }
+ .nexus-shell .nexus-studio-page .editor-preview-zone{grid-template-rows:27px minmax(0,1fr) 29px 28px!important;padding:5px 7px!important;gap:3px!important}
+ .nexus-shell .nexus-studio-page .editor-preview-meta{min-height:27px!important}
+ .nexus-shell .nexus-studio-page .editor-preview-frame{max-width:min(calc(100vw - 30px),calc((100dvh - 360px)*.5625))!important}
+ .nexus-shell .nexus-studio-page .editor-preview-zone .editor-transport{min-height:29px!important;height:29px!important}
+ .nexus-shell .nexus-studio-page .editor-preview-zone .editor-preview-actionbar{min-height:28px!important;height:28px!important}
+ .nexus-shell .nexus-studio-page .editor-timeline-zone{width:calc(100% - 12px)!important;margin:4px 6px!important;padding:4px!important}
+ .nexus-shell .nexus-studio-page .editor-bottom-tools.nexus-tool-stack{margin:0 6px 4px!important;padding:5px!important}
+ .nexus-shell .nexus-studio-page .editor-tool-dock{height:56px!important;min-height:56px!important;max-height:56px!important;padding:4px!important;gap:4px!important}
+ .nexus-shell .nexus-studio-page .editor-tool-dock button{min-height:45px!important;font-size:8px!important}
+}
+@media(max-height:680px) and (max-width:700px){
+ .nexus-shell .nexus-studio-page .editor-screen{grid-template-rows:minmax(125px,1fr) minmax(82px,18dvh) minmax(90px,auto) 52px 12px!important}
+ .nexus-shell .nexus-studio-page .editor-tool-dock{height:52px!important;min-height:52px!important;max-height:52px!important}
+}
