@@ -2411,7 +2411,7 @@ export default function App() {
         <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The timeline is not created until you approve this blueprint. The AI planning page is separate from the editor.</p>
       </section>}
 
-      {page === "editor" && <section className="editor-fullscreen">
+      {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
