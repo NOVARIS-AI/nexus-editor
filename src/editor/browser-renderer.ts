@@ -389,6 +389,52 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
         // Keep track ordering identical to the preview: lower tracks first, upper tracks last.
         const activeVisuals = orderedVisualClips.filter(clip => time >= clip.start && time < clip.start + timingFor(clip).duration);
         const activeVisualIds = new Set(activeVisuals.map(clip => clip.id));
+        // Schedule every clip's audio against the same export clock as the video.
+        // This includes audio-only clips, which are not part of activeVisuals.
+        const clipById = new Map(input.clips.map(clip => [clip.id, clip]));
+        audioNodes.forEach((node, clipId) => {
+          const clip = clipById.get(clipId);
+          if (!clip) { node.element.pause(); return; }
+          const timing = timingFor(clip);
+          const localTime = time - clip.start;
+          const active = localTime >= 0 && localTime < timing.duration && !clip.muted && !trackMuted(clip);
+          if (!active) {
+            node.gain.gain.setTargetAtTime(0, audioContext!.currentTime, 0.02);
+            node.element.pause();
+            return;
+          }
+          const sourceTime = timing.sourceAtTimeline(localTime);
+          if (Math.abs(node.element.currentTime - sourceTime) > 0.14) {
+            try {
+              node.element.currentTime = Math.min(Math.max(0, sourceTime), Math.max(0, node.element.duration - 0.04));
+            } catch { /* The next frame will retry once the media element can seek. */ }
+          }
+          const speed = timing.speedAtSource(sourceTime);
+          if (Number.isFinite(speed)) node.element.playbackRate = Math.max(0.1, Math.min(8, speed));
+          const track = trackFor(clip);
+          const remaining = Math.max(0, timing.duration - localTime);
+          const fadeIn = clip.fadeIn ? Math.min(1, localTime / clip.fadeIn) : 1;
+          const fadeOut = clip.fadeOut ? Math.min(1, remaining / clip.fadeOut) : 1;
+          const gateStrength = Math.max(0, Math.min(100, clip.noiseGate ?? 0));
+          let gateLevel = 1;
+          node.highPass.frequency.setTargetAtTime(Math.max(20, Math.min(1200, clip.highPassHz ?? 20)), audioContext!.currentTime, 0.025);
+          node.lowPass.frequency.setTargetAtTime(Math.max(1500, Math.min(20000, clip.lowPassHz ?? 20000)), audioContext!.currentTime, 0.025);
+          const compression = Math.max(0, Math.min(100, clip.compression ?? 0));
+          node.compressor.threshold.setTargetAtTime(compression ? -6 - compression * 0.24 : 0, audioContext!.currentTime, 0.025);
+          node.compressor.ratio.setTargetAtTime(compression ? 1 + compression * 0.09 : 1, audioContext!.currentTime, 0.025);
+          node.panner?.pan.setTargetAtTime(Math.max(-1, Math.min(1, (track?.pan ?? 0) + (clip.pan ?? 0))), audioContext!.currentTime, 0.025);
+          if (gateStrength > 0) {
+            node.analyser.getFloatTimeDomainData(node.gateBuffer);
+            let energy = 0;
+            for (let sample = 0; sample < node.gateBuffer.length; sample++) energy += node.gateBuffer[sample] * node.gateBuffer[sample];
+            gateLevel = getSoftNoiseGateGain(Math.sqrt(energy / node.gateBuffer.length), gateStrength);
+          }
+          const clipGain = Math.max(0, Math.min(2, clip.gain ?? 1));
+          const trackGain = Math.max(0, Math.min(2, track?.volume ?? 1));
+          const gain = clipGain * trackGain * Math.max(0, Math.min(fadeIn, fadeOut)) * gateLevel;
+          node.gain.gain.setTargetAtTime(gain, audioContext!.currentTime, gateStrength > 0 ? 0.075 : 0.025);
+          if (node.element.paused && node.element.readyState >= 2) void node.element.play().catch(() => {});
+        });
         activeVideos.forEach(video => {
           const owner = [...mediaByClip.entries()].find(([, media]) => media === video)?.[0];
           if (owner && !activeVisualIds.has(owner)) video.pause();
