@@ -321,6 +321,22 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const orderedVisualClips = input.clips.filter(clip => { const asset = assets.get(clip.assetId); return !!asset && asset.kind !== "audio" && !trackHidden(clip); }).sort((a,b)=>trackOrder(a)-trackOrder(b)||a.start-b.start);
+    const clipImageLayerMask = (layer: TimelineImageLayer, width: number, height: number) => {
+      const shape = layer.maskShape || "none";
+      if (shape === "none") return;
+      ctx.beginPath();
+      if (shape === "circle") ctx.ellipse(0, 0, Math.min(width, height) / 2, Math.min(width, height) / 2, 0, 0, Math.PI * 2);
+      else if (shape === "rounded") {
+        const radius = Math.min(width, height) * Math.max(0, Math.min(50, layer.maskRadius ?? 12)) / 100;
+        if (typeof ctx.roundRect === "function") ctx.roundRect(-width / 2, -height / 2, width, height, radius);
+        else ctx.rect(-width / 2, -height / 2, width, height);
+      } else if (shape === "horizontal") ctx.rect(-width / 2, -height * .25, width, height * .5);
+      else if (shape === "vertical") ctx.rect(-width * .25, -height / 2, width * .5, height);
+      else if (shape === "diamond") { ctx.moveTo(0, -height / 2); ctx.lineTo(width / 2, 0); ctx.lineTo(0, height / 2); ctx.lineTo(-width / 2, 0); ctx.closePath(); }
+      else if (shape === "hexagon") { ctx.moveTo(-width * .25, -height / 2); ctx.lineTo(width * .25, -height / 2); ctx.lineTo(width / 2, 0); ctx.lineTo(width * .25, height / 2); ctx.lineTo(-width * .25, height / 2); ctx.lineTo(-width / 2, 0); ctx.closePath(); }
+      else if (shape === "star") { for (let point = 0; point < 10; point++) { const angle = -Math.PI / 2 + point * Math.PI / 5; const radius = point % 2 === 0 ? Math.min(width, height) * .5 : Math.min(width, height) * .22; const x = Math.cos(angle) * radius, y = Math.sin(angle) * radius; if (point === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y); } ctx.closePath(); }
+      ctx.clip();
+    };
     const started = performance.now();
     let lastFrame = -1;
     let lastProgress = -1;
@@ -332,14 +348,14 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const overlayImages = imageLayers.filter(layer => layer.fit !== "cover");
+        const overlayImages = imageLayers.filter(layer => layer.fit !== "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden);
         const orderedOverlayLayers = [
           ...overlayImages.map((layer, index) => ({
             kind: "image" as const,
             layer,
             order: layer.stackOrder ?? index
           })),
-          ...input.textLayers.map((layer, index) => ({
+          ...input.textLayers.filter(layer => layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden).map((layer, index) => ({
             kind: "text" as const,
             layer,
             order: layer.stackOrder ?? overlayImages.length + index
@@ -356,6 +372,8 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ctx.save(); ctx.globalAlpha = Math.max(0,Math.min(1,layer.opacity * (track?.opacity ?? 1))); ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
           ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
           ctx.rotate(layer.rotation * Math.PI / 180);
+          if (layer.fit === "cover") clipImageLayerMask(layer, canvas.width, canvas.height);
+          else clipImageLayerMask(layer, width, height);
           if(layer.fit==="cover") {
             const targetAspect=canvas.width/canvas.height, sourceAspect=image.naturalWidth/Math.max(1,image.naturalHeight);
             if(sourceAspect>targetAspect) { const cropWidth=image.naturalHeight*targetAspect; ctx.drawImage(image,(image.naturalWidth-cropWidth)/2,0,cropWidth,image.naturalHeight,-canvas.width/2,-canvas.height/2,canvas.width,canvas.height); }
