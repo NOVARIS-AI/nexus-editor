@@ -166,6 +166,7 @@ export default function App() {
   const [aiFormat, setAiFormat] = useState("9:16");
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
+  const [assistantToolsOpen, setAssistantToolsOpen] = useState(false);
   const [assistantInput, setAssistantInput] = useState("");
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantLauncherPosition, setAssistantLauncherPosition] = useState({ left: 12, top: 120 });
@@ -2501,8 +2502,17 @@ export default function App() {
             <header className="nexus-assistant-head" onPointerDown={event=>beginAssistantDrag(event,"panel")}>
               <span className="nexus-assistant-mark"><Sparkles size={16}/></span>
               <span className="nexus-assistant-title"><b>NEXUS AI</b><small>{assistantBusy ? "Thinking through your project…" : selectedClip ? "Your selected clip is in context" : "Your creative coach"}</small></span>
-              <button type="button" onClick={()=>setAiWorkspaceOpen(false)} aria-label="Close assistant"><X size={16}/></button>
+              <button type="button" className="nexus-assistant-tools-toggle" onPointerDown={event=>event.stopPropagation()} onClick={()=>setAssistantToolsOpen(open=>!open)} aria-expanded={assistantToolsOpen} aria-label="Show AI tools"><SlidersHorizontal size={15}/><span>Tools</span></button>
+              <button type="button" onPointerDown={event=>event.stopPropagation()} onClick={()=>{setAiWorkspaceOpen(false);setAssistantToolsOpen(false);}} aria-label="Close assistant"><X size={16}/></button>
             </header>
+            {assistantToolsOpen && <div className="nexus-assistant-tools-grid">
+              <button onClick={()=>{setAssistantInput("Help me plan and improve this edit with AI Director.");setAssistantToolsOpen(false);}}><Sparkles size={17}/><b>AI Director</b><small>Plan and improve the edit</small></button>
+              <button onClick={()=>{setCreativeFabricOpen(true);setAssistantToolsOpen(false);}}><GitBranch size={17}/><b>Creative Fabric</b><small>Explore scene intelligence</small></button>
+              <button onClick={()=>{setActiveTool("text");setToolPanelOpen(true);setAssistantInput("Help me create a strong title and captions for this project.");setAssistantToolsOpen(false);}}><Type size={17}/><b>Text & captions</b><small>Titles and subtitles</small></button>
+              <button onClick={()=>{setActiveTool("audio");setToolPanelOpen(true);setAssistantInput("Help me improve the sound and audio mix in this project.");setAssistantToolsOpen(false);}}><Music2 size={17}/><b>Audio assistant</b><small>Sound and voice guidance</small></button>
+              <button onClick={()=>{setActiveTool("effects");setToolPanelOpen(true);setAssistantInput("Recommend visual effects for the selected clip.");setAssistantToolsOpen(false);}}><WandSparkles size={17}/><b>Visual effects</b><small>Effects and transitions</small></button>
+              <button onClick={()=>{setActiveTool("media");setShowAttachmentPicker(true);setAssistantToolsOpen(false);}}><Film size={17}/><b>Media library</b><small>Import project assets</small></button>
+            </div>}
             <div className="nexus-assistant-messages" ref={assistantMessagesRef}>
               {aiChatMessages.map((message,index)=><article key={index} className={"nexus-assistant-message "+message.role}><b>{message.role==="assistant"?"NEXUS":"YOU"}</b><p>{message.text}</p></article>)}
               {assistantBusy && <div className="nexus-assistant-thinking"><i/><i/><i/> Thinking</div>}
