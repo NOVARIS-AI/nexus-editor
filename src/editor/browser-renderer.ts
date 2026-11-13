@@ -356,9 +356,13 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ctx.save();
           ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity * (track?.opacity ?? 1)));
           ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
-          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
-          ctx.rotate(layer.rotation * Math.PI / 180);
-          clipImageLayerMask(layer, canvas.width, canvas.height);
+          // Cover-fit plates are pinned to the preview frame: no position, rotation, or mask transform.
+          // This matches the editor preview, where cover images fill the frame behind timeline clips.
+          if (layer.fit !== "cover") {
+            ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
+            ctx.rotate(layer.rotation * Math.PI / 180);
+            clipImageLayerMask(layer, canvas.width, canvas.height);
+          }
           const targetAspect = canvas.width / canvas.height, sourceAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
           if (sourceAspect > targetAspect) {
             const cropWidth = image.naturalHeight * targetAspect;
