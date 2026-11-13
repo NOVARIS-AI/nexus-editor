@@ -291,7 +291,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const localTime = time - clip.start;
       const clipLen = timingFor(clip).duration;
       const inProgress = clip.transitionIn ? Math.max(0,Math.min(1,localTime/clip.transitionIn)) : 1;
-      const outProgress = clip.transitionOut ? Math.max(0,Math.min(1,(clipLen-localTime)/clip.transitionOut)) : 1;
+      const outProgress = clip.transitionOut && !hasOverlappingSuccessor(clip) ? Math.max(0,Math.min(1,(clipLen-localTime)/clip.transitionOut)) : 1;
       const transitionProgress = Math.min(inProgress,outProgress);
       const transitionStyle = clip.transitionStyle || "fade";
       const transitionAlpha = transitionStyle === "fade" ? transitionProgress : 1;
@@ -321,6 +321,18 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const orderedVisualClips = input.clips.filter(clip => { const asset = assets.get(clip.assetId); return !!asset && asset.kind !== "audio" && !trackHidden(clip); }).sort((a,b)=>trackOrder(a)-trackOrder(b)||a.start-b.start);
+    // When clips overlap on the same track, the incoming clip fades over the
+    // outgoing clip. Keep the outgoing frame opaque during that overlap so the
+    // two alpha ramps form a true crossfade instead of briefly exposing canvas.
+    const hasOverlappingSuccessor = (clip: TimelineClip) => {
+      const end = clip.start + timingFor(clip).duration;
+      return orderedVisualClips.some(next =>
+        next.trackId === clip.trackId &&
+        next.id !== clip.id &&
+        next.start >= clip.start &&
+        next.start < end
+      );
+    };
     const clipImageLayerMask = (layer: TimelineImageLayer, width: number, height: number) => {
       const shape = layer.maskShape || "none";
       if (shape === "none") return;
