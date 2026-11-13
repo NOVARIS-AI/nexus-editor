@@ -24,6 +24,7 @@ export interface TimelineImageLayer {
   id: string; assetId: string; trackId: string; start: number; duration: number;
   x: number; y: number; scale: number; rotation: number; opacity: number;
   visible: boolean; locked: boolean; stackOrder?: number; groupId?: string; groupName?: string; fit?: "contain" | "cover"; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
+  maskShape?: "none" | "circle" | "rounded" | "horizontal" | "vertical" | "diamond" | "hexagon" | "star"; maskRadius?: number;
   generationPrompt?: string; generationJobId?: string;
 }
 export interface NexusProject {
