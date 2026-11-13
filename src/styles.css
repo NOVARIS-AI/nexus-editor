@@ -2044,3 +2044,231 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .nexus-shell .nexus-effect-reference-strip small{flex-basis:100%!important;min-height:0}
   .nexus-shell .nexus-effect-group,.nexus-shell .nexus-effect-library-head{min-width:0;overflow:visible}
 }
+
+
+/* NEXUS mobile workspace refinement — larger canvas, cleaner transport and a
+   timeline that has room to work without swallowing the preview. */
+.nexus-shell .editor-screen{
+  height:calc(100dvh - 118px)!important;
+  min-height:0!important;
+  grid-template-rows:minmax(0,1fr) minmax(132px,26dvh) 66px 12px!important;
+  gap:0!important;
+  overflow:hidden!important;
+}
+.nexus-shell .editor-preview-zone{
+  min-width:0!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:3px!important;
+  padding:7px 10px 4px!important;
+  overflow:hidden!important;
+}
+.nexus-shell .editor-preview-meta{
+  flex:0 0 25px!important;
+  min-height:25px!important;
+  width:100%!important;
+  gap:8px!important;
+}
+.nexus-shell .editor-preview-meta>span{
+  color:var(--nx-muted)!important;
+  font-size:9px!important;
+  font-weight:800!important;
+  letter-spacing:.14em!important;
+}
+.nexus-shell .editor-preview-meta .preview-meta-actions{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  min-width:0!important;
+}
+.nexus-shell .editor-preview-meta .preview-meta-actions .preview-add-media{
+  min-height:29px!important;
+  padding:0 10px!important;
+  border:1px solid var(--nx-line)!important;
+  border-radius:9px!important;
+  background:var(--nx-surface-2)!important;
+  color:var(--nx-text)!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
+}
+.nexus-shell .editor-preview-meta .preview-meta-actions .preview-add-media:last-of-type{
+  border-color:var(--nx-accent-border)!important;
+  background:var(--nx-accent-soft)!important;
+  color:var(--nx-accent-text)!important;
+}
+.nexus-shell .editor-preview-frame{
+  flex:1 1 0!important;
+  min-height:0!important;
+  min-width:0!important;
+  height:auto!important;
+  width:auto!important;
+  max-height:100%!important;
+  max-width:min(100%,calc((100dvh - 245px)*.5625))!important;
+  aspect-ratio:9/16!important;
+  align-self:center!important;
+  margin:2px auto!important;
+  border-radius:14px!important;
+  border:1px solid color-mix(in srgb,var(--nx-accent) 52%,var(--nx-line))!important;
+  background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--nx-accent) 12%,#080810),#05050a 72%)!important;
+  box-shadow:0 12px 34px rgba(0,0,0,.34),0 0 22px color-mix(in srgb,var(--nx-glow) 55%,transparent),inset 0 1px rgba(255,255,255,.08)!important;
+  overflow:hidden!important;
+}
+.nexus-shell .editor-preview-frame.ratio-16-9{
+  width:min(100%,620px)!important;
+  height:auto!important;
+  max-width:100%!important;
+  aspect-ratio:16/9!important;
+}
+.nexus-shell .editor-preview-frame.ratio-1-1{height:100%!important;aspect-ratio:1/1!important}
+.nexus-shell .editor-preview-frame.ratio-4-5{height:100%!important;aspect-ratio:4/5!important}
+.nexus-shell .editor-preview-frame.ratio-3-4{height:100%!important;aspect-ratio:3/4!important}
+.nexus-shell .editor-transport{
+  flex:0 0 34px!important;
+  min-height:34px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:0 6px!important;
+}
+.nexus-shell .editor-transport button{
+  min-width:34px!important;
+  min-height:29px!important;
+  padding:0 10px!important;
+  border:1px solid var(--nx-line)!important;
+  border-radius:9px!important;
+  background:var(--nx-surface-2)!important;
+  color:var(--nx-text)!important;
+  font-size:10px!important;
+}
+.nexus-shell .editor-transport button:has(svg.lucide-play){
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:linear-gradient(135deg,var(--nx-accent),var(--nx-accent-2))!important;
+  color:white!important;
+  box-shadow:0 4px 14px var(--nx-glow)!important;
+}
+.nexus-shell .editor-preview-actionbar{
+  flex:0 0 31px!important;
+  min-height:31px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0 2px!important;
+}
+.nexus-shell .editor-preview-actionbar button{
+  height:28px!important;
+  min-height:28px!important;
+  border-radius:8px!important;
+}
+.nexus-shell .editor-preview-actionbar .preview-keyframe-action{
+  min-width:100px!important;
+  background:var(--nx-accent-soft)!important;
+  border-color:var(--nx-accent-border)!important;
+  color:var(--nx-accent-text)!important;
+}
+.nexus-shell .editor-timeline-zone{
+  min-width:0!important;
+  min-height:0!important;
+  display:flex!important;
+  flex-direction:column!important;
+  padding:5px 8px 2px!important;
+  border-top:1px solid var(--nx-line)!important;
+  background:color-mix(in srgb,var(--nx-surface) 92%,transparent)!important;
+  overflow:hidden!important;
+}
+.nexus-shell .editor-timeline-head{
+  flex:0 0 32px!important;
+  min-height:32px!important;
+  gap:8px!important;
+}
+.nexus-shell .editor-timeline-scroll{
+  flex:1 1 auto!important;
+  min-height:76px!important;
+  max-height:none!important;
+  overflow:auto!important;
+  padding-right:18px!important;
+  scroll-padding-right:18px!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.nexus-shell .editor-tool-dock{
+  height:66px!important;
+  min-height:66px!important;
+  max-height:66px!important;
+  padding:5px 7px max(5px,env(safe-area-inset-bottom))!important;
+  gap:4px!important;
+  border-top:1px solid var(--nx-line)!important;
+  background:color-mix(in srgb,var(--nx-surface) 96%,transparent)!important;
+  backdrop-filter:blur(20px)!important;
+  -webkit-backdrop-filter:blur(20px)!important;
+}
+.nexus-shell .editor-tool-dock button{
+  flex:0 0 59px!important;
+  min-width:59px!important;
+  min-height:52px!important;
+  border-radius:10px!important;
+  font-size:9px!important;
+}
+.nexus-shell .editor-tool-dock button.active{
+  background:var(--nx-accent-soft)!important;
+  color:var(--nx-accent-text)!important;
+  box-shadow:inset 0 0 0 1px var(--nx-accent-border)!important;
+}
+.nexus-shell .editor-status-line{
+  min-height:12px!important;
+  height:12px!important;
+  font-size:7px!important;
+}
+.nexus-shell .nexus-assistant-orb{
+  width:48px!important;
+  height:48px!important;
+  min-width:48px!important;
+  border:1px solid color-mix(in srgb,var(--nx-accent) 68%,white)!important;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--nx-accent-2) 92%,transparent),color-mix(in srgb,var(--nx-accent) 84%,transparent))!important;
+  box-shadow:0 7px 24px var(--nx-glow),inset 0 1px 3px rgba(255,255,255,.42)!important;
+}
+.nexus-shell .nexus-assistant-window{
+  width:min(340px,calc(100vw - 20px))!important;
+  height:min(430px,calc(100dvh - 110px))!important;
+  border-radius:18px!important;
+}
+@media(max-width:700px){
+  .nexus-shell .editor-screen{
+    height:calc(100dvh - 116px)!important;
+    grid-template-rows:minmax(0,1fr) minmax(126px,25dvh) 64px 12px!important;
+  }
+  .nexus-shell .editor-preview-zone{padding:5px 7px 3px!important;gap:2px!important}
+  .nexus-shell .editor-preview-meta{flex-basis:23px!important;min-height:23px!important}
+  .nexus-shell .editor-preview-meta .preview-meta-actions{gap:4px!important}
+  .nexus-shell .editor-preview-meta .preview-meta-actions .preview-add-media{
+    min-height:27px!important;padding:0 8px!important;font-size:9px!important
+  }
+  .nexus-shell .editor-preview-frame{
+    max-width:min(calc(100vw - 28px),calc((100dvh - 225px)*.5625))!important;
+    min-height:0!important;
+    border-radius:12px!important;
+  }
+  .nexus-shell .editor-preview-frame.ratio-16-9{
+    width:min(100%,560px)!important;height:auto!important;max-width:100%!important;
+  }
+  .nexus-shell .editor-transport{flex-basis:32px!important;min-height:32px!important;gap:10px!important}
+  .nexus-shell .editor-preview-actionbar{flex-basis:29px!important;min-height:29px!important}
+  .nexus-shell .editor-timeline-zone{padding:4px 5px 1px!important}
+  .nexus-shell .editor-timeline-head{flex-basis:29px!important;min-height:29px!important}
+  .nexus-shell .editor-tool-dock{height:64px!important;min-height:64px!important;max-height:64px!important}
+  .nexus-shell .editor-tool-dock button{flex-basis:57px!important;min-width:57px!important;min-height:50px!important}
+}
+@media(max-height:680px) and (max-width:700px){
+  .nexus-shell .editor-screen{grid-template-rows:minmax(0,1fr) minmax(112px,23dvh) 60px 10px!important}
+  .nexus-shell .editor-tool-dock{height:60px!important;min-height:60px!important;max-height:60px!important}
+  .nexus-shell .editor-preview-meta{flex-basis:20px!important;min-height:20px!important}
+  .nexus-shell .editor-transport{flex-basis:29px!important;min-height:29px!important}
+  .nexus-shell .editor-preview-actionbar{flex-basis:27px!important;min-height:27px!important}
+}
