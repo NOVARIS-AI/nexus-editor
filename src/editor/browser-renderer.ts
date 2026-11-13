@@ -348,6 +348,55 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Render the actual timeline media before compositing image/text overlays.
+        // Keep track ordering identical to the preview: lower tracks first, upper tracks last.
+        const activeVisuals = orderedVisualClips.filter(clip => time >= clip.start && time < clip.start + timingFor(clip).duration);
+        const activeVisualIds = new Set(activeVisuals.map(clip => clip.id));
+        activeVideos.forEach(video => {
+          const owner = [...mediaByClip.entries()].find(([, media]) => media === video)?.[0];
+          if (owner && !activeVisualIds.has(owner)) video.pause();
+        });
+        activeVisuals.forEach(clip => {
+          const asset = assets.get(clip.assetId);
+          if (!asset) return;
+          const localTime = Math.max(0, time - clip.start);
+          const sourceTime = timingFor(clip).sourceAtTimeline(localTime) + (clip.sourceIn || 0);
+          if (asset.kind === "video") {
+            const video = mediaByClip.get(clip.id);
+            if (!video) return;
+            if (Math.abs(video.currentTime - sourceTime) > 0.28) {
+              try { video.currentTime = Math.min(Math.max(0, sourceTime), Math.max(0, video.duration - 0.04)); } catch {}
+            }
+            const speed = timingFor(clip).speedAtSource(sourceTime);
+            if (Number.isFinite(speed)) video.playbackRate = Math.max(0.1, Math.min(8, speed));
+            if (video.paused && video.readyState >= 2) void video.play().catch(() => {});
+            if (video.readyState >= 2 && video.videoWidth && video.videoHeight) drawCover(chromaSource(video, video.videoWidth, video.videoHeight, clip), video.videoWidth, video.videoHeight, clip, time);
+          } else if (asset.kind === "image") {
+            const image = imageByClip.get(clip.id);
+            if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
+          }
+        });
+        // Full-frame image plates sit beneath the clip stack, matching the preview's background layer.
+        imageLayers.filter(layer => layer.fit === "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden).forEach(layer => {
+          const image = imageLayerImages.get(layer.id);
+          if (!image) return;
+          const track = tracks.get(layer.trackId);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity * (track?.opacity ?? 1)));
+          ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
+          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
+          ctx.rotate(layer.rotation * Math.PI / 180);
+          clipImageLayerMask(layer, canvas.width, canvas.height);
+          const targetAspect = canvas.width / canvas.height, sourceAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
+          if (sourceAspect > targetAspect) {
+            const cropWidth = image.naturalHeight * targetAspect;
+            ctx.drawImage(image, (image.naturalWidth - cropWidth) / 2, 0, cropWidth, image.naturalHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+          } else {
+            const cropHeight = image.naturalWidth / targetAspect;
+            ctx.drawImage(image, 0, (image.naturalHeight - cropHeight) / 2, image.naturalWidth, cropHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+          }
+          ctx.restore();
+        });
         const overlayImages = imageLayers.filter(layer => layer.fit !== "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden);
         const orderedOverlayLayers = [
           ...overlayImages.map((layer, index) => ({
