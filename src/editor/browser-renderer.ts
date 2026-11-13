@@ -348,6 +348,27 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (frame !== lastFrame) {
         lastFrame = frame;
         ctx.fillStyle = "#080817"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Full-frame image plates sit beneath the clip stack, matching the preview's background layer.
+        imageLayers.filter(layer => layer.fit === "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden).forEach(layer => {
+          const image = imageLayerImages.get(layer.id);
+          if (!image) return;
+          const track = tracks.get(layer.trackId);
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity * (track?.opacity ?? 1)));
+          ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
+          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
+          ctx.rotate(layer.rotation * Math.PI / 180);
+          clipImageLayerMask(layer, canvas.width, canvas.height);
+          const targetAspect = canvas.width / canvas.height, sourceAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
+          if (sourceAspect > targetAspect) {
+            const cropWidth = image.naturalHeight * targetAspect;
+            ctx.drawImage(image, (image.naturalWidth - cropWidth) / 2, 0, cropWidth, image.naturalHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+          } else {
+            const cropHeight = image.naturalWidth / targetAspect;
+            ctx.drawImage(image, 0, (image.naturalHeight - cropHeight) / 2, image.naturalWidth, cropHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+          }
+          ctx.restore();
+        });
         // Render the actual timeline media before compositing image/text overlays.
         // Keep track ordering identical to the preview: lower tracks first, upper tracks last.
         const activeVisuals = orderedVisualClips.filter(clip => time >= clip.start && time < clip.start + timingFor(clip).duration);
@@ -375,27 +396,6 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
             const image = imageByClip.get(clip.id);
             if (image) drawCover(image, image.naturalWidth, image.naturalHeight, clip, time);
           }
-        });
-        // Full-frame image plates sit beneath the clip stack, matching the preview's background layer.
-        imageLayers.filter(layer => layer.fit === "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden).forEach(layer => {
-          const image = imageLayerImages.get(layer.id);
-          if (!image) return;
-          const track = tracks.get(layer.trackId);
-          ctx.save();
-          ctx.globalAlpha = Math.max(0, Math.min(1, layer.opacity * (track?.opacity ?? 1)));
-          ctx.globalCompositeOperation = imageLayerBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
-          ctx.translate(canvas.width * layer.x / 100, canvas.height * layer.y / 100);
-          ctx.rotate(layer.rotation * Math.PI / 180);
-          clipImageLayerMask(layer, canvas.width, canvas.height);
-          const targetAspect = canvas.width / canvas.height, sourceAspect = image.naturalWidth / Math.max(1, image.naturalHeight);
-          if (sourceAspect > targetAspect) {
-            const cropWidth = image.naturalHeight * targetAspect;
-            ctx.drawImage(image, (image.naturalWidth - cropWidth) / 2, 0, cropWidth, image.naturalHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-          } else {
-            const cropHeight = image.naturalWidth / targetAspect;
-            ctx.drawImage(image, 0, (image.naturalHeight - cropHeight) / 2, image.naturalWidth, cropHeight, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-          }
-          ctx.restore();
         });
         const overlayImages = imageLayers.filter(layer => layer.fit !== "cover" && layer.visible !== false && time >= layer.start && time < layer.start + layer.duration && !tracks.get(layer.trackId)?.hidden);
         const orderedOverlayLayers = [
