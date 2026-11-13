@@ -94,7 +94,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
   if (!("MediaRecorder" in window) || !HTMLCanvasElement.prototype.captureStream) {
     throw new Error("This browser does not support browser video recording. Try an updated Chrome browser.");
   }
-  if ((!input.clips.length && !(input.imageLayers || []).some(layer => layer.visible)) || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one visible clip or image layer before exporting.");
+  if ((!input.clips.length && !(input.imageLayers || []).some(layer => layer.visible !== false) && !input.textLayers.some(layer => layer.visible !== false)) || !Number.isFinite(input.duration) || input.duration <= 0) throw new Error("Add at least one visible clip, image layer, or text layer before exporting.");
   if (!Number.isInteger(input.fps) || input.fps < 12 || input.fps > 60) throw new Error("Choose an export frame rate between 12 and 60 FPS.");
   if (!Number.isInteger(input.width) || !Number.isInteger(input.height) || input.width < 160 || input.height < 160) throw new Error("Choose a valid export resolution.");
   const deviceProfile = getNexusDeviceProfile();
@@ -439,9 +439,10 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           ctx.save();
           const local = time - layer.start;
           const fade = layer.animation === "fade" ? Math.min(1, local / .35, (layer.duration - local) / .35) : layer.animation === "pop" ? Math.min(1, local / .2) : 1;
-          ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 1) * fade));
+          const track = tracks.get(layer.trackId);
+          ctx.globalAlpha = Math.max(0, Math.min(1, (layer.opacity ?? 1) * (track?.opacity ?? 1) * fade));
           const textBlendModes: Record<string, GlobalCompositeOperation> = { normal: "source-over", multiply: "multiply", screen: "screen", overlay: "overlay", darken: "darken", lighten: "lighten", "soft-light": "soft-light", "hard-light": "hard-light" };
-          ctx.globalCompositeOperation = textBlendModes[layer.blendMode || "normal"] || "source-over";
+          ctx.globalCompositeOperation = textBlendModes[layer.blendMode || track?.blendMode || "normal"] || "source-over";
           const fontSize = Math.max(12, layer.fontSize * canvas.height / 1080);
           const maxWidth = canvas.width * .88;
           const lineHeight = fontSize * 1.2;
