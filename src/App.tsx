@@ -2377,7 +2377,7 @@ export default function App() {
     setSelectedTextLayer(null); setSelectedImageLayer(null); setSelectedImageAssetId("");
     setUndoStack([]); setRedoStack([]); setTrackStates(defaultTracks.map(track => ({ ...track, locked: false })));
     setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setAspectRatio("9:16");
-    setPage("ai"); setEditorView("workspace"); setActiveTool("edit"); setActiveSubtool("select");
+    setPage("editor"); setEditorView("workspace"); setActiveTool("edit"); setActiveSubtool("select");
     setStatus("New project ready · import your media to begin.");
   }
   function applyCreativeTemplate(template: typeof CREATIVE_TEMPLATES[number]) {
@@ -2421,11 +2421,12 @@ export default function App() {
   // and private appeals are intentionally excluded from public navigation.
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
+    { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "for-you" as Page, label: "For You", icon: Compass },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
     { id: "profile" as Page, label: "My Profile", icon: UserCircle }
   ];
-  const pageTitle = nav.find(n => n.id === page)?.label || ({ notifications: "Notifications", saved: "Saved videos", moderation: "Moderation Centre", appeals: "My Appeals", settings: "Settings", projects: "Projects", ai: "AI Studio" } as Partial<Record<Page,string>>)[page] || "Home";
+  const pageTitle = nav.find(n => n.id === page)?.label || ({ editor: "Editor Studio", notifications: "Notifications", saved: "Saved videos", moderation: "Moderation Centre", appeals: "My Appeals", settings: "Settings", projects: "Projects", ai: "AI Studio" } as Partial<Record<Page,string>>)[page] || "Home";
   const recent = ["My Vlog Edit", "Tech Review", "Birthday Bash"];
   const templates = CREATIVE_TEMPLATES;
   const effectItems = NEXUS_VIDEO_EFFECTS;
@@ -2437,7 +2438,7 @@ export default function App() {
     <aside className="sidebar">
       <button className="brand-lockup" onClick={() => setPage("home")}><span className="brand-mark">N</span><span className="brand-words">NEXUS<strong>EDITOR</strong></span></button>
       <div className="side-caption">WORKSPACE</div>
-      <nav>{nav.map(item => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? "nav-item active" : "nav-item"} onClick={() => { setPage(item.id); setAiWorkspaceOpen(false); }}><Icon size={18}/><span>{item.label}</span>{item.id === "ai" && <i>NEW</i>}</button>; })}</nav>
+      <nav>{nav.map(item => { const Icon = item.icon; return <button key={item.id} className={page === item.id ? "nav-item active" : "nav-item"} onClick={() => { setPage(item.id); setAiWorkspaceOpen(false); if (item.id === "editor") setEditorView("dashboard"); }}><Icon size={18}/><span>{item.label}</span>{item.id === "ai" && <i>NEW</i>}</button>; })}</nav>
       <div className="sidebar-bottom">
         <div className="cloud-card"><Cloud size={19}/><b>Your workspace</b><span>Projects saved on this device</span><div className="cloud-meter"><i/></div><small>Local storage · Ready</small></div>
         <button className="profile-row" onClick={() => setPage("settings")}><span className="avatar">N</span><span><b>Creator workspace</b><small>Personal account</small></span><ChevronDown size={15}/></button>
@@ -2511,9 +2512,9 @@ export default function App() {
         <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The timeline is not created until you approve this blueprint. The AI planning page is separate from the editor.</p>
       </section>}
 
-      {false && page === "editor" && <section className="editor-fullscreen nexus-studio-page">
+      {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
         <header className="editor-topbar">
-          <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
+          <button className="editor-back" onClick={()=>setEditorView("dashboard")}><ArrowLeft size={18}/><span>STUDIO</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
           <button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-top-icon" onClick={()=>setPublishFlowOpen(true)} title="Prepare a community post"><Share2 size={16}/><span>Publish</span></button>
@@ -2533,6 +2534,26 @@ export default function App() {
               <button onClick={()=>void openNativeMediaPicker(["image/*","video/*","audio/*"],filesInput)}><span className="attachment-option-icon files"><FolderOpen size={23}/></span><b>Browse files</b><small>Choose from device storage</small></button>
             </div>
           </section>
+        </div>}
+        {editorView==="dashboard" && <div className="editor-dashboard">
+          <div className="editor-dashboard-heading"><div><span className="editor-kicker">NEXUS CREATIVE WORKSPACE</span><h1>Editor Studio</h1><p>Bring video, images, graphics and sound together in one place.</p></div><button className="editor-dashboard-primary" onClick={startNewProject}><Plus size={17}/> New project</button></div>
+          <div className="editor-dashboard-actions">
+            <button className="editor-dashboard-action editor-dashboard-action-main" onClick={startNewProject}><span><Plus size={20}/></span><b>Create a project</b><small>Start with a blank creative workspace</small></button>
+            <button className="editor-dashboard-action" onClick={()=>setEditorView("import")}><span><Upload size={20}/></span><b>Import media</b><small>Bring in videos, photos and audio</small></button>
+            <button className="editor-dashboard-action" onClick={()=>{setEditorView("workspace");setActiveTool("closed");setToolPanelOpen(false);}}><span><Clapperboard size={20}/></span><b>Open workspace</b><small>Continue with the current project</small></button>
+          </div>
+          <div className="editor-dashboard-section"><div className="editor-dashboard-section-head"><div><h2>Current project</h2><p>Your active editing session</p></div><span className="editor-save-state"><i/>{draftSaveStatus}</span></div>
+            <button className="editor-current-project" onClick={()=>setEditorView("workspace")}><span className="editor-current-art"><Clapperboard size={34}/></span><span className="editor-current-info"><b>{projectName || "Untitled Project"}</b><small>{assets.length} media assets · {clips.length} timeline clips · {textLayers.length + imageLayers.length} overlays</small><small>{clips.length || assets.length ? "Continue editing your work" : "Your workspace is ready when you are"}</small></span><span className="editor-current-open"><ArrowRight size={18}/></span></button>
+          </div>
+          <div className="editor-dashboard-section"><div className="editor-dashboard-section-head"><div><h2>Choose your creative starting point</h2><p>The workspace adapts to the kind of project you create.</p></div></div>
+            <div className="editor-project-types">
+              <button onClick={()=>{setAspectRatio("16:9");startNewProject();}}><span className="editor-type-icon video"><Film size={21}/></span><b>Video</b><small>Multi-track editing</small></button>
+              <button onClick={()=>{setAspectRatio("1:1");startNewProject();}}><span className="editor-type-icon image"><ImageIcon size={21}/></span><b>Image</b><small>Layers and visual edits</small></button>
+              <button onClick={()=>{setAspectRatio("4:5");startNewProject();}}><span className="editor-type-icon design"><Palette size={21}/></span><b>Graphic design</b><small>Layouts and typography</small></button>
+              <button onClick={()=>{setAspectRatio("16:9");startNewProject();}}><span className="editor-type-icon audio"><AudioLines size={21}/></span><b>Audio</b><small>Sound and voice tracks</small></button>
+            </div>
+          </div>
+          <div className="editor-dashboard-footer"><span><ShieldCheck size={15}/> Existing NEXUS engines and creative tools are ready in the workspace.</span><button onClick={()=>setCreativeFabricOpen(true)}><Sparkles size={15}/> Open Creative Fabric</button></div>
         </div>}
         {editorView==="workspace" && <div className="editor-screen" data-timeline-collapsed={timelineCollapsed} data-tool-panel-open={toolPanelOpen} data-workspace-mode={timelineCollapsed ? "preview" : "timeline"}>
           <div className="editor-preview-zone">
