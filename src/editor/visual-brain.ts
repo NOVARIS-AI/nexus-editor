@@ -53,7 +53,10 @@ export async function loadVisualModel(onProgress?: (event: Progress) => void): P
     if (!device.compatible) throw new Error(device.note);
     const gpu = (navigator as Navigator & { gpu?: { requestAdapter?: () => Promise<unknown> } }).gpu;
     if (!gpu?.requestAdapter || !(await gpu.requestAdapter())) throw new Error("WebGPU adapter is unavailable on this device. Frame measurements remain available without the model.");
-    const { AutoProcessor, AutoModelForImageTextToText, RawImage } = await import("@huggingface/transformers") as any;
+    const { env, AutoProcessor, AutoModelForImageTextToText, RawImage } = await import("@huggingface/transformers") as any;
+    // Keep the large threaded ONNX runtime binary off the Cloudflare Worker asset bundle.
+    // The pinned upstream runtime CDN serves the matching ONNX WebAssembly variants.
+    env.backends.onnx.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/";
     const [processor, model] = await Promise.all([
       AutoProcessor.from_pretrained(VISUAL_MODEL.id, {
         progress_callback: (event: Progress) => onProgress?.(event),
