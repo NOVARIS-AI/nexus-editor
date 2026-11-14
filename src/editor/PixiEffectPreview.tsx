@@ -105,7 +105,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
         sprite.width = sourceWidth * scale;
         sprite.height = sourceHeight * scale;
         const filter = new PIXI.ColorMatrixFilter();
-        filter.matrix = matrixFor(effectName);
+        filter.matrix = matrixFor(effectName) as [number, ...number[]];
         sprite.filters = [filter];
         app.stage.addChild(sprite);
         app.canvas.className = "nexus-pixi-preview-canvas";
