@@ -2550,7 +2550,7 @@ export default function App() {
               <button onClick={()=>{startNewProject();setAspectRatio("16:9");}}><span className="editor-type-icon video"><Film size={21}/></span><b>Video</b><small>Multi-track editing</small></button>
               <button onClick={()=>{startNewProject();setAspectRatio("1:1");}}><span className="editor-type-icon image"><ImageIcon size={21}/></span><b>Image</b><small>Layers and visual edits</small></button>
               <button onClick={()=>{startNewProject();setAspectRatio("4:5");}}><span className="editor-type-icon design"><Palette size={21}/></span><b>Graphic design</b><small>Layouts and typography</small></button>
-              <button onClick={()=>{setAspectRatio("16:9");startNewProject();}}><span className="editor-type-icon audio"><AudioLines size={21}/></span><b>Audio</b><small>Sound and voice tracks</small></button>
+              <button onClick={()=>{startNewProject();setAspectRatio("16:9");}}><span className="editor-type-icon audio"><AudioLines size={21}/></span><b>Audio</b><small>Sound and voice tracks</small></button>
             </div>
           </div>
           <div className="editor-dashboard-footer"><span><ShieldCheck size={15}/> Existing NEXUS engines and creative tools are ready in the workspace.</span><button onClick={()=>setCreativeFabricOpen(true)}><Sparkles size={15}/> Open Creative Fabric</button></div>
