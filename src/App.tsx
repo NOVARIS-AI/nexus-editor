@@ -2514,8 +2514,8 @@ export default function App() {
 
       {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
         <header className="editor-topbar">
-          <button className="editor-back" onClick={()=>setEditorView("dashboard")}><ArrowLeft size={18}/><span>STUDIO</span></button>
-          <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
+          <button className="editor-back" onClick={()=>{if(editorView==="dashboard"){setPage("home");}else if(editorView==="workspace"){setEditorView("dashboard");}else{setEditorView("workspace");}}}><ArrowLeft size={18}/><span>{editorView==="dashboard"?"HOME":editorView==="workspace"?"STUDIO":"BACK"}</span></button>
+          <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="dashboard"?"Project dashboard":editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
           <button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-top-icon" onClick={()=>setPublishFlowOpen(true)} title="Prepare a community post"><Share2 size={16}/><span>Publish</span></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
