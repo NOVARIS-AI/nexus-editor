@@ -27,7 +27,8 @@
     "@capacitor/share": "^7.0.0",
     "@capawesome/capacitor-file-picker": "^7.0.0",
     "@nexus/native-engine": "file:./native-engine-plugin",
-    "@elah/core": "^1.0.0"
+    "@elah/core": "^1.0.0",
+    "pixi.js": "^8.17.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.18",
