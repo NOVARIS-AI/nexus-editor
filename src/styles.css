@@ -3948,3 +3948,108 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   white-space:nowrap;font-size:8px!important;line-height:1.1;color:#eef2f7;
 }
 .nexus-shell .nexus-sticker-row button:active{transform:scale(.96)}
+
+/* NEXUS Editor Studio — cohesive workspace refresh */
+.editor-fullscreen.nexus-studio-page{--studio-bg:#0b0c12;--studio-panel:rgba(23,25,35,.88);--studio-line:rgba(176,184,205,.13);--studio-muted:#a0a7b8;--studio-text:#f4f5fa;background:radial-gradient(ellipse at 72% -18%,rgba(116,88,171,.22),transparent 42%),linear-gradient(145deg,#0c0e15,#10131c 58%,#0c0d14);color:var(--studio-text)}
+.editor-fullscreen.nexus-studio-page .editor-topbar{background:rgba(15,17,25,.92);border-bottom:1px solid var(--studio-line);backdrop-filter:blur(18px);padding-inline:clamp(12px,2.4vw,30px);gap:10px}
+.editor-fullscreen.nexus-studio-page .editor-back,.editor-fullscreen.nexus-studio-page .editor-top-icon{background:rgba(255,255,255,.045);border:1px solid var(--studio-line);border-radius:11px;min-height:38px;color:#e8eaf2}
+.editor-fullscreen.nexus-studio-page .editor-project-title b{font-size:13px;letter-spacing:.1px}
+.editor-fullscreen.nexus-studio-page .editor-project-title small{font-size:10px;color:var(--studio-muted)}
+.editor-fullscreen.nexus-studio-page .editor-export-entry{min-height:38px;border-radius:11px;padding:0 15px;background:linear-gradient(115deg,#a77bdb,#6f8fe0);box-shadow:0 7px 22px rgba(112,105,204,.2)}
+.editor-dashboard{flex:1;min-height:0;overflow:auto;padding:clamp(20px,4vw,48px);width:min(100%,1260px);margin:0 auto;overscroll-behavior:contain}
+.editor-dashboard-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin:0 0 28px}
+.editor-kicker{font-size:10px;font-weight:800;letter-spacing:2px;color:#b9a0e8}
+.editor-dashboard-heading h1{font:600 clamp(28px,4vw,42px)/1.1 'Space Grotesk',sans-serif;margin:9px 0}
+.editor-dashboard-heading p,.editor-dashboard-section-head p{color:var(--studio-muted);font-size:13px;margin:0;line-height:1.55}
+.editor-dashboard-primary{display:flex;align-items:center;gap:9px;padding:12px 17px;border:0;border-radius:12px;background:linear-gradient(115deg,#a77bdb,#6f8fe0);color:white;font-weight:700;white-space:nowrap}
+.editor-dashboard-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.editor-dashboard-action{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;align-items:center;column-gap:12px;text-align:left;min-height:94px;padding:17px;border:1px solid var(--studio-line);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));color:var(--studio-text);transition:transform .18s,border-color .18s}
+.editor-dashboard-action:hover,.editor-project-types button:hover,.editor-current-project:hover{transform:translateY(-2px);border-color:rgba(183,155,232,.48)}
+.editor-dashboard-action>span{grid-row:1/3;width:44px;height:44px;display:grid;place-items:center;border-radius:13px;background:rgba(159,125,220,.15);color:#c7a8f4}
+.editor-dashboard-action b{font-size:13px}.editor-dashboard-action small{font-size:11px;color:var(--studio-muted);margin-top:4px}
+.editor-dashboard-section{margin-top:32px}
+.editor-dashboard-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:13px}
+.editor-dashboard-section-head h2{font:600 19px 'Space Grotesk',sans-serif;margin:0 0 5px}
+.editor-save-state{display:flex;align-items:center;gap:7px;color:var(--studio-muted);font-size:10px}
+.editor-save-state i{width:7px;height:7px;border-radius:50%;background:#5bd6a1}
+.editor-current-project{width:100%;display:flex;align-items:center;gap:15px;padding:14px;border:1px solid var(--studio-line);border-radius:16px;background:var(--studio-panel);color:var(--studio-text);text-align:left}
+.editor-current-art{width:76px;height:66px;flex:0 0 76px;display:grid;place-items:center;border-radius:11px;background:linear-gradient(140deg,#51416e,#293d5b 65%,#467b83);color:#f0e9ff}
+.editor-current-info{display:grid;gap:5px;min-width:0;flex:1}
+.editor-current-info b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.editor-current-info small{font-size:10px;color:var(--studio-muted)}
+.editor-current-open{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.06)}
+.editor-project-types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.editor-project-types button{display:grid;justify-items:start;gap:7px;min-height:126px;padding:16px;border:1px solid var(--studio-line);border-radius:15px;background:var(--studio-panel);color:var(--studio-text);text-align:left;transition:transform .18s,border-color .18s}
+.editor-type-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:rgba(157,129,220,.15);color:#c8adf2}
+.editor-type-icon.image{background:rgba(87,164,177,.15);color:#83d0d6}
+.editor-type-icon.design{background:rgba(213,157,111,.15);color:#e8b58d}
+.editor-type-icon.audio{background:rgba(108,174,139,.15);color:#91d5ae}
+.editor-project-types b{font-size:12px}.editor-project-types small{font-size:10px;color:var(--studio-muted)}
+.editor-dashboard-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:26px;padding-top:17px;border-top:1px solid var(--studio-line);color:var(--studio-muted);font-size:10px}
+.editor-dashboard-footer span,.editor-dashboard-footer button{display:flex;align-items:center;gap:7px}
+.editor-dashboard-footer button{border:0;background:none;color:#c6a8f1;font-size:11px}
+.editor-fullscreen.nexus-studio-page .editor-screen{grid-template-rows:minmax(250px,1fr) minmax(175px,32%) 20px;background:transparent}
+.editor-fullscreen.nexus-studio-page .editor-preview-zone{padding:13px clamp(10px,2vw,24px) 8px}
+.editor-fullscreen.nexus-studio-page .editor-preview-meta{width:min(100%,1100px);font-size:10px;letter-spacing:1.2px}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions button,.editor-fullscreen.nexus-studio-page .preview-meta-actions select{min-height:32px;padding:6px 10px;border:1px solid var(--studio-line);border-radius:9px;background:rgba(255,255,255,.045);color:#e7e9f1;font-size:10px}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions select option{background:#171a24;color:white}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame{width:auto;max-width:min(100%,min(62vw,680px));height:calc(100% - 48px);max-height:100%;aspect-ratio:9/16;margin:8px auto;border:1px solid rgba(189,178,220,.2);border-radius:14px;background:#080a10;box-shadow:0 14px 48px rgba(0,0,0,.28)}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame video,.editor-fullscreen.nexus-studio-page .editor-preview-frame img{object-fit:contain}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{background:rgba(15,17,25,.92);border-top:1px solid var(--studio-line);padding:10px clamp(10px,2vw,24px) 0}
+.editor-fullscreen.nexus-studio-page .editor-timeline-head b{font-size:12px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-head small{font-size:9px;color:var(--studio-muted)}
+.editor-fullscreen.nexus-studio-page .editor-timeline-actions button{width:34px;height:32px;border-radius:9px;background:rgba(255,255,255,.045);border-color:var(--studio-line)}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels span,.editor-fullscreen.nexus-studio-page .editor-lane{border-color:var(--studio-line)}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels span{color:#c2c5d2}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock{justify-content:flex-start;gap:6px;padding:7px 12px;background:rgba(16,18,27,.96);border-top:1px solid var(--studio-line);backdrop-filter:blur(16px)}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button{min-width:62px;border-radius:11px;font-size:9px;color:#c7cad5}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button.active{background:rgba(165,133,224,.16);color:#dfc9ff}
+.editor-fullscreen.nexus-studio-page .editor-status-line{background:#0c0e15;color:#a9adbb;font-size:9px}
+.editor-fullscreen.nexus-studio-page .editor-subpage{background:linear-gradient(145deg,#0c0e15,#111521);color:var(--studio-text)}
+.editor-fullscreen.nexus-studio-page .editor-subpage-title p{font-size:11px}
+.editor-fullscreen.nexus-studio-page .editor-subpage-title h2{font-size:23px}
+@media(max-width:760px){
+.editor-dashboard{padding:22px 15px calc(28px + env(safe-area-inset-bottom))}
+.editor-dashboard-heading{align-items:flex-start;flex-direction:column;margin-bottom:20px}
+.editor-dashboard-heading h1{font-size:30px}
+.editor-dashboard-heading p{font-size:12px}
+.editor-dashboard-primary{min-height:42px}
+.editor-dashboard-actions{grid-template-columns:1fr;gap:9px}
+.editor-dashboard-action{min-height:78px;padding:13px}
+.editor-dashboard-section{margin-top:25px}
+.editor-dashboard-section-head{align-items:flex-start;flex-direction:column}
+.editor-dashboard-section-head h2{font-size:17px}
+.editor-current-project{gap:10px;padding:10px}
+.editor-current-art{width:58px;height:56px;flex-basis:58px}
+.editor-current-info b{font-size:12px}
+.editor-current-info small{font-size:9px;line-height:1.4}
+.editor-project-types{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.editor-project-types button{min-height:112px;padding:12px}
+.editor-dashboard-footer{align-items:flex-start;flex-direction:column}
+.editor-fullscreen.nexus-studio-page .editor-topbar{height:54px;min-height:54px;padding:0 9px;gap:6px}
+.editor-fullscreen.nexus-studio-page .editor-project-title b{font-size:11px}
+.editor-fullscreen.nexus-studio-page .editor-project-title small{font-size:8px}
+.editor-fullscreen.nexus-studio-page .editor-top-icon{padding:7px;min-width:34px}
+.editor-fullscreen.nexus-studio-page .editor-top-icon span{display:none}
+.editor-fullscreen.nexus-studio-page .editor-screen{height:calc(100dvh - 54px);grid-template-rows:minmax(205px,1fr) minmax(142px,29%) 18px}
+.editor-fullscreen.nexus-studio-page .editor-preview-zone{padding:8px 8px 4px}
+.editor-fullscreen.nexus-studio-page .editor-preview-meta{font-size:9px;align-items:flex-start;gap:5px}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions{gap:4px}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions button,.editor-fullscreen.nexus-studio-page .preview-meta-actions select{min-height:29px;padding:5px 7px;font-size:9px}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame{max-width:min(78vw,360px);height:calc(100% - 42px);max-height:calc(100% - 42px);margin:5px auto;border-radius:11px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{padding:6px 8px 0}
+.editor-fullscreen.nexus-studio-page .editor-timeline-head{height:30px;min-height:30px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-head b{font-size:10px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-actions{gap:3px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-actions button{width:29px;height:27px}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock{height:60px;min-height:60px;flex-basis:60px;padding:5px 7px;gap:2px}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button{min-width:55px;font-size:8px}
+.editor-fullscreen.nexus-studio-page .editor-status-line{font-size:8px}
+}
+@media(min-width:761px) and (max-width:1050px){
+.editor-dashboard-actions{grid-template-columns:1fr 1fr}
+.editor-dashboard-action-main{grid-column:1/-1}
+.editor-project-types{grid-template-columns:repeat(2,minmax(0,1fr))}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame{max-width:min(55vw,560px)}
+}
