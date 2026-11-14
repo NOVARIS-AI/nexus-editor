@@ -4580,7 +4580,7 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 
 @media(max-width:760px){
  .editor-fullscreen.nexus-studio-page .editor-timeline-ruler{margin-left:50vw!important}
- .editor-fullscreen.nexus-studio-page .editor-lanes-inner{margin-left:calc(50vw - 50px)!important}
+ .editor-fullscreen.nexus-studio-page .editor-lanes-inner{margin-left:calc(50vw - 88px)!important}
  .editor-fullscreen.nexus-studio-page .editor-lane-labels{position:sticky;left:0;z-index:12}
  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll:after{content:"";display:block;width:50vw;height:1px;pointer-events:none}
 }
