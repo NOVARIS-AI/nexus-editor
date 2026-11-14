@@ -4544,3 +4544,36 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .editor-fullscreen.nexus-studio-page .editor-clip-thumb{flex-basis:25px;width:25px;height:22px}
   .editor-fullscreen.nexus-studio-page .editor-clip-title{font-size:8px}
 }
+
+
+/* CapCut-style mobile timeline: fixed center cursor, scrolling media, compact transport. */
+.editor-fixed-playhead{position:sticky;left:50%;top:0;z-index:40;display:block;width:0;height:0;margin:0;padding:0;pointer-events:none}
+.editor-fixed-playhead i{position:absolute;left:-1px;top:0;bottom:-1200px;width:2px;background:#fff;box-shadow:0 0 0 1px #ffffff55,0 0 10px #ffffff99;border-radius:2px}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{position:relative;overscroll-behavior-x:contain;touch-action:pan-x pan-y;scrollbar-width:thin}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{display:flex;align-items:flex-end;min-height:28px;height:28px;padding-bottom:4px;box-sizing:border-box;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100% - 1px),rgba(255,255,255,.18) calc(100% - 1px),rgba(255,255,255,.18) 100%);border-bottom:1px solid rgba(255,255,255,.16);font-variant-numeric:tabular-nums}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler span{position:relative;flex-shrink:0;white-space:nowrap;padding-left:2px;font-size:9px;color:#d6d9e2}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler span:before{content:"";position:absolute;left:0;top:-7px;width:1px;height:5px;background:rgba(255,255,255,.42)}
+.editor-fullscreen.nexus-studio-page .editor-clip.active{border:2px solid #fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.22),0 0 12px rgba(255,255,255,.18)!important}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle{width:8px!important;min-width:8px!important;background:#fff!important;border:1px solid #24242b!important;border-radius:3px!important;z-index:4}
+.editor-fullscreen.nexus-studio-page .editor-clip{overflow:hidden}
+.editor-fullscreen.nexus-studio-page .editor-transport.nexus-pro-transport{display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;justify-content:stretch;gap:8px;height:40px;min-height:40px;padding:2px 9px}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport>.editor-time-readout{justify-self:start}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport>.editor-play{justify-self:center;width:34px;height:34px;min-width:34px;min-height:34px;border-radius:50%;display:grid;place-items:center}
+.editor-fullscreen.nexus-studio-page .nexus-transport-actions{justify-self:end;display:flex;align-items:center;gap:5px}
+.editor-fullscreen.nexus-studio-page .nexus-transport-actions button{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--studio-line);border-radius:8px;background:rgba(255,255,255,.05);color:#e9eaf1}
+@media(max-width:760px){
+ .editor-fullscreen.nexus-studio-page .editor-screen{grid-template-rows:minmax(0,1fr) minmax(220px,36dvh) minmax(0,64px) 18px!important}
+ .editor-fullscreen.nexus-studio-page .editor-timeline-zone{padding:5px 6px 3px!important}
+ .editor-fullscreen.nexus-studio-page .editor-timeline-head{flex-basis:30px!important;min-height:30px!important;height:30px!important}
+ .editor-fullscreen.nexus-studio-page .editor-timeline-scroll{height:auto!important;flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+ .editor-fullscreen.nexus-studio-page .editor-timeline-ruler{height:27px!important;min-height:27px!important}
+ .editor-fullscreen.nexus-studio-page .editor-lane{min-height:48px!important}
+ .editor-fullscreen.nexus-studio-page .editor-lane-labels>span{min-height:48px!important}
+ .editor-fullscreen.nexus-studio-page .editor-clip{height:34px!important;min-height:34px!important}
+ .editor-fullscreen.nexus-studio-page .editor-transport.nexus-pro-transport{height:38px!important;min-height:38px!important;flex-basis:38px!important;grid-template-columns:minmax(0,1fr) 38px minmax(0,1fr)!important;gap:5px!important;padding:1px 8px!important}
+ .editor-fullscreen.nexus-studio-page .nexus-pro-transport .editor-time-readout{font-size:10px!important;white-space:nowrap}
+ .editor-fullscreen.nexus-studio-page .nexus-pro-transport .editor-scrub-hint{display:none!important}
+ .editor-fullscreen.nexus-studio-page .nexus-transport-actions{gap:3px!important}
+ .editor-fullscreen.nexus-studio-page .nexus-transport-actions button{width:27px!important;height:27px!important;min-height:27px!important;padding:0!important}
+ .editor-fullscreen.nexus-studio-page .editor-playhead{display:none!important}
+}
