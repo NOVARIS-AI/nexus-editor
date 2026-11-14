@@ -43,7 +43,8 @@ import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-
 import { analyzeMediaAsset, buildTextCompositionLayers, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, clipSourceAtTimeline, clipTimelineAtSource, speedAtSourceProgress, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 import { trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
-import { renderTimeline, getExportDimensions } from "./editor/browser-renderer";
+import { renderTimelineWithEngines as renderTimeline } from "./editor/engine-orchestrator";
+import { getExportDimensions } from "./editor/browser-renderer";
 
 import { askNexusDirector } from "./editor/ai-director";
 import { getInternalEngineOutputKind, isRemoteInternalEngineTool } from "./editor/internal-engine-routing";
