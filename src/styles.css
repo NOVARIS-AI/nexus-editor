@@ -4200,3 +4200,20 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   margin-left:auto;color:var(--nx-text);font-size:9px;letter-spacing:0;
 }
 .nexus-shell .nexus-pixi-panel>small{color:var(--nx-muted);font-size:10px;line-height:1.4}
+
+
+/* Pixi GPU canvas becomes the image layer in the live editor stage. */
+.nexus-shell .nexus-pixi-stage-wrap{
+  position:absolute!important;inset:0!important;z-index:0!important;
+  width:100%!important;height:100%!important;min-width:0!important;
+  pointer-events:none!important;
+}
+.nexus-shell .nexus-pixi-stage{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  min-height:0!important;aspect-ratio:auto!important;border-radius:0!important;
+  background:transparent!important;overflow:hidden!important;
+}
+.nexus-shell .nexus-pixi-stage canvas.nexus-pixi-preview-canvas{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  object-fit:cover!important;
+}
