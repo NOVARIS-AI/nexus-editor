@@ -105,20 +105,21 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
   for(const audio of audioClips) for(const visual of visualClips){
     if(audio.start<clipEnd(visual)&&clipEnd(audio)>visual.start) addEdge(audio.id,visual.id,"audio bed overlaps scene");
   }
-  const issues: string[] = [];
-  if (!assets.length) issues.push("No source media yet. Add a visual or audio asset to give the project a starting point.");
-  if (assets.length && !clips.length) issues.push("Media is imported but no story beats are on the timeline.");
-  if (clips.length && !texts.length) issues.push("There are no timed text layers. Add a title, caption or quote where the message needs support.");
+  const issues: { id:string; message:string; targetId?:string; actionLabel?:string }[] = [];
+  const addIssue = (message:string,targetId?:string,actionLabel="Review timeline") => issues.push({id:"guardian-"+issues.length,message,...(targetId?{targetId,actionLabel}:{})});
+  if (!assets.length) addIssue("No source media yet. Add a visual or audio asset to give the project a starting point.");
+  if (assets.length && !clips.length) addIssue("Media is imported but no story beats are on the timeline.");
+  if (clips.length && !texts.length) addIssue("There are no timed text layers. Add a title, caption or quote where the message needs support.",clips[0]?.id,"Review opening scene");
   if (clips.length > 1) {
     const ordered = [...clips].sort((a,b)=>a.start-b.start);
-    for (let i=1;i<ordered.length;i++) if (ordered[i].start > ordered[i-1].start + (ordered[i-1].sourceOut-ordered[i-1].sourceIn)/(ordered[i-1].speed||1) + .2) { issues.push("Possible visual gap between “"+ordered[i-1].label+"” and “"+ordered[i].label+"”."); break; }
+    for (let i=1;i<ordered.length;i++) if (ordered[i].start > ordered[i-1].start + (ordered[i-1].sourceOut-ordered[i-1].sourceIn)/(ordered[i-1].speed||1) + .2) { addIssue("Possible visual gap between “"+ordered[i-1].label+"” and “"+ordered[i].label+"”.",ordered[i].id,"Review gap"); break; }
   }
-  if (assets.some(a=>a.kind==="audio") && !clips.some(c=>assets.find(a=>a.id===c.assetId)?.kind==="audio")) issues.push("Audio is in the media library but not yet connected to a timeline clip.");
-  if (texts.some(t=>t.text.length>110)) issues.push("At least one text layer is long. Check its reading time on a phone-sized preview.");
-  for (const layer of texts) { const words=layer.text.trim().split(/\s+/).filter(Boolean).length; const readingSeconds=words/2.7; if(words>=7 && layer.duration<readingSeconds) { issues.push("“"+layer.text.slice(0,28)+"” may disappear before viewers can comfortably read it."); break; } }
-  if(clips.length>0){const total=clips.reduce((sum,clip)=>sum+Math.max(0,(clip.sourceOut-clip.sourceIn)/(clip.speed||1)),0);if(total>0&&total<8)issues.push("The current cut is under 8 seconds. Check whether the story has enough time to land.");}
+  if (assets.some(a=>a.kind==="audio") && !clips.some(c=>assets.find(a=>a.id===c.assetId)?.kind==="audio")) addIssue("Audio is in the media library but not yet connected to a timeline clip.");
+  const longText=texts.find(t=>t.text.length>110); if(longText) addIssue("At least one text layer is long. Check its reading time on a phone-sized preview.",longText.id,"Review text");
+  for (const layer of texts) { const words=layer.text.trim().split(/\s+/).filter(Boolean).length; const readingSeconds=words/2.7; if(words>=7 && layer.duration<readingSeconds) { addIssue("“"+layer.text.slice(0,28)+"” may disappear before viewers can comfortably read it.",layer.id,"Review reading time"); break; } }
+  if(clips.length>0){const total=clips.reduce((sum,clip)=>sum+Math.max(0,(clip.sourceOut-clip.sourceIn)/(clip.speed||1)),0);if(total>0&&total<8)issues.push({id:"guardian-short-cut",message:"The current cut is under 8 seconds. Check whether the story has enough time to land.",targetId:[...clips].sort((a,b)=>b.start-a.start)[0]?.id,actionLabel:"Review ending"});}
 
-  if (!issues.length) issues.push("No obvious structural issues found by the local checks. Review the actual preview and audio before export.");
+  if (!issues.length) addIssue("No obvious structural issues found by the local checks. Review the actual preview and audio before export.");
   return { nodes, edges, issues };
 }
 
@@ -273,7 +274,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <div className="nexus-fabric-node-list">{graph.nodes.slice(0,18).map((n,i)=><button type="button" className="nexus-fabric-node nexus-fabric-node-action" key={n.id} onClick={()=>seekGraphNode(n.id)} disabled={graphNodeTime(n.id)===null} title={graphNodeTime(n.id)===null?"This source is not on the timeline":"Jump to "+n.name}><span className="nexus-fabric-node-dot">{n.kind==="text"?"T":n.kind==="audio"?"♫":n.kind==="image"||n.kind==="image layer"?"▧":"▶"}</span><span><b>{n.name||"Untitled element"}</b><small>{n.role} · {n.kind}</small></span><small>{graphNodeTime(n.id)!==null?graphNodeTime(n.id)!.toFixed(1)+"s":"LIBRARY"}</small></button>)}{graph.nodes.length>18&&<small>+ {graph.nodes.length-18} more connected elements</small>}{!graph.nodes.length&&<div className="nexus-fabric-empty">Import media to begin building your creative world.</div>}</div>
       <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,24).map((edge,i)=><button type="button" key={i} onClick={()=>seekGraphNode(edge.to)} disabled={graphNodeTime(edge.to)===null} title="Jump to the connected timeline element"><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b><small>{graphNodeTime(edge.to)!==null?graphNodeTime(edge.to)!.toFixed(1)+"s":""}</small></button>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
       <div className="nexus-fabric-section-title"><b>Continuity Guardian</b><small><Activity size={12}/> Local structural checks</small></div>
-      <div className="nexus-fabric-issues">{graph.issues.map((issue,i)=><div key={i}><Lightbulb size={15}/><span>{issue}</span></div>)}</div>
+      <div className="nexus-fabric-issues">{graph.issues.map(issue=><article className="nexus-fabric-issue" key={issue.id}><Lightbulb size={15}/><span>{issue.message}</span>{issue.targetId&&<button type="button" onClick={()=>seekGraphNode(issue.targetId!)}>{issue.actionLabel||"Review"}</button>}</article>)}</div>
     </div>}
     {tab==="scenes" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Scene Understanding brings together your footage, spoken content and scene details to help the editor make more relevant creative suggestions.</p>
