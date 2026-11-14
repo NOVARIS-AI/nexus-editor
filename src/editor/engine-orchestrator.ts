@@ -33,8 +33,10 @@ function effectsFor(clip: RenderInput["clips"][number]) {
     effects.push({ id: crypto.randomUUID(), kind: "colorGrade", params: { exposure, contrast, saturation, temperature: Math.max(-1, Math.min(1, (clip.temperature ?? 0) / 100)), tint: Math.max(-1, Math.min(1, (clip.tint ?? 0) / 100)) } });
   }
   if ((clip.vignette ?? 0) > 0) effects.push({ id: crypto.randomUUID(), kind: "vignette", params: { amount: Math.max(0, Math.min(1, (clip.vignette ?? 0) / 100)) } });
-  if ((clip.filter ?? "").toLowerCase().includes("grain")) effects.push({ id: crypto.randomUUID(), kind: "grain", params: { amount: 0.22, size: 1.5, seed: 7, animated: false } });
-  if ((clip.filter ?? "").toLowerCase().includes("blur")) effects.push({ id: crypto.randomUUID(), kind: "gaussianBlur", params: { radius: 8 } });
+  const filterName = (clip.filter ?? "").toLowerCase();
+  if (/grain|noise|film|analog|vhs|dust/.test(filterName)) effects.push({ id: crypto.randomUUID(), kind: "grain", params: { amount: 0.22, size: 1.5, seed: 7, animated: false } });
+  if (/blur|soft focus|defocus|bokeh/.test(filterName)) effects.push({ id: crypto.randomUUID(), kind: "gaussianBlur", params: { radius: /heavy|strong|deep/.test(filterName) ? 14 : 6 } });
+  if ((clip.highlights ?? 0) !== 0 || (clip.shadows ?? 0) !== 0) effects.push({ id: crypto.randomUUID(), kind: "colorGrade", params: { highlights: Math.max(-1, Math.min(1, (clip.highlights ?? 0) / 100)), shadows: Math.max(-1, Math.min(1, (clip.shadows ?? 0) / 100)) } });
   return effects;
 }
 
@@ -66,7 +68,10 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
     engine.updateTrack(id, {
       muted: track.muted,
       volume: track.volume ?? 1,
-    });
+      opacity: Math.max(0, Math.min(1, track.opacity ?? 1)),
+      blendMode: track.blendMode ?? "normal",
+      solo: track.solo ?? false,
+    } as never);
   }
 
   const elahClipIds = new Map<string, { id: string; trackId: string; startFrame: number; endFrame: number; transitionIn: number; transitionOut: number; transitionStyle?: string }>();
@@ -91,7 +96,12 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
       volume: Math.max(0, Math.min(1, clip.gain ?? 1)),
       opacity: Math.max(0, Math.min(1, clip.opacity ?? 1)),
       transform: transformFor(clip),
-    });
+      blendMode: clip.blendMode ?? sourceTrackState?.blendMode ?? "normal",
+      fit: clip.fit ?? "cover",
+      mask: { shape: clip.maskShape ?? "none", radius: clip.maskRadius ?? 12 },
+      flipHorizontal: clip.flipHorizontal ?? false,
+      flipVertical: clip.flipVertical ?? false,
+    } as never);
     engine.updateClip(created.id, trackId, {
       sourceStartFrame: Math.max(0, Math.round(clip.sourceIn * input.fps)),
       sourceDurationFrames: Math.max(durationFrames, Math.round(asset.duration * input.fps)),
@@ -126,7 +136,10 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
         rotation: (layer.rotation * Math.PI) / 180,
         anchor: { x: 0.5, y: 0.5 },
       },
-    });
+      blendMode: layer.blendMode ?? "normal",
+      fit: layer.fit ?? "contain",
+      mask: { shape: layer.maskShape ?? "none", radius: layer.maskRadius ?? 12 },
+    } as never);
     engine.updateClip(created.id, trackId, {
       sourceDurationFrames: Math.max(durationFrames, Math.round(asset.duration * input.fps)),
     });
@@ -146,8 +159,13 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
         color: layer.color,
         fontFamily: layer.fontFamily || "Arial",
         textAlign: layer.align ?? "center",
+        backgroundColor: layer.backgroundColor ?? "transparent",
+        padding: Math.max(0, Math.min(96, layer.padding ?? 0)),
+        shadow: layer.shadow ?? false,
       },
       opacity: Math.max(0, Math.min(1, layer.opacity ?? 1)),
+      blendMode: layer.blendMode ?? "normal",
+      animation: layer.animation ?? "none",
       transform: {
         x: Math.max(0, Math.min(1, (layer.x ?? input.width / 2) / input.width)),
         y: Math.max(0, Math.min(1, (layer.y ?? input.height / 2) / input.height)),
