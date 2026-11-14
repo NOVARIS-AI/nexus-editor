@@ -3679,448 +3679,161 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 }
 
 
-/* NEXUS mobile editor rebuild — one viewport, visible timeline, persistent dock */
-@media (max-width: 760px) {
-  body:has(.nexus-studio-page) { overflow:hidden !important; }
-  .nexus-shell .nexus-studio-page {
-    height:100dvh !important; min-height:100dvh !important;
-    width:100vw !important; overflow:hidden !important;
+/* NEXUS mobile editor — single source of truth for the phone workspace. */
+@media (max-width:760px) {
+  body:has(.nexus-studio-page){overflow:hidden!important}
+  body:has(.nexus-studio-page) .nexus-auth-access{display:none!important}
+  .nexus-shell .nexus-studio-page{
+    display:flex!important;flex-direction:column!important;
+    width:100vw!important;height:100dvh!important;min-height:100dvh!important;
+    overflow:hidden!important;
   }
-  .nexus-shell .nexus-studio-page .editor-screen {
-    display:flex !important; flex-direction:column !important;
-    height:calc(100dvh - 54px) !important; min-height:0 !important;
-    width:100% !important; overflow:hidden !important;
-    padding:0 0 calc(68px + env(safe-area-inset-bottom)) !important;
-    gap:0 !important;
+  .nexus-shell .nexus-studio-page .editor-topbar{
+    position:relative!important;z-index:20!important;
+    display:flex!important;flex:0 0 58px!important;flex-wrap:nowrap!important;
+    align-items:center!important;gap:8px!important;
+    width:100%!important;height:58px!important;min-height:58px!important;
+    padding:6px 10px!important;overflow:hidden!important;
   }
-  .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex:1 1 auto !important; min-height:210px !important; max-height:none !important;
-    width:100% !important; padding:7px 10px 5px !important;
-    overflow:hidden !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-preview-frame {
-    height:calc(100% - 42px) !important; width:auto !important;
-    max-width:calc(100vw - 34px) !important; max-height:100% !important;
-    aspect-ratio:9/16 !important; margin:4px auto 0 !important;
-  }
-  .nexus-shell .nexus-studio-page .preview-meta-actions select,
-  .nexus-shell .nexus-studio-page .preview-meta-actions button:not(.preview-add-media) {
-    display:none !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-timeline-zone {
-    flex:0 0 min(31dvh,250px) !important; height:min(31dvh,250px) !important;
-    min-height:168px !important; max-height:250px !important;
-    width:100% !important; margin:0 !important; padding:5px 8px 7px !important;
-    overflow:hidden !important; box-sizing:border-box !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-timeline-scroll {
-    min-height:0 !important; flex:1 1 auto !important; overflow:auto !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-bottom-tools,
-  .nexus-shell .nexus-studio-page .editor-status-line {
-    display:none !important;
-  }
-  body > .nexus-mobile-tool-dock {
-    position:fixed !important; left:0 !important; right:0 !important; bottom:0 !important;
-    z-index:2147483001 !important; display:flex !important; flex-wrap:nowrap !important;
-    align-items:stretch !important; justify-content:flex-start !important; gap:2px !important;
-    width:100vw !important; height:calc(64px + env(safe-area-inset-bottom)) !important;
-    min-height:calc(64px + env(safe-area-inset-bottom)) !important;
-    padding:5px 6px calc(5px + env(safe-area-inset-bottom)) !important;
-    overflow-x:auto !important; overflow-y:hidden !important; box-sizing:border-box !important;
-    background:#11161c !important; border-top:1px solid #46515d !important;
-    box-shadow:0 -8px 24px #0009 !important; scrollbar-width:none !important;
-  }
-  body > .nexus-mobile-tool-dock button {
-    flex:0 0 58px !important; min-width:58px !important; min-height:50px !important;
-    display:flex !important; flex-direction:column !important; align-items:center !important;
-    justify-content:center !important; gap:3px !important; border:0 !important;
-    border-radius:8px !important; background:transparent !important;
-    color:#b9c1ca !important; font-size:8px !important;
-  }
-  body > .nexus-mobile-tool-dock button.active {
-    background:#493525 !important; color:#f0c18e !important;
-  }
-  body > .nexus-mobile-tool-sheet {
-    bottom:calc(64px + env(safe-area-inset-bottom)) !important;
-    max-height:min(54dvh,460px) !important;
-    z-index:2147483002 !important;
-  }
-}
-
-
-/* Final mobile workspace correction from real-device review (2026-11-14). */
-@media (max-width: 760px) {
-  /* AuthGate's floating account action must not cover the project title/actions. */
-  body:has(.nexus-studio-page) .nexus-auth-access { display:none !important; }
-
-  .nexus-shell .nexus-studio-page {
-    height:100dvh !important;
-    min-height:100dvh !important;
-    overflow:hidden !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-topbar {
-    position:relative !important;
-    z-index:20 !important;
-    display:flex !important;
-    flex-wrap:nowrap !important;
-    align-items:center !important;
-    gap:7px !important;
-    min-height:68px !important;
-    height:68px !important;
-    padding:8px 10px !important;
-    overflow:hidden !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-project-title {
-    flex:1 1 auto !important;
-    min-width:0 !important;
-    overflow:hidden !important;
+  .nexus-shell .nexus-studio-page .editor-project-title{
+    flex:1 1 auto!important;min-width:0!important;overflow:hidden!important;
   }
   .nexus-shell .nexus-studio-page .editor-project-title b,
-  .nexus-shell .nexus-studio-page .editor-project-title small {
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-    white-space:nowrap !important;
+  .nexus-shell .nexus-studio-page .editor-project-title small{
+    display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
   }
   .nexus-shell .nexus-studio-page .editor-top-icon,
-  .nexus-shell .nexus-studio-page .editor-export-entry {
-    flex:0 0 auto !important;
-    min-width:36px !important;
-    padding:8px !important;
+  .nexus-shell .nexus-studio-page .editor-export-entry{
+    flex:0 0 38px!important;min-width:38px!important;width:38px!important;
+    height:38px!important;padding:8px!important;justify-content:center!important;
   }
   .nexus-shell .nexus-studio-page .editor-top-icon span,
-  .nexus-shell .nexus-studio-page .editor-export-entry span { display:none !important; }
-
-  .nexus-shell .nexus-studio-page .editor-screen {
-    height:calc(100dvh - 68px) !important;
-    max-height:calc(100dvh - 68px) !important;
-    padding:0 0 calc(68px + env(safe-area-inset-bottom)) !important;
-    overflow:hidden !important;
-    display:flex !important;
-    flex-direction:column !important;
+  .nexus-shell .nexus-studio-page .editor-export-entry span{display:none!important}
+  .nexus-shell .nexus-studio-page .editor-screen{
+    display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+    gap:0!important;width:100%!important;height:auto!important;min-height:0!important;
+    max-height:none!important;overflow:hidden!important;
+    padding:0 0 calc(66px + env(safe-area-inset-bottom))!important;
   }
-  .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex:1 1 auto !important;
-    min-height:0 !important;
-    max-height:none !important;
-    padding:8px 10px 6px !important;
-    overflow:hidden !important;
+  .nexus-shell .nexus-studio-page .editor-preview-zone{
+    display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+    align-items:center!important;justify-content:center!important;
+    width:100%!important;min-height:0!important;max-height:none!important;
+    padding:6px 10px!important;overflow:hidden!important;
   }
-  .nexus-shell .nexus-studio-page .editor-preview-meta {
-    min-height:34px !important;
-    height:34px !important;
+  .nexus-shell .nexus-studio-page .editor-preview-meta{
+    display:flex!important;flex:0 0 26px!important;align-items:center!important;
+    width:100%!important;height:26px!important;min-height:26px!important;
   }
-  .nexus-shell .nexus-studio-page .editor-preview-frame {
-    width:auto !important;
-    height:min(44dvh, 540px) !important;
-    max-height:calc(100% - 40px) !important;
-    max-width:min(78vw, 304px) !important;
-    aspect-ratio:9/16 !important;
-    margin:5px auto 0 !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-timeline-zone {
-    flex:0 0 min(27dvh, 300px) !important;
-    height:min(27dvh, 300px) !important;
-    min-height:180px !important;
-    max-height:300px !important;
-    margin:0 !important;
-    padding:5px 8px 8px !important;
-    overflow:hidden !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-timeline-scroll {
-    min-height:0 !important;
-    flex:1 1 auto !important;
-    overflow:auto !important;
-  }
-  .nexus-shell .nexus-studio-page .editor-bottom-tools,
-  .nexus-shell .nexus-studio-page .editor-status-line { display:none !important; }
-
-  body > nav.nexus-mobile-tool-dock {
-    position:fixed !important;
-    display:flex !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    left:0 !important; right:0 !important; bottom:0 !important;
-    z-index:2147483001 !important;
-    width:100vw !important;
-    height:calc(66px + env(safe-area-inset-bottom)) !important;
-    min-height:calc(66px + env(safe-area-inset-bottom)) !important;
-    max-height:calc(66px + env(safe-area-inset-bottom)) !important;
-    padding:5px 7px calc(5px + env(safe-area-inset-bottom)) !important;
-    margin:0 !important;
-    flex-wrap:nowrap !important;
-    gap:2px !important;
-    overflow-x:auto !important;
-    overflow-y:hidden !important;
-    background:#11161c !important;
-    border-top:1px solid #46515d !important;
-    box-shadow:0 -8px 24px #0009 !important;
-    transform:none !important;
-  }
-  body > nav.nexus-mobile-tool-dock button {
-    flex:0 0 58px !important;
-    min-width:58px !important;
-    min-height:50px !important;
-    display:flex !important;
-    flex-direction:column !important;
-    align-items:center !important;
-    justify-content:center !important;
-    gap:3px !important;
-    padding:4px 2px !important;
-    color:#b9c1ca !important;
-    background:transparent !important;
-    border:0 !important;
-    font-size:8px !important;
-  }
-  body > nav.nexus-mobile-tool-dock button.active {
-    color:#f0c18e !important;
-    background:#493525 !important;
-  }
-  body > .nexus-mobile-tool-sheet {
-    bottom:calc(66px + env(safe-area-inset-bottom)) !important;
-    z-index:2147483002 !important;
-    max-height:min(52dvh,440px) !important;
-  }
-}
-
-
-/* CapCut-inspired mobile studio pass: stable canvas + overlay sheets + visual libraries. */
-@media (max-width:760px) {
-  /* Keep the canvas independent from the tool sheet: sheets cover the timeline. */
-  .nexus-shell .nexus-studio-page .editor-screen {
-    padding-bottom:0!important;
-    height:calc(100dvh - 68px)!important;
-    max-height:calc(100dvh - 68px)!important;
-  }
-  .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex:1 1 52%!important;
-    min-height:0!important;
-    justify-content:center!important;
-    padding:5px 10px!important;
-  }
-  .nexus-shell .nexus-studio-page .editor-preview-frame {
-    aspect-ratio:9/16!important;
-    width:auto!important;
-    height:min(48dvh,100%)!important;
-    max-height:100%!important;
-    max-width:calc(100vw - 42px)!important;
-    margin:0 auto!important;
-    border:1px solid #3d5664!important;
+  .nexus-shell .nexus-studio-page .preview-meta-actions select,
+  .nexus-shell .nexus-studio-page .preview-meta-actions button:not(.preview-add-media){display:none!important}
+  .nexus-shell .nexus-studio-page .editor-preview-frame{
+    position:relative!important;flex:0 1 auto!important;
+    width:auto!important;height:min(47dvh,100%)!important;
+    max-width:min(78vw,340px)!important;max-height:calc(100% - 28px)!important;
+    aspect-ratio:9/16!important;margin:0 auto!important;
+    border:1px solid #3d5664!important;border-radius:12px!important;
     box-shadow:0 0 0 1px #38bdf833,0 12px 34px #0008!important;
   }
-  .nexus-shell .nexus-studio-page .editor-preview-meta {flex:0 0 22px!important;min-height:22px!important;height:22px!important}
-  .nexus-shell .nexus-studio-page .preview-meta-actions .preview-add-media,
-  .nexus-shell .nexus-studio-page .preview-meta-actions select,
-  .nexus-shell .nexus-studio-page .preview-meta-actions button {display:none!important}
-
-  /* Compact track-first timeline; no extra manager/zoom header bars. */
-  .nexus-shell .nexus-studio-page .editor-timeline-zone {
-    flex:0 0 23dvh!important;height:23dvh!important;min-height:118px!important;
-    max-height:190px!important;padding:4px 7px 6px!important;
-    background:#0c1015!important;border-top:1px solid #303b46!important;
+  .nexus-shell .nexus-studio-page .editor-timeline-zone{
+    display:flex!important;flex:0 0 clamp(150px,24dvh,210px)!important;
+    flex-direction:column!important;width:100%!important;
+    height:clamp(150px,24dvh,210px)!important;min-height:150px!important;
+    max-height:210px!important;margin:0!important;padding:5px 8px 7px!important;
+    overflow:hidden!important;background:#0c1015!important;
+    border-top:1px solid #303b46!important;box-sizing:border-box!important;
   }
-  .nexus-shell .nexus-studio-page .editor-timeline-head {display:none!important}
-  .nexus-shell .nexus-studio-page details.nexus-layer-manager {display:none!important}
-  .nexus-shell .nexus-studio-page .editor-timeline-scroll {
-    min-height:0!important;height:100%!important;max-height:100%!important;
-    border-radius:8px!important;overflow:auto!important;
+  .nexus-shell .nexus-studio-page .editor-timeline-head{
+    display:flex!important;flex:0 0 30px!important;min-height:30px!important;
+    align-items:center!important;padding:0 2px!important;
   }
-
-  /* Floating sheet never participates in editor flex/grid sizing. */
-  body > .nexus-mobile-tool-sheet {
+  .nexus-shell .nexus-studio-page .editor-timeline-head small{font-size:10px!important}
+  .nexus-shell .nexus-studio-page details.nexus-layer-manager{display:none!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-scroll{
+    display:block!important;flex:1 1 auto!important;min-height:0!important;
+    height:auto!important;max-height:100%!important;overflow:auto!important;
+    border-radius:8px!important;overscroll-behavior:contain!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-bottom-tools,
+  .nexus-shell .nexus-studio-page .editor-status-line{display:none!important}
+  body>nav.nexus-mobile-tool-dock{
+    position:fixed!important;left:0!important;right:0!important;bottom:0!important;
+    z-index:2147483001!important;display:flex!important;visibility:visible!important;
+    width:100vw!important;height:calc(66px + env(safe-area-inset-bottom))!important;
+    min-height:calc(66px + env(safe-area-inset-bottom))!important;
+    max-height:calc(66px + env(safe-area-inset-bottom))!important;
+    flex-wrap:nowrap!important;align-items:stretch!important;justify-content:flex-start!important;
+    gap:2px!important;margin:0!important;padding:5px 7px calc(5px + env(safe-area-inset-bottom))!important;
+    overflow-x:auto!important;overflow-y:hidden!important;box-sizing:border-box!important;
+    background:#11161c!important;border-top:1px solid #46515d!important;
+    box-shadow:0 -8px 24px #0009!important;transform:none!important;scrollbar-width:none!important;
+  }
+  body>nav.nexus-mobile-tool-dock button{
+    display:flex!important;flex:0 0 58px!important;min-width:58px!important;
+    min-height:50px!important;flex-direction:column!important;align-items:center!important;
+    justify-content:center!important;gap:3px!important;padding:4px 2px!important;
+    border:0!important;border-radius:9px!important;background:transparent!important;
+    color:#b9c1ca!important;font-size:9px!important;
+  }
+  body>nav.nexus-mobile-tool-dock button.active{
+    color:#f0c18e!important;background:#493525!important;
+  }
+  body>.nexus-mobile-tool-sheet{
     position:fixed!important;left:0!important;right:0!important;
     bottom:calc(66px + env(safe-area-inset-bottom))!important;
-    z-index:2147483002!important;
-    display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;
-    align-items:stretch!important;gap:12px!important;
-    width:100vw!important;max-height:44dvh!important;
-    padding:12px 14px calc(14px + env(safe-area-inset-bottom))!important;
-    overflow-x:hidden!important;overflow-y:auto!important;
-    border-radius:18px 18px 0 0!important;
-    background:rgba(19,25,32,.98)!important;
-    border:1px solid #43505c!important;border-bottom:0!important;
-    box-shadow:0 -18px 48px #000b!important;
+    z-index:2147483002!important;display:flex!important;flex-direction:column!important;
+    flex-wrap:nowrap!important;align-items:stretch!important;gap:10px!important;
+    width:100vw!important;height:auto!important;max-height:48dvh!important;min-height:190px!important;
+    padding:12px 14px calc(12px + env(safe-area-inset-bottom))!important;
+    overflow-x:hidden!important;overflow-y:auto!important;box-sizing:border-box!important;
+    border:1px solid #43505c!important;border-bottom:0!important;border-radius:18px 18px 0 0!important;
+    background:rgba(19,25,32,.98)!important;box-shadow:0 -18px 48px #000b!important;
     backdrop-filter:blur(18px)!important;
   }
-  body > .nexus-mobile-tool-sheet.is-closed {display:none!important}
-  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
-    flex:0 0 auto!important;min-height:40px!important;margin:0!important;padding:0 0 9px!important;
+  body>.nexus-mobile-tool-sheet.is-closed{display:none!important}
+  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-timeline-zone{visibility:hidden!important}
+  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-preview-zone{flex:1 1 auto!important}
+  body>.nexus-mobile-tool-sheet .nexus-mobile-sheet-head{
+    display:flex!important;flex:0 0 auto!important;min-height:38px!important;
+    align-items:center!important;justify-content:space-between!important;
+    margin:0!important;padding:0 0 8px!important;border-bottom:1px solid #35414d!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip,
-  body > .nexus-mobile-tool-sheet .nexus-effect-library-head,
-  body > .nexus-mobile-tool-sheet .nexus-effect-group,
-  body > .nexus-mobile-tool-sheet .nexus-context-controls,
-  body > .nexus-mobile-tool-sheet .nexus-adjust-grid,
-  body > .nexus-mobile-tool-sheet .nexus-sheet-heading {
-    display:flex!important;flex-direction:column!important;align-items:stretch!important;
-    flex:0 0 auto!important;gap:7px!important;width:100%!important;min-width:0!important;
-    height:auto!important;min-height:0!important;overflow:visible!important;
-    box-sizing:border-box!important;
+  body>.nexus-mobile-tool-sheet .nexus-mobile-sheet-head b{font-size:15px!important;color:#f1f2f4!important}
+  body>.nexus-mobile-tool-sheet .nexus-effect-group,
+  body>.nexus-mobile-tool-sheet .nexus-context-controls,
+  body>.nexus-mobile-tool-sheet .nexus-effect-library-head,
+  body>.nexus-mobile-tool-sheet .nexus-adjust-grid,
+  body>.nexus-mobile-tool-sheet .nexus-sheet-heading{
+    display:flex!important;flex:0 0 auto!important;flex-direction:column!important;
+    align-items:stretch!important;gap:8px!important;width:100%!important;
+    min-width:0!important;height:auto!important;min-height:0!important;overflow:visible!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip {
-    flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;
-    gap:8px!important;overflow-x:auto!important;white-space:nowrap!important;
+  body>.nexus-mobile-tool-sheet .nexus-effect-categories,
+  body>.nexus-mobile-tool-sheet .nexus-sticker-tabs{
+    display:flex!important;flex:0 0 auto!important;flex-wrap:nowrap!important;
+    gap:7px!important;width:100%!important;overflow-x:auto!important;padding:3px 0 7px!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip small {flex:0 0 100%!important}
-  body > .nexus-mobile-tool-sheet .nexus-effect-library-head > div,
-  body > .nexus-mobile-tool-sheet .nexus-sheet-heading > div {
-    display:flex!important;flex-direction:column!important;gap:4px!important;
-    min-width:0!important;white-space:normal!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-effect-library-head b,
-  body > .nexus-mobile-tool-sheet .nexus-effect-group > b {line-height:1.25!important}
-  body > .nexus-mobile-tool-sheet .nexus-effect-library-head small,
-  body > .nexus-mobile-tool-sheet .nexus-effect-group p,
-  body > .nexus-mobile-tool-sheet .nexus-effect-group small {line-height:1.45!important;white-space:normal!important}
-  body > .nexus-mobile-tool-sheet .nexus-effect-categories {
-    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
-    gap:7px!important;max-width:100%!important;overflow-x:auto!important;
-    padding:3px 0 7px!important;white-space:nowrap!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-effect-categories button {flex:0 0 auto!important}
-
-  /* Effects: real thumbnail cards, four across on a phone. */
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid {
-    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  body>.nexus-mobile-tool-sheet .nexus-effect-categories button,
+  body>.nexus-mobile-tool-sheet .nexus-sticker-tabs button{flex:0 0 auto!important}
+  body>.nexus-mobile-tool-sheet .nexus-effect-grid,
+  body>.nexus-mobile-tool-sheet .nexus-filter-carousel{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
     gap:9px!important;width:100%!important;max-height:none!important;overflow:visible!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid button {
-    display:flex!important;flex-direction:column!important;align-items:stretch!important;
-    gap:5px!important;min-width:0!important;padding:5px!important;
-    border:1px solid #35424e!important;border-radius:10px!important;
-    background:#202832!important;text-align:center!important;
+  body>.nexus-mobile-tool-sheet .nexus-effect-grid button,
+  body>.nexus-mobile-tool-sheet .nexus-filter-carousel .nexus-filter-card{
+    min-width:0!important;border-radius:10px!important;overflow:hidden!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid .nexus-effect-thumb {
-    display:grid!important;place-items:center!important;width:100%!important;
-    aspect-ratio:1/1!important;height:auto!important;min-height:0!important;
-    border-radius:7px!important;overflow:hidden!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid button b {
-    display:block!important;font-size:10px!important;line-height:1.2!important;
-    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid button small {display:none!important}
-
-  /* Filters: square visual tiles instead of long text pills. */
-  body > .nexus-mobile-tool-sheet .nexus-filter-carousel {
-    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
-    gap:9px!important;width:100%!important;max-height:none!important;
-    overflow:visible!important;padding:4px 0 8px!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button {
-    display:flex!important;flex-direction:column!important;align-items:center!important;
-    justify-content:flex-start!important;gap:5px!important;min-width:0!important;
-    min-height:0!important;padding:0 0 5px!important;border:0!important;
-    background:transparent!important;color:#e7ebef!important;font-size:9px!important;
-    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button::before {
-    content:"";display:block;width:100%;aspect-ratio:1/1;border-radius:9px;
-    border:1px solid #53616d;
-    background:linear-gradient(135deg,#e4a46c,#8d5b84 48%,#286578);
-    box-shadow:inset 0 0 18px #ffffff18;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button.active::before {
-    outline:2px solid #49c8e8;outline-offset:2px;
-  }
-
-  /* Text/adjust sections must stack; never squeeze heading and helper copy together. */
-  body > .nexus-mobile-tool-sheet .nexus-context-controls {gap:12px!important}
-  body > .nexus-mobile-tool-sheet .nexus-context-controls .nexus-effect-group {
-    display:flex!important;flex-direction:column!important;gap:8px!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-adjust-grid {
-    display:grid!important;grid-template-columns:1fr!important;gap:12px!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-adjust-grid label {
-    display:grid!important;grid-template-columns:1fr!important;gap:6px!important;
-    min-width:0!important;
-  }
-}
-
-
-/* NEXUS mobile sticker drawer + preview-first workspace correction */
-@media (max-width:760px) {
-  .nexus-shell .nexus-studio-page .editor-screen {
-    display:flex!important;flex-direction:column!important;gap:0!important;
-  }
-  .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex:1 1 auto!important;min-height:0!important;max-height:none!important;
-    display:flex!important;flex-direction:column!important;align-items:center!important;
-    justify-content:center!important;padding:4px 10px!important;overflow:hidden!important;
-  }
-  .nexus-shell .nexus-studio-page .editor-preview-frame {
-    height:min(44dvh,calc(100% - 34px))!important;width:auto!important;
-    max-height:calc(100% - 34px)!important;aspect-ratio:9/16!important;
-    margin:0 auto!important;flex:0 1 auto!important;
-  }
-  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-timeline-zone {
-    display:none!important;
-  }
-  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex:1 1 auto!important;
-  }
-  body > .nexus-mobile-tool-sheet {
-    height:42dvh!important;max-height:42dvh!important;min-height:220px!important;
-    bottom:calc(66px + env(safe-area-inset-bottom))!important;
-    flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;
-    gap:10px!important;padding:10px 14px calc(12px + env(safe-area-inset-bottom))!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
-    flex:0 0 34px!important;min-height:34px!important;height:34px!important;
-    padding:0 0 7px!important;margin:0!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head small {display:none!important}
-  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head b {font-size:16px!important}
-  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs {
-    display:flex!important;flex:0 0 auto!important;flex-direction:row!important;
-    flex-wrap:nowrap!important;gap:7px!important;width:100%!important;
-    overflow-x:auto!important;padding:1px 0 7px!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs button {
-    flex:0 0 auto!important;min-height:34px!important;padding:7px 12px!important;
-    border:1px solid #3a4652!important;border-radius:18px!important;
-    background:#202832!important;color:#dce3e9!important;font-size:12px!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs button.active {
-    background:#3b2b22!important;border-color:#c18a57!important;color:#ffd6a8!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-search {
-    flex:0 0 38px!important;width:100%!important;min-height:38px!important;
-    border:1px solid #3a4652!important;border-radius:10px!important;
-    padding:8px 11px!important;background:#10161d!important;color:#fff!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-library {
+  body>.nexus-mobile-tool-sheet .nexus-adjust-grid{display:grid!important;grid-template-columns:1fr!important}
+  body>.nexus-mobile-tool-sheet .nexus-sticker-library{
     display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
     gap:12px!important;width:100%!important;min-height:0!important;overflow-y:auto!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-group {
-    display:flex!important;flex-direction:column!important;gap:8px!important;
-    width:100%!important;min-width:0!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-group > b {
-    font-size:11px!important;color:#aeb9c4!important;letter-spacing:.04em!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-row {
-    display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  body>.nexus-mobile-tool-sheet .nexus-sticker-row{
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
     gap:9px!important;width:100%!important;
   }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-row button {
-    display:grid!important;place-items:center!important;aspect-ratio:1/1!important;
-    width:100%!important;min-width:0!important;min-height:48px!important;
-    padding:4px!important;border:1px solid #35424e!important;border-radius:11px!important;
-    background:#202832!important;color:#fff!important;font-size:28px!important;line-height:1!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-sticker-import {
-    flex:0 0 38px!important;min-height:38px!important;border:1px solid #485664!important;
-    border-radius:10px!important;background:#252e38!important;color:#f2f4f6!important;
-  }
-  body > .nexus-mobile-tool-sheet .nexus-effect-library-head,
-  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip {display:none!important}
-  body > .nexus-mobile-tool-sheet .nexus-effect-grid,
-  body > .nexus-mobile-tool-sheet .nexus-filter-carousel {
-    grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  }
+  body>.nexus-mobile-tool-sheet .nexus-sticker-row button{min-width:0!important;aspect-ratio:1/1!important}
 }
 
 
