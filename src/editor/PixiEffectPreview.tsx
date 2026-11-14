@@ -115,7 +115,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
         resizeObserver = variant === "stage" ? new ResizeObserver(fitSprite) : undefined;
         if (resizeObserver && host.current) resizeObserver.observe(host.current);
         const filter = new PIXI.ColorMatrixFilter();
-        filter.matrix = matrixFor(effectName) as [number, ...number[]];
+        filter.matrix = matrixFor(effectName) as [number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number];
         sprite.filters = [filter];
         app.stage.addChild(sprite);
         app.canvas.className = "nexus-pixi-preview-canvas";
