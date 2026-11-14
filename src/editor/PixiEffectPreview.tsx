@@ -7,35 +7,45 @@ type Props = {
   variant?: "panel" | "stage";
 };
 
+type PixiModule = typeof import("pixi.js");
+
 function matrixFor(name: string): number[] {
   const key = name.toLowerCase();
   const identity = [1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0];
-  if (/mono|black.?white|noir|b&w|grayscale/.test(key)) {
-    return [0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0,0,0,1,0];
-  }
-  if (/sepia|vintage|retro|polaroid|kodachrome/.test(key)) {
-    return [0.393,0.769,0.189,0,0, 0.349,0.686,0.168,0,0, 0.272,0.534,0.131,0,0, 0,0,0,1,0];
-  }
-  if (/invert|negative/.test(key)) {
-    return [-1,0,0,0,1, 0,-1,0,0,1, 0,0,-1,0,1, 0,0,0,1,0];
-  }
-  if (/warm|gold|sunset|rose|autumn/.test(key)) {
-    return [1.12,0.02,0,0,0.015, 0,1.02,0,0,0, 0,0,0.86,0,0, 0,0,0,1,0];
-  }
-  if (/cool|arctic|ocean|winter|blue/.test(key)) {
-    return [0.88,0,0,0,0, 0,1,0,0,0, 0,0,1.14,0,0.015, 0,0,0,1,0];
-  }
-  if (/neon|vivid|cyber|rich|ektar/.test(key)) {
+  if (/mono|black.?white|noir|b&w|grayscale/.test(key)) return [0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0.2126,0.7152,0.0722,0,0, 0,0,0,1,0];
+  if (/sepia|vintage|retro|polaroid|kodachrome/.test(key)) return [0.393,0.769,0.189,0,0, 0.349,0.686,0.168,0,0, 0.272,0.534,0.131,0,0, 0,0,0,1,0];
+  if (/invert|negative/.test(key)) return [-1,0,0,0,1, 0,-1,0,0,1, 0,0,-1,0,1, 0,0,0,1,0];
+  if (/warm|gold|sunset|rose|autumn|amber/.test(key)) return [1.12,0.02,0,0,0.015, 0,1.02,0,0,0, 0,0,0.86,0,0, 0,0,0,1,0];
+  if (/cool|arctic|ocean|winter|blue/.test(key)) return [0.88,0,0,0,0, 0,1,0,0,0, 0,0,1.14,0,0.015, 0,0,0,1,0];
+  if (/neon|vivid|cyber|rich|ektar|electric/.test(key)) {
     const s = 1.55, r = 0.2126, g = 0.7152, b = 0.0722;
     return [r*(1-s)+s,g*(1-s),b*(1-s),0,0, r*(1-s),g*(1-s)+s,b*(1-s),0,0, r*(1-s),g*(1-s),b*(1-s)+s,0,0, 0,0,0,1,0];
   }
-  if (/bright|dream|glow|soft/.test(key)) {
-    return [1.04,0,0,0,0.035, 0,1.04,0,0,0.035, 0,0,1.04,0,0.035, 0,0,0,1,0];
-  }
-  if (/dark|moody|night/.test(key)) {
-    return [1.14,0,0,0,-0.08, 0,1.14,0,0,-0.08, 0,0,1.14,0,-0.08, 0,0,0,1,0];
-  }
+  if (/bright|dream|glow|soft|pastel/.test(key)) return [1.04,0,0,0,0.035, 0,1.04,0,0,0.035, 0,0,1.04,0,0.035, 0,0,0,1,0];
+  if (/dark|moody|night|noir/.test(key)) return [1.14,0,0,0,-0.08, 0,1.14,0,0,-0.08, 0,0,1.14,0,-0.08, 0,0,0,1,0];
+  if (/fade|matte|flat/.test(key)) return [0.9,0,0,0,0.055, 0,0.9,0,0,0.055, 0,0,0.9,0,0.055, 0,0,0,1,0];
   return identity;
+}
+
+function buildFilters(PIXI: PixiModule, name: string) {
+  const key = name.toLowerCase();
+  const filters: import("pixi.js").Filter[] = [];
+  const matrix = new PIXI.ColorMatrixFilter();
+  matrix.matrix = matrixFor(name) as [number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number];
+  filters.push(matrix);
+
+  if (/blur|soft focus|dream blur|defocus|bokeh/.test(key)) {
+    filters.push(new PIXI.BlurFilter({ strength: /strong|heavy|deep/.test(key) ? 7 : 3, quality: 2, kernelSize: 5 }));
+  }
+  if (/grain|noise|film|analog|vhs|dust|static/.test(key)) {
+    filters.push(new PIXI.NoiseFilter({ noise: /heavy|strong|rough|static/.test(key) ? 0.28 : 0.12, seed: 0.42 }));
+  }
+  if (/sharpen|crisp|detail|clarity/.test(key)) {
+    matrix.contrast(1.22, true);
+    matrix.saturate(1.08, true);
+  }
+  if (/washed|mist|haze/.test(key)) matrix.brightness(1.08, true);
+  return filters;
 }
 
 export function PixiEffectPreview({ source, mediaKind, effectName = "Original", variant = "panel" }: Props) {
@@ -47,6 +57,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
     let app: import("pixi.js").Application | undefined;
     let media: HTMLVideoElement | undefined;
     let resizeObserver: ResizeObserver | undefined;
+    let texture: import("pixi.js").Texture | undefined;
 
     const mount = async () => {
       if (!source || (mediaKind !== "image" && mediaKind !== "video") || !host.current) {
@@ -57,24 +68,22 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
       try {
         const PIXI = await import("pixi.js");
         if (disposed || !host.current) return;
+        const hostWidth = Math.max(1, host.current.clientWidth || 240);
+        const hostHeight = Math.max(1, host.current.clientHeight || (variant === "stage" ? 320 : 156));
         app = new PIXI.Application();
         await app.init({
-          width: 240,
-          height: variant === "stage" ? Math.max(1, host.current.clientHeight) : 156,
+          width: hostWidth,
+          height: hostHeight,
           resizeTo: variant === "stage" ? host.current : undefined,
           backgroundAlpha: 0,
           antialias: true,
           autoDensity: true,
-          resolution: Math.min(1.5, window.devicePixelRatio || 1),
+          resolution: Math.min(1.25, window.devicePixelRatio || 1),
           preference: "webgl",
           powerPreference: "low-power",
         });
-        if (disposed || !host.current) {
-          app.destroy();
-          return;
-        }
+        if (disposed || !host.current) { app.destroy(); return; }
 
-        let texture: import("pixi.js").Texture;
         if (mediaKind === "video") {
           media = document.createElement("video");
           media.src = source;
@@ -93,17 +102,14 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
         } else {
           texture = await PIXI.Assets.load(source) as import("pixi.js").Texture;
         }
-        if (disposed || !host.current) {
-          texture.destroy(false);
-          app.destroy();
-          return;
-        }
+        if (disposed || !host.current || !texture) { app.destroy(); return; }
 
         const sprite = new PIXI.Sprite(texture);
         sprite.anchor.set(0.5);
         const fitSprite = () => {
-          const width = app!.screen.width;
-          const height = app!.screen.height;
+          if (!app || !texture) return;
+          const width = Math.max(1, app.screen.width);
+          const height = Math.max(1, app.screen.height);
           sprite.position.set(width / 2, height / 2);
           const sourceWidth = texture.width || 1;
           const sourceHeight = texture.height || 1;
@@ -112,11 +118,11 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
           sprite.height = sourceHeight * scale;
         };
         fitSprite();
-        resizeObserver = variant === "stage" ? new ResizeObserver(fitSprite) : undefined;
-        if (resizeObserver && host.current) resizeObserver.observe(host.current);
-        const filter = new PIXI.ColorMatrixFilter();
-        filter.matrix = matrixFor(effectName) as [number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number,number];
-        sprite.filters = [filter];
+        if (variant === "stage" && typeof ResizeObserver !== "undefined") {
+          resizeObserver = new ResizeObserver(fitSprite);
+          resizeObserver.observe(host.current);
+        }
+        sprite.filters = buildFilters(PIXI, effectName);
         app.stage.addChild(sprite);
         app.canvas.className = "nexus-pixi-preview-canvas";
         app.canvas.setAttribute("aria-label", "GPU effect preview");
