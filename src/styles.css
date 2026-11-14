@@ -4225,16 +4225,11 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   justify-content:center!important;gap:4px!important;min-width:0!important;
   padding:7px 4px!important;aspect-ratio:1/1!important;
 }
-.nexus-shell .nexus-sticker-row button .nexus-sticker-art{
-  display:grid;place-items:center;width:100%;height:72%;
-  border-radius:12px;font-size:24px;font-weight:900;line-height:1;
-  color:#fff;background:linear-gradient(145deg,#a88aff,#5546a7);
-  box-shadow:inset 0 1px 0 #ffffff55,0 5px 12px #0003;
+.nexus-shell .nexus-sticker-row button img.nexus-sticker-art{
+  display:block;width:100%;height:72%;min-height:42px;object-fit:contain;
+  border-radius:10px;filter:drop-shadow(0 5px 8px #0003);
+  background:radial-gradient(ellipse at 50% 85%,#ffffff10,transparent 72%);
 }
-.nexus-shell .nexus-sticker-row button .nexus-sticker-art[data-category="Nature"]{background:linear-gradient(145deg,#8be3c1,#1f8d83)}
-.nexus-shell .nexus-sticker-row button .nexus-sticker-art[data-category="Celebration"]{background:linear-gradient(145deg,#ffd36e,#e46b4e)}
-.nexus-shell .nexus-sticker-row button .nexus-sticker-art[data-category="Social"]{background:linear-gradient(145deg,#7ed8f5,#247fa5)}
-.nexus-shell .nexus-sticker-row button .nexus-sticker-art[data-category="Shapes"]{background:linear-gradient(145deg,#f6b66c,#b94e75)}
 .nexus-shell .nexus-sticker-row button small{
   display:block!important;width:100%;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;font-size:8px!important;line-height:1.1;color:#eef2f7;
