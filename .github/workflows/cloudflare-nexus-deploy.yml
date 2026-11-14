@@ -39,7 +39,13 @@ jobs:
             size=$(stat -c%s "$wasm_file")
             if [ "$size" -gt 25000000 ]; then
               echo "Optimizing $wasm_file ($size bytes)"
-              npx --yes --package=binaryen wasm-opt "$wasm_file" -Oz --all-features -o "$wasm_file.optimized"
+              # Use a bounded, faster optimization pass. -Oz can take an
+              # excessively long time on large Whisper/Vosk WebAssembly bundles.
+              timeout 240s npx --yes --package=binaryen wasm-opt "$wasm_file" -O1 --all-features -o "$wasm_file.optimized" || {
+                echo "::error::WebAssembly optimization timed out or failed for $wasm_file."
+                rm -f "$wasm_file.optimized"
+                exit 1
+              }
               optimized_size=$(stat -c%s "$wasm_file.optimized")
               echo "Optimized size: $optimized_size bytes"
               if [ "$optimized_size" -ge 25000000 ]; then
