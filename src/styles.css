@@ -4767,3 +4767,206 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .editor-transport.nexus-pro-transport{height:40px;min-height:40px}
   .editor-preview-resize-handle{height:14px;min-height:14px}
 }
+
+
+/* Stage 1 correction: high-visibility preview workspace overrides.
+   These selectors intentionally outrank the legacy compact preview rules. */
+.editor-screen{
+  background:#080d13 !important;
+  color:#e8f0f5 !important;
+}
+.editor-screen > .editor-preview-zone{
+  position:relative !important;
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:8px !important;
+  min-height:0 !important;
+  width:100% !important;
+  padding:14px clamp(12px,3vw,30px) 5px !important;
+  background:
+    radial-gradient(ellipse at 50% 42%,rgba(48,102,119,.20),transparent 58%),
+    linear-gradient(180deg,#101a23 0%,#0b121a 100%) !important;
+  border-bottom:1px solid rgba(130,178,193,.20) !important;
+  overflow:hidden !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-meta{
+  flex:0 0 36px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:10px !important;
+  width:min(100%,1120px) !important;
+  min-height:36px !important;
+  padding:0 2px !important;
+  color:#d6e3eb !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+  letter-spacing:1.5px !important;
+}
+.editor-screen > .editor-preview-zone .preview-live-label{
+  color:#69c4ce !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+.editor-screen > .editor-preview-zone .preview-meta-actions{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-end !important;
+  gap:6px !important;
+  flex-wrap:nowrap !important;
+  min-width:0 !important;
+}
+.editor-screen > .editor-preview-zone .preview-meta-actions button,
+.editor-screen > .editor-preview-zone .preview-meta-actions select{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:6px !important;
+  min-height:34px !important;
+  padding:7px 10px !important;
+  border:1px solid rgba(155,190,205,.24) !important;
+  border-radius:11px !important;
+  background:rgba(20,35,46,.92) !important;
+  color:#e2f0f5 !important;
+  font-size:10px !important;
+  font-weight:700 !important;
+  letter-spacing:0 !important;
+  box-shadow:0 5px 18px rgba(0,0,0,.18) !important;
+}
+.editor-screen > .editor-preview-zone .preview-meta-actions .preview-expand-toggle{
+  border-color:rgba(91,196,207,.62) !important;
+  background:linear-gradient(135deg,#174b58,#176a73) !important;
+  color:#efffff !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-frame{
+  flex:1 1 auto !important;
+  display:grid !important;
+  place-items:center !important;
+  width:auto !important;
+  height:auto !important;
+  min-width:0 !important;
+  min-height:0 !important;
+  max-height:calc(100% - 92px) !important;
+  max-width:min(100%,560px) !important;
+  aspect-ratio:9/16 !important;
+  margin:0 auto !important;
+  overflow:hidden !important;
+  border:1px solid rgba(130,194,207,.48) !important;
+  border-radius:20px !important;
+  background:#03070b !important;
+  box-shadow:0 22px 65px rgba(0,0,0,.48),0 0 0 5px rgba(97,170,185,.055),0 0 38px rgba(42,135,151,.12) !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-frame video,
+.editor-screen > .editor-preview-zone .editor-preview-frame img{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  object-fit:contain !important;
+  background:#03070b !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-empty{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:12px !important;
+  width:100% !important;
+  height:100% !important;
+  padding:20px !important;
+  color:#e9f3f7 !important;
+  text-align:center !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-empty b{
+  color:#f2fbff !important;
+  font-size:15px !important;
+  letter-spacing:.01em !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-empty small{
+  color:#9bb0bd !important;
+  font-size:11px !important;
+}
+.editor-screen > .editor-preview-zone .editor-preview-empty button{
+  min-height:40px !important;
+  padding:10px 16px !important;
+  border:1px solid rgba(111,211,218,.45) !important;
+  border-radius:12px !important;
+  background:linear-gradient(135deg,#176070,#18848a) !important;
+  color:white !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+.editor-screen > .editor-preview-zone .editor-transport.nexus-pro-transport{
+  flex:0 0 46px !important;
+  display:flex !important;
+  align-items:center !important;
+  width:min(100%,1120px) !important;
+  min-height:46px !important;
+  height:46px !important;
+  gap:12px !important;
+  padding:3px 8px !important;
+  border-top:1px solid rgba(130,178,193,.13) !important;
+}
+.editor-screen > .editor-preview-zone .editor-transport.nexus-pro-transport .editor-play{
+  width:38px !important;
+  height:38px !important;
+  border:1px solid rgba(124,224,226,.6) !important;
+  border-radius:50% !important;
+  background:linear-gradient(145deg,#238493,#155665) !important;
+  color:white !important;
+}
+.editor-screen > .editor-preview-zone .editor-transport.nexus-pro-transport .nexus-transport-actions button{
+  width:36px !important;
+  height:36px !important;
+  border:1px solid rgba(155,190,205,.22) !important;
+  border-radius:11px !important;
+  background:#14212b !important;
+  color:#e5f1f5 !important;
+}
+.editor-screen > .editor-preview-resize-handle{
+  position:relative !important;
+  z-index:4 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  width:100% !important;
+  height:20px !important;
+  min-height:20px !important;
+  margin:0 !important;
+  border-top:1px solid rgba(111,178,194,.24) !important;
+  border-bottom:1px solid rgba(111,178,194,.24) !important;
+  background:#101d26 !important;
+  color:#8ed5dd !important;
+  cursor:row-resize !important;
+  touch-action:none !important;
+}
+.editor-screen > .editor-preview-resize-handle small{
+  font-size:9px !important;
+  font-weight:900 !important;
+  letter-spacing:1.4px !important;
+}
+.editor-screen > .editor-preview-resize-handle span{
+  width:clamp(28px,10vw,110px) !important;
+  height:2px !important;
+  background:#438b99 !important;
+}
+.editor-screen[data-timeline-collapsed="true"] > .editor-preview-resize-handle{
+  display:none !important;
+}
+@media(max-width:760px){
+  .editor-screen > .editor-preview-zone{padding:9px 9px 3px !important;gap:5px !important}
+  .editor-screen > .editor-preview-zone .editor-preview-meta{flex-basis:34px !important;min-height:34px !important}
+  .editor-screen > .editor-preview-zone .preview-meta-actions{gap:4px !important}
+  .editor-screen > .editor-preview-zone .preview-meta-actions button,
+  .editor-screen > .editor-preview-zone .preview-meta-actions select{min-height:30px !important;padding:5px 7px !important;font-size:9px !important}
+  .editor-screen > .editor-preview-zone .editor-preview-frame{
+    max-width:min(100%,calc((100dvh - 310px)*.5625)) !important;
+    max-height:calc(100% - 86px) !important;
+    border-radius:15px !important;
+  }
+  .editor-screen > .editor-preview-zone .editor-transport.nexus-pro-transport{
+    flex-basis:40px !important;height:40px !important;min-height:40px !important;gap:7px !important
+  }
+  .editor-screen > .editor-preview-resize-handle{height:18px !important;min-height:18px !important}
+}
