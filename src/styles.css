@@ -3882,3 +3882,158 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     max-height:min(52dvh,440px) !important;
   }
 }
+
+
+/* CapCut-inspired mobile studio pass: stable canvas + overlay sheets + visual libraries. */
+@media (max-width:760px) {
+  /* Keep the canvas independent from the tool sheet: sheets cover the timeline. */
+  .nexus-shell .nexus-studio-page .editor-screen {
+    padding-bottom:0!important;
+    height:calc(100dvh - 68px)!important;
+    max-height:calc(100dvh - 68px)!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone {
+    flex:1 1 52%!important;
+    min-height:0!important;
+    justify-content:center!important;
+    padding:5px 10px!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-frame {
+    aspect-ratio:9/16!important;
+    width:auto!important;
+    height:min(48dvh,100%)!important;
+    max-height:100%!important;
+    max-width:calc(100vw - 42px)!important;
+    margin:0 auto!important;
+    border:1px solid #3d5664!important;
+    box-shadow:0 0 0 1px #38bdf833,0 12px 34px #0008!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-meta {flex:0 0 22px!important;min-height:22px!important;height:22px!important}
+  .nexus-shell .nexus-studio-page .preview-meta-actions .preview-add-media,
+  .nexus-shell .nexus-studio-page .preview-meta-actions select,
+  .nexus-shell .nexus-studio-page .preview-meta-actions button {display:none!important}
+
+  /* Compact track-first timeline; no extra manager/zoom header bars. */
+  .nexus-shell .nexus-studio-page .editor-timeline-zone {
+    flex:0 0 23dvh!important;height:23dvh!important;min-height:118px!important;
+    max-height:190px!important;padding:4px 7px 6px!important;
+    background:#0c1015!important;border-top:1px solid #303b46!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-timeline-head {display:none!important}
+  .nexus-shell .nexus-studio-page details.nexus-layer-manager {display:none!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-scroll {
+    min-height:0!important;height:100%!important;max-height:100%!important;
+    border-radius:8px!important;overflow:auto!important;
+  }
+
+  /* Floating sheet never participates in editor flex/grid sizing. */
+  body > .nexus-mobile-tool-sheet {
+    position:fixed!important;left:0!important;right:0!important;
+    bottom:calc(66px + env(safe-area-inset-bottom))!important;
+    z-index:2147483002!important;
+    display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;
+    align-items:stretch!important;gap:12px!important;
+    width:100vw!important;max-height:44dvh!important;
+    padding:12px 14px calc(14px + env(safe-area-inset-bottom))!important;
+    overflow-x:hidden!important;overflow-y:auto!important;
+    border-radius:18px 18px 0 0!important;
+    background:rgba(19,25,32,.98)!important;
+    border:1px solid #43505c!important;border-bottom:0!important;
+    box-shadow:0 -18px 48px #000b!important;
+    backdrop-filter:blur(18px)!important;
+  }
+  body > .nexus-mobile-tool-sheet.is-closed {display:none!important}
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
+    flex:0 0 auto!important;min-height:40px!important;margin:0!important;padding:0 0 9px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip,
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head,
+  body > .nexus-mobile-tool-sheet .nexus-effect-group,
+  body > .nexus-mobile-tool-sheet .nexus-context-controls,
+  body > .nexus-mobile-tool-sheet .nexus-adjust-grid,
+  body > .nexus-mobile-tool-sheet .nexus-sheet-heading {
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    flex:0 0 auto!important;gap:7px!important;width:100%!important;min-width:0!important;
+    height:auto!important;min-height:0!important;overflow:visible!important;
+    box-sizing:border-box!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip {
+    flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;
+    gap:8px!important;overflow-x:auto!important;white-space:nowrap!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip small {flex:0 0 100%!important}
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head > div,
+  body > .nexus-mobile-tool-sheet .nexus-sheet-heading > div {
+    display:flex!important;flex-direction:column!important;gap:4px!important;
+    min-width:0!important;white-space:normal!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head b,
+  body > .nexus-mobile-tool-sheet .nexus-effect-group > b {line-height:1.25!important}
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head small,
+  body > .nexus-mobile-tool-sheet .nexus-effect-group p,
+  body > .nexus-mobile-tool-sheet .nexus-effect-group small {line-height:1.45!important;white-space:normal!important}
+  body > .nexus-mobile-tool-sheet .nexus-effect-categories {
+    display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+    gap:7px!important;max-width:100%!important;overflow-x:auto!important;
+    padding:3px 0 7px!important;white-space:nowrap!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-categories button {flex:0 0 auto!important}
+
+  /* Effects: real thumbnail cards, four across on a phone. */
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid {
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:9px!important;width:100%!important;max-height:none!important;overflow:visible!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid button {
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:5px!important;min-width:0!important;padding:5px!important;
+    border:1px solid #35424e!important;border-radius:10px!important;
+    background:#202832!important;text-align:center!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid .nexus-effect-thumb {
+    display:grid!important;place-items:center!important;width:100%!important;
+    aspect-ratio:1/1!important;height:auto!important;min-height:0!important;
+    border-radius:7px!important;overflow:hidden!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid button b {
+    display:block!important;font-size:10px!important;line-height:1.2!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid button small {display:none!important}
+
+  /* Filters: square visual tiles instead of long text pills. */
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel {
+    display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:9px!important;width:100%!important;max-height:none!important;
+    overflow:visible!important;padding:4px 0 8px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button {
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    justify-content:flex-start!important;gap:5px!important;min-width:0!important;
+    min-height:0!important;padding:0 0 5px!important;border:0!important;
+    background:transparent!important;color:#e7ebef!important;font-size:9px!important;
+    white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button::before {
+    content:"";display:block;width:100%;aspect-ratio:1/1;border-radius:9px;
+    border:1px solid #53616d;
+    background:linear-gradient(135deg,#e4a46c,#8d5b84 48%,#286578);
+    box-shadow:inset 0 0 18px #ffffff18;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel button.active::before {
+    outline:2px solid #49c8e8;outline-offset:2px;
+  }
+
+  /* Text/adjust sections must stack; never squeeze heading and helper copy together. */
+  body > .nexus-mobile-tool-sheet .nexus-context-controls {gap:12px!important}
+  body > .nexus-mobile-tool-sheet .nexus-context-controls .nexus-effect-group {
+    display:flex!important;flex-direction:column!important;gap:8px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-adjust-grid {
+    display:grid!important;grid-template-columns:1fr!important;gap:12px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-adjust-grid label {
+    display:grid!important;grid-template-columns:1fr!important;gap:6px!important;
+    min-width:0!important;
+  }
+}
