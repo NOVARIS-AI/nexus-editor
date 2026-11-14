@@ -71,12 +71,39 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
     ...images.map(i => ({ id: i.id, name: "Image overlay", kind: "image layer", role: "Visual overlay" }))
   ];
   const edges: {from:string;to:string;label:string}[] = [];
-  for (const clip of clips) { if (assets.some(a=>a.id===clip.assetId)) edges.push({from:clip.assetId,to:clip.id,label:"uses media"}); }
-  for (const layer of images) { if (assets.some(a=>a.id===layer.assetId)) edges.push({from:layer.assetId,to:layer.id,label:"overlay source"}); }
+  const addEdge = (from:string,to:string,label:string) => {
+    if (from !== to && !edges.some(edge=>edge.from===from&&edge.to===to&&edge.label===label)) edges.push({from,to,label});
+  };
+  const clipEnd = (clip:TimelineClip) => clip.start + Math.max(0,(clip.sourceOut-clip.sourceIn)/(clip.speed||1));
   for (const clip of clips) {
-    const end=clip.start+(clip.sourceOut-clip.sourceIn)/(clip.speed||1);
-    for (const layer of texts) if (layer.start < end && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"overlaps in time"});
-    for (const layer of images) if (layer.start < end && layer.start+layer.duration>clip.start) edges.push({from:clip.id,to:layer.id,label:"shares scene window"});
+    if (assets.some(asset=>asset.id===clip.assetId)) addEdge(clip.assetId,clip.id,"source media");
+  }
+  for (const layer of images) {
+    if (assets.some(asset=>asset.id===layer.assetId)) addEdge(layer.assetId,layer.id,"overlay source");
+  }
+  for (const clip of clips) {
+    const end=clipEnd(clip);
+    for (const layer of texts) {
+      if (layer.start < end && layer.start+layer.duration > clip.start) addEdge(clip.id,layer.id,"supports scene message");
+    }
+    for (const layer of images) {
+      if (layer.start < end && layer.start+layer.duration > clip.start) addEdge(clip.id,layer.id,"visual overlay in scene");
+    }
+  }
+  const ordered=[...clips].sort((a,b)=>a.start-b.start);
+  for(let index=1;index<ordered.length;index++){
+    const previous=ordered[index-1],current=ordered[index],gap=current.start-clipEnd(previous);
+    addEdge(previous.id,current.id,gap>.25?"next scene · gap to review":gap<-.25?"overlapping timeline layers":"follows in story order");
+  }
+  const usesByAsset=new Map<string,TimelineClip[]>();
+  for(const clip of clips){const group=usesByAsset.get(clip.assetId)||[];group.push(clip);usesByAsset.set(clip.assetId,group);}
+  for(const [assetId,uses] of usesByAsset) if(uses.length>1){
+    for(let index=1;index<uses.length;index++) addEdge(uses[0].id,uses[index].id,"reuses same source");
+  }
+  const audioClips=clips.filter(clip=>assets.find(asset=>asset.id===clip.assetId)?.kind==="audio");
+  const visualClips=clips.filter(clip=>["video","image"].includes(assets.find(asset=>asset.id===clip.assetId)?.kind||""));
+  for(const audio of audioClips) for(const visual of visualClips){
+    if(audio.start<clipEnd(visual)&&clipEnd(audio)>visual.start) addEdge(audio.id,visual.id,"audio bed overlaps scene");
   }
   const issues: string[] = [];
   if (!assets.length) issues.push("No source media yet. Add a visual or audio asset to give the project a starting point.");
