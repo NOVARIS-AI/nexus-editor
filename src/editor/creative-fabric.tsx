@@ -203,6 +203,20 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     finally { setVisualScanBusy(false); }
   };
   const graph = useMemo(()=>inspectFabric(assets,clips,textLayers,imageLayers),[assets,clips,textLayers,imageLayers]);
+  const graphNodeTime = (nodeId:string):number|null => {
+    const clip=clips.find(item=>item.id===nodeId);
+    if(clip)return clip.start;
+    const text=textLayers.find(item=>item.id===nodeId);
+    if(text)return text.start;
+    const image=imageLayers.find(item=>item.id===nodeId);
+    if(image)return image.start;
+    const asset=assets.find(item=>item.id===nodeId);
+    return asset?clips.filter(item=>item.assetId===asset.id).sort((a,b)=>a.start-b.start)[0]?.start??null:null;
+  };
+  const seekGraphNode = (nodeId:string) => {
+    const time=graphNodeTime(nodeId);
+    if(time!==null)onSeekTo(time);
+  };
   const sceneIntelligence = useMemo(()=>analyseFabricScenes(assets,clips,textLayers,visualAnalyses,visualDescriptions),[assets,clips,textLayers,visualAnalyses,visualDescriptions]);
   const visualSceneEvidence = useMemo(()=>buildVisualSceneEvidence(clips,visualDescriptions,visualAnalyses),[clips,visualDescriptions,visualAnalyses]);
   const visualCoverage = useMemo(()=>describeVisualCoverage(visualSceneEvidence),[visualSceneEvidence]);
@@ -256,8 +270,8 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
     {tab==="map" && <div className="nexus-fabric-body">
       <div className="nexus-fabric-stats"><div><b>{graph.nodes.length}</b><small>Connected elements</small></div><div><b>{clips.length}</b><small>Story beats</small></div><div><b>{aspectRatio}</b><small>Canvas</small></div></div>
       <div className="nexus-fabric-section-title"><b>Creative graph</b><small>Live project structure</small></div>
-      <div className="nexus-fabric-node-list">{graph.nodes.slice(0,18).map((n,i)=><div className="nexus-fabric-node" key={n.id}><span className="nexus-fabric-node-dot">{n.kind==="text"?"T":n.kind==="audio"?"♫":n.kind==="image"||n.kind==="image layer"?"▧":"▶"}</span><span><b>{n.name||"Untitled element"}</b><small>{n.role} · {n.kind}</small></span><small>#{String(i+1).padStart(2,"0")}</small></div>)}{graph.nodes.length>18&&<small>+ {graph.nodes.length-18} more connected elements</small>}{!graph.nodes.length&&<div className="nexus-fabric-empty">Import media to begin building your creative world.</div>}</div>
-      <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,12).map((edge,i)=><div key={i}><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b></div>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
+      <div className="nexus-fabric-node-list">{graph.nodes.slice(0,18).map((n,i)=><button type="button" className="nexus-fabric-node nexus-fabric-node-action" key={n.id} onClick={()=>seekGraphNode(n.id)} disabled={graphNodeTime(n.id)===null} title={graphNodeTime(n.id)===null?"This source is not on the timeline":"Jump to "+n.name}><span className="nexus-fabric-node-dot">{n.kind==="text"?"T":n.kind==="audio"?"♫":n.kind==="image"||n.kind==="image layer"?"▧":"▶"}</span><span><b>{n.name||"Untitled element"}</b><small>{n.role} · {n.kind}</small></span><small>{graphNodeTime(n.id)!==null?graphNodeTime(n.id)!.toFixed(1)+"s":"LIBRARY"}</small></button>)}{graph.nodes.length>18&&<small>+ {graph.nodes.length-18} more connected elements</small>}{!graph.nodes.length&&<div className="nexus-fabric-empty">Import media to begin building your creative world.</div>}</div>
+      <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,24).map((edge,i)=><button type="button" key={i} onClick={()=>seekGraphNode(edge.to)} disabled={graphNodeTime(edge.to)===null} title="Jump to the connected timeline element"><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b><small>{graphNodeTime(edge.to)!==null?graphNodeTime(edge.to)!.toFixed(1)+"s":""}</small></button>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
       <div className="nexus-fabric-section-title"><b>Continuity Guardian</b><small><Activity size={12}/> Local structural checks</small></div>
       <div className="nexus-fabric-issues">{graph.issues.map((issue,i)=><div key={i}><Lightbulb size={15}/><span>{issue}</span></div>)}</div>
     </div>}
