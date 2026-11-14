@@ -123,6 +123,37 @@ function inspectFabric(assets: MediaAsset[], clips: TimelineClip[], texts: Timel
   return { nodes, edges, issues };
 }
 
+type GuardianVisualFinding={id:string;message:string;targetId:string;targetTime:number;evidence:string};
+function buildGuardianVisualFindings(clips:TimelineClip[],texts:TimelineTextLayer[],analyses:MediaAnalysis[],descriptions:VisualUnderstanding[]):GuardianVisualFinding[]{
+ const findings:GuardianVisualFinding[]=[];
+ const ordered=[...clips].sort((a,b)=>a.start-b.start);
+ for(const clip of ordered){
+  const analysis=analyses.find(item=>item.assetId===clip.assetId);
+  const visual=analysis?.visual;
+  const sourceDuration=Math.max(0,(clip.sourceOut-clip.sourceIn)/(clip.speed||1));
+  const end=clip.start+sourceDuration;
+  const description=descriptions.find(item=>item.assetId===clip.assetId)?.description;
+  if(visual?.sceneChanges?.length){
+   const candidates=visual.sceneChanges.filter(sourceTime=>sourceTime>=clip.sourceIn&&sourceTime<=clip.sourceOut).slice(0,2);
+   for(let index=0;index<candidates.length;index++){
+    const sourceTime=candidates[index];
+    const timelineTime=clip.start+(sourceTime-clip.sourceIn)/(clip.speed||1);
+    findings.push({id:"visual-cut-"+clip.id+"-"+index,message:"Sampled footage shows a brightness-change candidate inside “"+(clip.label||"this clip")+"”. Check whether the moment needs a cut or transition.",targetId:clip.id,targetTime:timelineTime,evidence:"Local frame-brightness sampling"+(description?" · frame description available":"")+" · candidate at "+timelineTime.toFixed(1)+"s"});
+   }
+  }
+  const composition=visual?.composition;
+  if(composition&&Math.hypot(composition.focusX-50,composition.focusY-50)>17){
+   for(const layer of texts.filter(item=>item.start<end&&item.start+item.duration>clip.start)){
+    const nearFocus=Math.abs(layer.x-composition.focusX)<19&&Math.abs(layer.y-composition.focusY)<19;
+    if(nearFocus){
+     findings.push({id:"visual-text-"+clip.id+"-"+layer.id,message:"“"+layer.text.slice(0,34)+"” sits near the sampled visual-detail estimate in “"+(clip.label||"this clip")+"”. Review text contrast and placement on the preview.",targetId:layer.id,targetTime:layer.start,evidence:"Low-resolution composition estimate · not subject recognition"+(description?" · visual description also available":"")});
+    }
+   }
+  }
+ }
+ return findings.slice(0,8);
+}
+
 function planIntent(prompt: string, dna: DNA, graph: ReturnType<typeof inspectFabric>) {
   const q = prompt.toLowerCase();
   const steps: string[] = [];
@@ -221,6 +252,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
   const sceneIntelligence = useMemo(()=>analyseFabricScenes(assets,clips,textLayers,visualAnalyses,visualDescriptions),[assets,clips,textLayers,visualAnalyses,visualDescriptions]);
   const visualSceneEvidence = useMemo(()=>buildVisualSceneEvidence(clips,visualDescriptions,visualAnalyses),[clips,visualDescriptions,visualAnalyses]);
   const visualCoverage = useMemo(()=>describeVisualCoverage(visualSceneEvidence),[visualSceneEvidence]);
+  const guardianVisualFindings=useMemo(()=>buildGuardianVisualFindings(clips,textLayers,visualAnalyses,visualDescriptions),[clips,textLayers,visualAnalyses,visualDescriptions]);
   const messageAwarePlan = useMemo(()=>buildMessageAwarePlan({assets,clips,beatMarkers}),[assets,clips,beatMarkers]);
   const fabricRecommendations = useMemo(()=>recommendFabricActions(sceneIntelligence,clips),[sceneIntelligence,clips]);
   const directorBrief = useMemo(()=>makeDirectorBrief(projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations),[projectName,dna.purpose,dna.audience,sceneIntelligence,fabricRecommendations]);
@@ -274,7 +306,7 @@ export function CreativeFabricPanel({ projectName, aspectRatio, assets, clips, t
       <div className="nexus-fabric-node-list">{graph.nodes.slice(0,18).map((n,i)=><button type="button" className="nexus-fabric-node nexus-fabric-node-action" key={n.id} onClick={()=>seekGraphNode(n.id)} disabled={graphNodeTime(n.id)===null} title={graphNodeTime(n.id)===null?"This source is not on the timeline":"Jump to "+n.name}><span className="nexus-fabric-node-dot">{n.kind==="text"?"T":n.kind==="audio"?"♫":n.kind==="image"||n.kind==="image layer"?"▧":"▶"}</span><span><b>{n.name||"Untitled element"}</b><small>{n.role} · {n.kind}</small></span><small>{graphNodeTime(n.id)!==null?graphNodeTime(n.id)!.toFixed(1)+"s":"LIBRARY"}</small></button>)}{graph.nodes.length>18&&<small>+ {graph.nodes.length-18} more connected elements</small>}{!graph.nodes.length&&<div className="nexus-fabric-empty">Import media to begin building your creative world.</div>}</div>
       <div className="nexus-fabric-section-title"><b>Relationship links</b><small>{graph.edges.length} detected connections</small></div><div className="nexus-fabric-edges">{graph.edges.slice(0,24).map((edge,i)=><button type="button" key={i} onClick={()=>seekGraphNode(edge.to)} disabled={graphNodeTime(edge.to)===null} title="Jump to the connected timeline element"><b>{graph.nodes.find(n=>n.id===edge.from)?.name||"Media"}</b><span>→ {edge.label} →</span><b>{graph.nodes.find(n=>n.id===edge.to)?.name||"Timeline element"}</b><small>{graphNodeTime(edge.to)!==null?graphNodeTime(edge.to)!.toFixed(1)+"s":""}</small></button>)}{!graph.edges.length&&<small>Links appear when clips reference imported media or text overlaps a clip on the same track.</small>}</div>
       <div className="nexus-fabric-section-title"><b>Continuity Guardian</b><small><Activity size={12}/> Local structural checks</small></div>
-      <div className="nexus-fabric-issues">{graph.issues.map(issue=><article className="nexus-fabric-issue" key={issue.id}><Lightbulb size={15}/><span>{issue.message}</span>{issue.targetId&&<button type="button" onClick={()=>seekGraphNode(issue.targetId!)}>{issue.actionLabel||"Review"}</button>}</article>)}</div>
+      <div className="nexus-fabric-issues">{graph.issues.map(issue=><article className="nexus-fabric-issue" key={issue.id}><Lightbulb size={15}/><span>{issue.message}</span>{issue.targetId&&<button type="button" onClick={()=>seekGraphNode(issue.targetId!)}>{issue.actionLabel||"Review"}</button>}</article>)}{guardianVisualFindings.map(finding=><article className="nexus-fabric-issue nexus-fabric-issue-visual" key={finding.id}><Activity size={15}/><span>{finding.message}<small>{finding.evidence}</small></span><button type="button" onClick={()=>onSeekTo(finding.targetTime)}>Review {finding.targetTime.toFixed(1)}s</button></article>)}{!visualAnalyses.length&&!visualDescriptions.length&&<small className="nexus-fabric-guardian-hint">Run “Scan project frames” in Scene Intelligence to add evidence-based visual checks. Structural checks are available now.</small>}{(visualAnalyses.length>0||visualDescriptions.length>0)&&<small className="nexus-fabric-guardian-hint">Visual evidence: {visualAnalyses.reduce((sum,item)=>sum+(item.visual?.sampledFrames||0),0)} sampled frame(s) · {visualDescriptions.length} AI-described frame(s). Findings are review prompts, not automatic edits.</small>}</div>
     </div>}
     {tab==="scenes" && <div className="nexus-fabric-body">
       <p className="nexus-fabric-copy">Scene Understanding brings together your footage, spoken content and scene details to help the editor make more relevant creative suggestions.</p>
