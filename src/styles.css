@@ -4584,3 +4584,6 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .editor-fullscreen.nexus-studio-page .editor-lane-labels{position:sticky;left:0;z-index:12}
  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll:after{content:"";display:block;width:50vw;height:1px;pointer-events:none}
 }
+
+.editor-fullscreen.nexus-studio-page .editor-transition-add{position:absolute;z-index:9;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:20px;height:20px;min-width:20px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:6px;background:#292b35;color:#fff;font-size:16px;line-height:1;box-shadow:0 2px 8px #0008}
+.editor-fullscreen.nexus-studio-page .editor-transition-add:active{background:#8b70b7}
