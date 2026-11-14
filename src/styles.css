@@ -3324,12 +3324,14 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     box-sizing: border-box !important;
   }
   .nexus-shell .nexus-studio-page .editor-bottom-tools {
-    position: static !important;
-    display: contents !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
     overflow: visible !important;
     max-height: none !important;
     height: auto !important;
     min-height: 0 !important;
+    padding-bottom: 8px !important;
   }
   .nexus-shell .nexus-studio-page .nexus-subtool-ribbon {
     position: relative !important;
