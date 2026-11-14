@@ -3470,3 +3470,59 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     min-width: max-content !important;
   }
 }
+
+
+/* Unified mobile tool drawer: every editor tool opens above the fixed dock. */
+@media (max-width: 760px) {
+  .nexus-shell .nexus-studio-page .editor-bottom-tools {
+    position: static !important;
+    transform: none !important;
+    contain: none !important;
+    overflow: visible !important;
+  }
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon {
+    position: fixed !important;
+    inset-inline: 0 !important;
+    bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+    z-index: 100000 !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-content: flex-start !important;
+    align-items: center !important;
+    gap: 9px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: min(48dvh, 400px) !important;
+    padding: 16px 14px calc(16px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+    background: #171d24 !important;
+    border: 1px solid #46515d !important;
+    border-bottom: 0 !important;
+    border-radius: 18px 18px 0 0 !important;
+    box-shadow: 0 -16px 40px #000e !important;
+    overscroll-behavior: contain !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon > * {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    max-width: 100% !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    box-sizing: border-box !important;
+  }
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon input,
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon select,
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon textarea {
+    max-width: 100% !important;
+  }
+  .nexus-shell .nexus-studio-page .editor-tool-dock {
+    z-index: 100001 !important;
+  }
+}
