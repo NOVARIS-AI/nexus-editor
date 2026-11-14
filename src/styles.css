@@ -4170,3 +4170,33 @@ body:has(.nexus-foryou) .top-header{display:none!important}
  .nexus-shell .nexus-filter-carousel{grid-template-columns:repeat(3,minmax(0,1fr))!important;max-height:280px!important}
  .nexus-shell .nexus-filter-carousel .nexus-filter-card{min-height:88px!important}
 }
+
+
+/* PixiJS hardware-accelerated sample preview inside the creative panels. */
+.nexus-shell .nexus-pixi-panel{
+  display:flex;flex-direction:column;gap:7px;
+  padding:10px;border:1px solid var(--nx-line);
+  border-radius:13px;background:color-mix(in srgb,var(--nx-surface-2) 78%,transparent);
+}
+.nexus-shell .nexus-pixi-preview-wrap{display:flex;flex-direction:column;gap:5px;min-width:0}
+.nexus-shell .nexus-pixi-preview{
+  position:relative;display:grid;place-items:center;overflow:hidden;
+  width:100%;min-height:120px;aspect-ratio:16/9;
+  border-radius:9px;background:linear-gradient(135deg,#181d29,#30233a 52%,#163a45);
+  color:var(--nx-muted);font-size:10px;text-align:center;
+}
+.nexus-shell .nexus-pixi-preview canvas.nexus-pixi-preview-canvas{
+  display:block;width:100%!important;height:100%!important;object-fit:cover;
+}
+.nexus-shell .nexus-pixi-preview-caption{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  color:var(--nx-muted);font-size:9px;letter-spacing:.08em;
+}
+.nexus-shell .nexus-pixi-preview-caption i{
+  width:6px;height:6px;border-radius:50%;background:#67e8c4;
+  box-shadow:0 0 8px #67e8c4;
+}
+.nexus-shell .nexus-pixi-preview-caption b{
+  margin-left:auto;color:var(--nx-text);font-size:9px;letter-spacing:0;
+}
+.nexus-shell .nexus-pixi-panel>small{color:var(--nx-muted);font-size:10px;line-height:1.4}
