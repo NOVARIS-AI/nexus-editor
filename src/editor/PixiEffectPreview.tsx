@@ -145,7 +145,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original", 
       }
       host.current?.replaceChildren();
     };
-  }, [source, mediaKind, effectName]);
+  }, [source, mediaKind, effectName, variant]);
 
   return (
     <div className={"nexus-pixi-preview-wrap" + (variant === "stage" ? " nexus-pixi-stage-wrap" : "")}>
