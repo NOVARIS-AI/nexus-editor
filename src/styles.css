@@ -4483,3 +4483,50 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     min-height: 76px !important;
   }
 }
+
+
+/* Mobile editor follow-up: reserve a real row for clip tools and make the tool ribbon horizontal. */
+@media (max-width:760px) {
+  .editor-fullscreen.nexus-studio-page .editor-screen {
+    grid-template-rows: minmax(0,1fr) minmax(150px,28dvh) minmax(0,92px) 18px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools.nexus-tool-stack {
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: 92px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0 5px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools .nexus-context-controls {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 7px !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    height: auto !important;
+    max-height: 84px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px 6px !important;
+    border: 0 !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools .nexus-context-controls > * {
+    flex: 0 0 auto !important;
+  }
+  body > .nexus-mobile-tool-sheet {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    align-content: flex-start !important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+  }
+}
