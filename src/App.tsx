@@ -731,7 +731,7 @@ export default function App() {
         probe.src = item.objectUrl!; probe.load();
       }
     });
-    setPage("ai"); setEditorView("workspace"); setShowAttachmentPicker(false); setMediaImportTarget("timeline");
+    setPage("editor"); setEditorView("workspace"); setShowAttachmentPicker(false); setMediaImportTarget("timeline");
     if (pendingProjectAssets.length) {
       const linked = added.filter(item => pendingProjectAssets.some(saved => saved.id === item.id)).length;
       setStatus(remaining.length ? linked + " project media file(s) relinked · " + remaining.length + " still needed" : "All project media relinked and placed on the timeline.");
@@ -782,7 +782,7 @@ export default function App() {
     const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
     const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalAsset.duration, label: created.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, clip], "Licensed audio downloaded and added to your timeline.");
-    setSelected(clip.id); setPlayhead(clip.start); setPage("ai"); setActiveTool("audio"); setActiveSubtool("sounds");
+    setSelected(clip.id); setPlayhead(clip.start); setPage("editor"); setEditorView("workspace"); setActiveTool("audio"); setActiveSubtool("sounds");
     if (audioPreview.current) audioPreview.current.src = objectUrl;
   }
   async function previewGeneratedAudio(preset: AudioPreset) {
@@ -824,7 +824,7 @@ export default function App() {
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
     if (a.kind === "audio" && audioPreview.current) audioPreview.current.src = a.objectUrl!;
-    setPage("ai");
+    setPage("editor"); setEditorView("workspace");
   }
   function trimSelectedAtPlayhead() {
     if (!selectedClip) return;
@@ -1417,7 +1417,7 @@ export default function App() {
           applyClipChange([...clips, clip], "Voiceover recorded and added to the Voice track.");
           setSelected(clip.id);
           setPlayhead(clip.start);
-          setPage("ai");
+          setPage("editor"); setEditorView("workspace");
           setActiveTool("audio");
           setActiveSubtool("voiceover");
           setStatus("Voiceover added to the timeline. You can trim, process and mix it like any other audio clip.");
@@ -1625,7 +1625,7 @@ export default function App() {
       setAssets(old => [...old, imageAsset]);
       if (target) applyClipChange(clips.map(item => item.id === target.id ? { ...fallbackClip, sourceOut: sceneDuration } : item), "Generated image replaced the storyboard placeholder with an editable motion scene.");
       else applyClipChange([...clips, fallbackClip], "Generated image added as an editable motion scene.");
-      setSelected(fallbackClip.id); setPlayhead(fallbackClip.start); setPage("ai");
+      setSelected(fallbackClip.id); setPlayhead(fallbackClip.start); setPage("editor"); setEditorView("workspace");
       setAiReply("Your visual is ready as an editable animated scene and has been added to the timeline.");
       return;
     }
@@ -1640,7 +1640,7 @@ export default function App() {
     };
     if (target) applyClipChange(clips.map(item => item.id === target.id ? generatedClip : item), "Generated animated scene replaced its storyboard placeholder.");
     else applyClipChange([...clips, generatedClip], "Generated animated scene added to the timeline.");
-    setSelected(generatedClip.id); setPlayhead(generatedClip.start); setPage("ai");
+    setSelected(generatedClip.id); setPlayhead(generatedClip.start); setPage("editor"); setEditorView("workspace");
     setAiReply("Your visual is ready with editable motion and has been added to the timeline.");
   }
   async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video") {
@@ -1674,7 +1674,7 @@ export default function App() {
           setSelected(clip.id);setPlayhead(clip.start);
           setAiReply("Image generated, validated, imported and added to the editable timeline.");
         }
-        setPage("ai");
+        setPage("editor"); setEditorView("workspace");
       } else if(route.route==="image-motion-fallback") {
         await generateAnimatedSceneFromStill(scene,prompt);
       } else {
@@ -1807,7 +1807,7 @@ export default function App() {
           setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
         }
       }
-      setPage("ai");
+      setPage("editor"); setEditorView("workspace");
     } catch(error) {
       if(reservedObjectUrl) URL.revokeObjectURL(reservedObjectUrl);
       if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
@@ -1885,7 +1885,7 @@ export default function App() {
     applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable scenes with timed title layers");
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
-    setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("ai");
+    setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor"); setEditorView("workspace");
     for (const pending of pendingWorkerImages) {
       setGenerationBusy("image:storyboard:" + pending.scene.title);
       setAiReply("Generating scene image " + (generatedImageCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
@@ -2391,7 +2391,7 @@ export default function App() {
     setTextLayers(old => [...old, ...layers]);
     if (clips.length) applyClipChange(clips.map(clip => assets.find(item => item.id === clip.assetId)?.kind === "audio" ? clip : ({ ...clip, filter: template.filter, transitionIn: clip.transitionIn ?? 0.45, transitionOut: clip.transitionOut ?? 0.45, transitionStyle: clip.transitionStyle || "fade" })), "Creative template applied to the current visual timeline.");
     setSelectedTextLayer(layers[0].id); setOverlayText(template.title); setTextColor("#ffffff"); setTextSize(58); setTextFont("Arial");
-    setPlayhead(0); setPage("ai"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
+    setPlayhead(0); setPage("editor"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
     setStatus("“" + template.name + "” applied: editable title, subtitle and footer layers added. Import your footage or photos, then replace the placeholder text.");
   }
   function startTemplateProject(template: typeof CREATIVE_TEMPLATES[number]) {
@@ -2407,7 +2407,7 @@ export default function App() {
     setUndoStack([]); setRedoStack([]); setTrackStates(defaultTracks.map(track => ({ ...track, locked: false })));
     setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setTimelineZoom(60);
     setOverlayText(template.title); setTextColor("#ffffff"); setTextSize(58); setTextFont("Arial");
-    setPage("ai"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
+    setPage("editor"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
     setStatus("New “" + template.name + "” project created. Your imported media remains available in the media library; add it to the new timeline when ready.");
   }
   function applyCreativeEffect(effect: typeof NEXUS_VIDEO_EFFECTS[number]) {
@@ -2726,11 +2726,11 @@ export default function App() {
           <div className="editor-status-line" role="status" aria-live="polite"><i/>{status}</div>
         </div>}
         {editorView==="import" && <div className="editor-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Import media</h2><p>Add videos, photos and audio to this project.</p></div></div><button className="huge-import-zone" onClick={()=>setShowAttachmentPicker(true)}><Plus size={38}/><b>Choose from gallery</b><span>Open your phone gallery to select photos and videos</span><small>Photos · Videos · Audio · Files</small></button><div className="imported-media-list"><h3>Imported media ({assets.length})</h3>{assets.map(a=><div key={a.id}><span>{a.kind==="audio"?<Music2/>:a.kind==="image"?<ImageIcon/>:<Film/>}</span><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?clock(a.duration):"Reading…"}</small><button onClick={()=>{add(a);setEditorView("workspace");}}><Plus size={16}/> Add</button></div>)}</div></div>}
-        {editorView==="export" && <div className="editor-subpage export-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Export video</h2><p>Choose the quality and format for your finished video.</p></div></div><div className="export-center-layout"><div className="export-completion-card"><div className="export-big-icon"><Film size={32}/></div><h3>Ready to export</h3><p>{projectName} · {clock(duration)} · {clips.length} clips · {imageLayers.length + textLayers.length} overlay layers</p><div className="export-summary-row"><span>Resolution</span><b>{exportQuality}</b></div><div className="export-summary-row"><span>Frame rate</span><b>{exportFps}</b></div><div className="export-summary-row"><span>Aspect ratio</span><b>{aspectRatio}</b></div><button className="export-render-button" disabled={exportBusy || !hasExportableContent} onClick={()=>void startVideoExport()}><ArrowDownToLine size={18}/> {exportBusy ? "Rendering " + exportProgress + "%" : "Export video"}</button>{exportBusy && <><div className="nexus-export-progress"><i style={{width:exportProgress+"%"}}/></div><button className="outline-button" onClick={cancelVideoExport}>Cancel export</button></>}<small>Browser renderer · MP4 when supported, otherwise WebM · includes timeline video, images, timed text and audio clips. Keep this tab open while rendering.</small>{isNativeAndroid() && <><button className="outline-button" disabled={exportBusy || !selectedClip || !asset || asset.kind !== "video"} onClick={()=>void startNativeClipTranscode()}><Film size={16}/> Native Android clip transcode</button><small>Media3 transcodes one selected source video to MP4. It does not include timeline overlays, transitions or other clips.</small></>}</div><div className="export-options-panel"><h3>Social export preset</h3><label>Platform preset<select value={exportPreset} onChange={e=>applyExportPreset(e.target.value)}><option>TikTok / Reels / Shorts</option><option>YouTube</option><option>YouTube 4K</option><option>Instagram square</option><option>Instagram portrait</option><option>Facebook landscape</option><option>WhatsApp status</option></select></label><small>Presets set a starting aspect ratio, resolution and frame rate. You can customise the settings below.</small><h3>Export options</h3><label>Video quality<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}><option>720p</option><option>1080p</option><option>2K</option><option>4K Ultra HD</option></select></label><label>Frame rate<select value={exportFps} onChange={e=>setExportFps(e.target.value)}><option>24 FPS</option><option>30 FPS</option><option>60 FPS</option></select></label><button className="export-quick-action" disabled={!selectedClip} onClick={()=>{setPage("ai");setEditorView("workspace");setActiveTool("edit");setActiveSubtool("speed");setStatus("Select a clip to adjust its playback speed.");}}><Gauge size={18}/> Adjust selected clip speed</button><h3>Share destinations</h3><div className="export-share-grid">{["TikTok","YouTube","WhatsApp","Instagram","Facebook","Other"].map((name,i)=><button key={name} disabled><Share2 size={17}/><span>{name}</span></button>)}</div><small>Share options appear after a video has been rendered and saved to your device.</small></div></div></div>}
+        {editorView==="export" && <div className="editor-subpage export-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Export video</h2><p>Choose the quality and format for your finished video.</p></div></div><div className="export-center-layout"><div className="export-completion-card"><div className="export-big-icon"><Film size={32}/></div><h3>Ready to export</h3><p>{projectName} · {clock(duration)} · {clips.length} clips · {imageLayers.length + textLayers.length} overlay layers</p><div className="export-summary-row"><span>Resolution</span><b>{exportQuality}</b></div><div className="export-summary-row"><span>Frame rate</span><b>{exportFps}</b></div><div className="export-summary-row"><span>Aspect ratio</span><b>{aspectRatio}</b></div><button className="export-render-button" disabled={exportBusy || !hasExportableContent} onClick={()=>void startVideoExport()}><ArrowDownToLine size={18}/> {exportBusy ? "Rendering " + exportProgress + "%" : "Export video"}</button>{exportBusy && <><div className="nexus-export-progress"><i style={{width:exportProgress+"%"}}/></div><button className="outline-button" onClick={cancelVideoExport}>Cancel export</button></>}<small>Browser renderer · MP4 when supported, otherwise WebM · includes timeline video, images, timed text and audio clips. Keep this tab open while rendering.</small>{isNativeAndroid() && <><button className="outline-button" disabled={exportBusy || !selectedClip || !asset || asset.kind !== "video"} onClick={()=>void startNativeClipTranscode()}><Film size={16}/> Native Android clip transcode</button><small>Media3 transcodes one selected source video to MP4. It does not include timeline overlays, transitions or other clips.</small></>}</div><div className="export-options-panel"><h3>Social export preset</h3><label>Platform preset<select value={exportPreset} onChange={e=>applyExportPreset(e.target.value)}><option>TikTok / Reels / Shorts</option><option>YouTube</option><option>YouTube 4K</option><option>Instagram square</option><option>Instagram portrait</option><option>Facebook landscape</option><option>WhatsApp status</option></select></label><small>Presets set a starting aspect ratio, resolution and frame rate. You can customise the settings below.</small><h3>Export options</h3><label>Video quality<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}><option>720p</option><option>1080p</option><option>2K</option><option>4K Ultra HD</option></select></label><label>Frame rate<select value={exportFps} onChange={e=>setExportFps(e.target.value)}><option>24 FPS</option><option>30 FPS</option><option>60 FPS</option></select></label><button className="export-quick-action" disabled={!selectedClip} onClick={()=>{setPage("editor");setEditorView("workspace");setActiveTool("edit");setActiveSubtool("speed");setStatus("Select a clip to adjust its playback speed.");}}><Gauge size={18}/> Adjust selected clip speed</button><h3>Share destinations</h3><div className="export-share-grid">{["TikTok","YouTube","WhatsApp","Instagram","Facebook","Other"].map((name,i)=><button key={name} disabled><Share2 size={17}/><span>{name}</span></button>)}</div><small>Share options appear after a video has been rendered and saved to your device.</small></div></div></div>}
 
       </section>}
 
-      {page === "projects" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIONS</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("ai"); }}><Plus size={16}/> New project</button></div><div className="project-filter"><button className="filter-active">All projects</button><button>Videos</button><button>Drafts</button><span>{recent.length} projects</span></div><div className="project-grid">{recent.filter(n => n.toLowerCase().includes(search.toLowerCase())).map((name, i) => <button className="project-tile" key={name} onClick={() => { setProjectName(name); setPage("ai"); }}><div className={"recent-art art-" + i}><span>PROJECT / 0{i + 1}</span></div><div><b>{name}</b><small>Local project · {i === 0 ? "Today" : i === 1 ? "Yesterday" : "2 days ago"}</small></div></button>)}</div></section>}
+      {page === "projects" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIONS</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("editor"); setEditorView("workspace"); }}><Plus size={16}/> New project</button></div><div className="project-filter"><button className="filter-active">All projects</button><button>Videos</button><button>Drafts</button><span>{recent.length} projects</span></div><div className="project-grid">{recent.filter(n => n.toLowerCase().includes(search.toLowerCase())).map((name, i) => <button className="project-tile" key={name} onClick={() => { setProjectName(name); setPage("editor"); setEditorView("workspace"); }}><div className={"recent-art art-" + i}><span>PROJECT / 0{i + 1}</span></div><div><b>{name}</b><small>Local project · {i === 0 ? "Today" : i === 1 ? "Yesterday" : "2 days ago"}</small></div></button>)}</div></section>}
 
       {page === "templates" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">A LITTLE CREATIVE INSPIRATION</div><h1>Explore templates</h1><p>Choose a starting point for your next story.</p></div></div><div className="category-tabs">{["All", "Lifestyle", "Gaming", "Business", "Product", "Education", "Creator", "Events", "Sports"].map(c => <button key={c} className={templateCategory === c ? "tab-active" : ""} onClick={() => setTemplateCategory(c)}>{c}</button>)}</div><div className="template-grid">{filteredTemplates.map(t => <button className="template-card" key={t.name} onClick={() => setSelectedTemplate(t)}><div className={"template-art " + t.color} style={{background:t.gradient}}><span className="template-play"><Play size={18} fill="currentColor"/></span><small>{t.length}</small></div><div><b>{t.name}</b><small>{t.type} · {t.ratio} · {t.filter}</small></div></button>)}</div></section>}
 
