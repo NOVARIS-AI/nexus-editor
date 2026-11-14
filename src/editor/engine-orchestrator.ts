@@ -136,7 +136,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
         rotation: (layer.rotation * Math.PI) / 180,
         anchor: { x: 0.5, y: 0.5 },
       },
-      blendMode: layer.blendMode ?? "normal",
       fit: layer.fit ?? "contain",
       mask: { shape: layer.maskShape ?? "none", radius: layer.maskRadius ?? 12 },
     } as never);
