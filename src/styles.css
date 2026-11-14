@@ -4037,3 +4037,88 @@ body:has(.nexus-foryou) .top-header{display:none!important}
     min-width:0!important;
   }
 }
+
+
+/* NEXUS mobile sticker drawer + preview-first workspace correction */
+@media (max-width:760px) {
+  .nexus-shell .nexus-studio-page .editor-screen {
+    display:flex!important;flex-direction:column!important;gap:0!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone {
+    flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    justify-content:center!important;padding:4px 10px!important;overflow:hidden!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-frame {
+    height:min(44dvh,calc(100% - 34px))!important;width:auto!important;
+    max-height:calc(100% - 34px)!important;aspect-ratio:9/16!important;
+    margin:0 auto!important;flex:0 1 auto!important;
+  }
+  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-timeline-zone {
+    display:none!important;
+  }
+  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-preview-zone {
+    flex:1 1 auto!important;
+  }
+  body > .nexus-mobile-tool-sheet {
+    height:42dvh!important;max-height:42dvh!important;min-height:220px!important;
+    bottom:calc(66px + env(safe-area-inset-bottom))!important;
+    flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;
+    gap:10px!important;padding:10px 14px calc(12px + env(safe-area-inset-bottom))!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
+    flex:0 0 34px!important;min-height:34px!important;height:34px!important;
+    padding:0 0 7px!important;margin:0!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head small {display:none!important}
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head b {font-size:16px!important}
+  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs {
+    display:flex!important;flex:0 0 auto!important;flex-direction:row!important;
+    flex-wrap:nowrap!important;gap:7px!important;width:100%!important;
+    overflow-x:auto!important;padding:1px 0 7px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs button {
+    flex:0 0 auto!important;min-height:34px!important;padding:7px 12px!important;
+    border:1px solid #3a4652!important;border-radius:18px!important;
+    background:#202832!important;color:#dce3e9!important;font-size:12px!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-tabs button.active {
+    background:#3b2b22!important;border-color:#c18a57!important;color:#ffd6a8!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-search {
+    flex:0 0 38px!important;width:100%!important;min-height:38px!important;
+    border:1px solid #3a4652!important;border-radius:10px!important;
+    padding:8px 11px!important;background:#10161d!important;color:#fff!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-library {
+    display:flex!important;flex:1 1 auto!important;flex-direction:column!important;
+    gap:12px!important;width:100%!important;min-height:0!important;overflow-y:auto!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-group {
+    display:flex!important;flex-direction:column!important;gap:8px!important;
+    width:100%!important;min-width:0!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-group > b {
+    font-size:11px!important;color:#aeb9c4!important;letter-spacing:.04em!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-row {
+    display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:9px!important;width:100%!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-row button {
+    display:grid!important;place-items:center!important;aspect-ratio:1/1!important;
+    width:100%!important;min-width:0!important;min-height:48px!important;
+    padding:4px!important;border:1px solid #35424e!important;border-radius:11px!important;
+    background:#202832!important;color:#fff!important;font-size:28px!important;line-height:1!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-sticker-import {
+    flex:0 0 38px!important;min-height:38px!important;border:1px solid #485664!important;
+    border-radius:10px!important;background:#252e38!important;color:#f2f4f6!important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head,
+  body > .nexus-mobile-tool-sheet .nexus-effect-reference-strip {display:none!important}
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid,
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel {
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  }
+}
