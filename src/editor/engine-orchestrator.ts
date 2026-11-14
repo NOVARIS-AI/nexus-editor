@@ -50,7 +50,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
   });
 
   const sourceAssets = new Map(input.assets.map(asset => [asset.id, asset]));
-  const trackKinds = new Map<string, "video" | "audio" | "elements">();
   const trackIds = new Map<string, string>();
   const ensureTrack = (sourceTrackId: string, kind: "video" | "audio" | "elements", name: string) => {
     const key = sourceTrackId + ":" + kind;
@@ -58,7 +57,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
     if (existing) return existing;
     const created = engine.addTrack(kind, { name }).id;
     trackIds.set(key, created);
-    trackKinds.set(key, kind);
     return created;
   };
 
@@ -67,7 +65,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
     const id = ensureTrack(track.id, kind, track.name);
     engine.updateTrack(id, {
       muted: track.muted,
-      hidden: track.hidden,
       volume: track.volume ?? 1,
     });
   }
@@ -75,10 +72,12 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
   const elahClipIds = new Map<string, { id: string; trackId: string; startFrame: number; endFrame: number; transitionIn: number; transitionOut: number; transitionStyle?: string }>();
   for (const clip of input.clips) {
     if (input.signal?.aborted) throw new DOMException("Export cancelled.", "AbortError");
+    const sourceTrackState = input.tracks?.find(track => track.id === clip.trackId);
+    if (sourceTrackState?.hidden) continue;
     const asset = sourceAssets.get(clip.assetId);
     if (!asset?.objectUrl) throw new Error("Elah cannot access the source media for " + clip.label + ".");
     const kind = asset.kind === "video" ? "video" : "audio";
-    const sourceTrack = input.tracks?.find(track => track.id === clip.trackId);
+    const sourceTrack = sourceTrackState;
     const trackId = ensureTrack(clip.trackId, kind, sourceTrack?.name ?? (kind === "video" ? "Video" : "Audio"));
     const startFrame = Math.max(0, Math.round(clip.start * input.fps));
     const durationFrames = Math.max(1, Math.round(clipDuration(clip) * input.fps));
@@ -111,7 +110,7 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
   }
 
   for (const layer of input.imageLayers ?? []) {
-    if (layer.visible === false) continue;
+    if (layer.visible === false || input.tracks?.find(track => track.id === layer.trackId)?.hidden) continue;
     const asset = sourceAssets.get(layer.assetId);
     if (!asset?.objectUrl) continue;
     const trackId = ensureTrack(layer.trackId, "elements", "Images & overlays");
@@ -134,7 +133,7 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
   }
 
   for (const layer of input.textLayers) {
-    if (layer.visible === false) continue;
+    if (layer.visible === false || input.tracks?.find(track => track.id === layer.trackId)?.hidden) continue;
     const trackId = ensureTrack(layer.trackId, "elements", "Text & titles");
     const startFrame = Math.max(0, Math.round(layer.start * input.fps));
     const durationFrames = Math.max(1, Math.round(layer.duration * input.fps));
