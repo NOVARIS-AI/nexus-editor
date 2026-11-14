@@ -2547,9 +2547,9 @@ export default function App() {
           </div>
           <div className="editor-dashboard-section"><div className="editor-dashboard-section-head"><div><h2>Choose your creative starting point</h2><p>The workspace adapts to the kind of project you create.</p></div></div>
             <div className="editor-project-types">
-              <button onClick={()=>{setAspectRatio("16:9");startNewProject();}}><span className="editor-type-icon video"><Film size={21}/></span><b>Video</b><small>Multi-track editing</small></button>
-              <button onClick={()=>{setAspectRatio("1:1");startNewProject();}}><span className="editor-type-icon image"><ImageIcon size={21}/></span><b>Image</b><small>Layers and visual edits</small></button>
-              <button onClick={()=>{setAspectRatio("4:5");startNewProject();}}><span className="editor-type-icon design"><Palette size={21}/></span><b>Graphic design</b><small>Layouts and typography</small></button>
+              <button onClick={()=>{startNewProject();setAspectRatio("16:9");}}><span className="editor-type-icon video"><Film size={21}/></span><b>Video</b><small>Multi-track editing</small></button>
+              <button onClick={()=>{startNewProject();setAspectRatio("1:1");}}><span className="editor-type-icon image"><ImageIcon size={21}/></span><b>Image</b><small>Layers and visual edits</small></button>
+              <button onClick={()=>{startNewProject();setAspectRatio("4:5");}}><span className="editor-type-icon design"><Palette size={21}/></span><b>Graphic design</b><small>Layouts and typography</small></button>
               <button onClick={()=>{setAspectRatio("16:9");startNewProject();}}><span className="editor-type-icon audio"><AudioLines size={21}/></span><b>Audio</b><small>Sound and voice tracks</small></button>
             </div>
           </div>
