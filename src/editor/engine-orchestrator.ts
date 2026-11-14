@@ -160,7 +160,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
         textAlign: layer.align ?? "center",
       },
       opacity: Math.max(0, Math.min(1, layer.opacity ?? 1)),
-      animation: layer.animation ?? "none",
       transform: {
         x: Math.max(0, Math.min(1, (layer.x ?? input.width / 2) / input.width)),
         y: Math.max(0, Math.min(1, (layer.y ?? input.height / 2) / input.height)),
