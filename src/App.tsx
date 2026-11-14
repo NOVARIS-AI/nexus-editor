@@ -811,7 +811,7 @@ export default function App() {
       const trackId = audioTrackIds.find(id => !used.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
       const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: preset.duration, label: preset.name, gain: 1, muted: false, fadeIn: .08, fadeOut: .2, speed: 1 };
       setAssets(old => [...old, created]); applyClipChange([...clips, clip], "Original NEXUS audio added to the timeline: " + preset.name);
-      setSelected(clip.id); setPlayhead(clip.start); setPage("ai"); setActiveTool("audio"); setActiveSubtool("mixer");
+      setSelected(clip.id); setPlayhead(clip.start); setPage("editor"); setEditorView("workspace"); setActiveTool("audio"); setActiveSubtool("mixer");
       setStatus(preset.kind === "music" ? "Original generated music bed added. Duplicate it to cover a longer edit." : "Original generated sound effect added to the audio timeline.");
     } catch (error) { setStatus(error instanceof Error ? error.message : "Audio generation failed. You can still import licensed audio files."); }
     finally { setAudioGenerating(null); }
@@ -1705,7 +1705,7 @@ export default function App() {
       const trackId=audioTrackIds.find(value=>!used.has(value))||"audio-1";
       const clip:TimelineClip={id:uid(),assetId:created.id,trackId,start,sourceIn:0,sourceOut:preset.duration,label:preset.name,gain:1,muted:false,fadeIn:.12,fadeOut:.35,speed:1};
       setAssets(old=>[...old,created]);applyClipChange([...clips,clip],"Original locally generated audio added under "+scene.title+".");
-      setSelected(clip.id);setPlayhead(start);setPage("ai");setActiveTool("audio");setActiveSubtool("mixer");
+      setSelected(clip.id);setPlayhead(start);setPage("editor");setEditorView("workspace");setActiveTool("audio");setActiveSubtool("mixer");
       setAiReply("Original audio added beneath "+scene.title+". "+(preset.duration>=12?"The generated bed is capped at 12 seconds; duplicate or extend it for longer scenes.":"Preview it and adjust its level against the dialogue.")+" This is procedural audio, not an AI singer or a commercial music track.");
     } catch(error) {
       setAiReply((error instanceof Error?error.message:"Local audio synthesis failed.")+" The existing project remains unchanged.");
@@ -2023,7 +2023,7 @@ export default function App() {
     setSelected(additions[0].id);
     setPlayhead(base);
     setProjectName(projectName || "NEXUS Reference Edit");
-    setPage("ai"); setEditorView("workspace");
+    setPage("editor"); setEditorView("workspace");
     setActiveTool("edit"); setActiveSubtool("select");
     setAiWorkflowStage("editing");
     setEngineReport(old => [...old, ...matchNotes, ...plannedAudioCues.map(cue => "Suggested audio cue at " + cue.time.toFixed(2) + "s · " + cue.type), "Reference timing is approximate; sparse frame samples cannot confirm exact cuts."]);
@@ -2365,7 +2365,7 @@ export default function App() {
       setTrackStates(p.tracks?.length ? p.tracks : defaultTracks);
       setTrackMix(Object.fromEntries((p.tracks||[]).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}])));
       setStatus(p.assets.length ? "Project opened · re-import the original media files to relink them automatically by filename and media type" : "Project opened · no external media files are required");
-      setPage("ai");
+      setPage("editor"); setEditorView("workspace");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not open this project file");
     }
