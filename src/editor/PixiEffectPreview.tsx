@@ -4,6 +4,7 @@ type Props = {
   source?: string;
   mediaKind?: string;
   effectName?: string;
+  variant?: "panel" | "stage";
 };
 
 function matrixFor(name: string): number[] {
@@ -37,7 +38,7 @@ function matrixFor(name: string): number[] {
   return identity;
 }
 
-export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }: Props) {
+export function PixiEffectPreview({ source, mediaKind, effectName = "Original", variant = "panel" }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
 
@@ -45,6 +46,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
     let disposed = false;
     let app: import("pixi.js").Application | undefined;
     let media: HTMLVideoElement | undefined;
+    let resizeObserver: ResizeObserver | undefined;
 
     const mount = async () => {
       if (!source || (mediaKind !== "image" && mediaKind !== "video") || !host.current) {
@@ -58,7 +60,8 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
         app = new PIXI.Application();
         await app.init({
           width: 240,
-          height: 156,
+          height: variant === "stage" ? Math.max(1, host.current.clientHeight) : 156,
+          resizeTo: variant === "stage" ? host.current : undefined,
           backgroundAlpha: 0,
           antialias: true,
           autoDensity: true,
@@ -98,12 +101,19 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
 
         const sprite = new PIXI.Sprite(texture);
         sprite.anchor.set(0.5);
-        sprite.position.set(120, 78);
-        const sourceWidth = texture.width || 1;
-        const sourceHeight = texture.height || 1;
-        const scale = Math.max(240 / sourceWidth, 156 / sourceHeight);
-        sprite.width = sourceWidth * scale;
-        sprite.height = sourceHeight * scale;
+        const fitSprite = () => {
+          const width = app!.screen.width;
+          const height = app!.screen.height;
+          sprite.position.set(width / 2, height / 2);
+          const sourceWidth = texture.width || 1;
+          const sourceHeight = texture.height || 1;
+          const scale = Math.max(width / sourceWidth, height / sourceHeight);
+          sprite.width = sourceWidth * scale;
+          sprite.height = sourceHeight * scale;
+        };
+        fitSprite();
+        resizeObserver = variant === "stage" ? new ResizeObserver(fitSprite) : undefined;
+        if (resizeObserver && host.current) resizeObserver.observe(host.current);
         const filter = new PIXI.ColorMatrixFilter();
         filter.matrix = matrixFor(effectName) as [number, ...number[]];
         sprite.filters = [filter];
@@ -124,6 +134,7 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
     void mount();
     return () => {
       disposed = true;
+      resizeObserver?.disconnect();
       media?.pause();
       if (media) {
         media.removeAttribute("src");
@@ -137,11 +148,11 @@ export function PixiEffectPreview({ source, mediaKind, effectName = "Original" }
   }, [source, mediaKind, effectName]);
 
   return (
-    <div className="nexus-pixi-preview-wrap">
-      <div className="nexus-pixi-preview" ref={host}>
+    <div className={"nexus-pixi-preview-wrap" + (variant === "stage" ? " nexus-pixi-stage-wrap" : "")}>
+      <div className={"nexus-pixi-preview" + (variant === "stage" ? " nexus-pixi-stage" : "")} ref={host}>
         {state !== "ready" && <span>{state === "loading" ? "Preparing GPU preview…" : state === "fallback" ? "GPU preview unavailable · standard preview remains active" : "Select a visual clip for GPU preview"}</span>}
       </div>
-      <div className="nexus-pixi-preview-caption"><i/> PIXI GPU PREVIEW <b>{effectName}</b></div>
+      {variant === "panel" && <div className="nexus-pixi-preview-caption"><i/> PIXI GPU PREVIEW <b>{effectName}</b></div>}
     </div>
   );
 }
