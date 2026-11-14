@@ -2757,7 +2757,7 @@ export default function App() {
         </div>
       </section></div>}
       {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} onRenderVideo={async()=>{const blob=await startVideoExport({returnBlob:true});if(!blob)return null;const extension=blob.type.toLowerCase().includes("mp4")?"mp4":"webm";return new File([blob],makeExportFilename(projectName,extension),{type:blob.type||(extension==="mp4"?"video/mp4":"video/webm")});}} /></Suspense>}
-      {<nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"for-you",label:"For You",icon:Compass},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>setPage(item.id as Page)}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
+      {<nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"editor",label:"Editor",icon:Clapperboard},{id:"for-you",label:"For You",icon:Compass},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);setAiWorkspaceOpen(false);if(item.id==="editor")setEditorView("dashboard");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
   </div>;
