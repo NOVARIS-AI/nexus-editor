@@ -4587,3 +4587,12 @@ body:has(.nexus-foryou) .top-header{display:none!important}
 
 .editor-fullscreen.nexus-studio-page .editor-transition-add{position:absolute;z-index:9;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:20px;height:20px;min-width:20px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:6px;background:#292b35;color:#fff;font-size:16px;line-height:1;box-shadow:0 2px 8px #0008}
 .editor-fullscreen.nexus-studio-page .editor-transition-add:active{background:#8b70b7}
+
+
+/* Creative Fabric graph navigation */
+.nexus-fabric-node-action{width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer}
+.nexus-fabric-node-action:disabled,.nexus-fabric-edges>button:disabled{opacity:.55;cursor:not-allowed}
+.nexus-fabric-node-action:not(:disabled):active,.nexus-fabric-edges>button:not(:disabled):active{border-color:var(--accent-c);transform:scale(.995)}
+.nexus-fabric-edges>button{display:flex;align-items:center;gap:6px;flex-wrap:wrap;width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);font:inherit;font-size:9px;text-align:left;cursor:pointer}
+.nexus-fabric-edges>button small{margin-left:auto;font-size:9px;font-variant-numeric:tabular-nums}
+.nexus-fabric-edges>button:focus-visible,.nexus-fabric-node-action:focus-visible{outline:2px solid var(--accent-c);outline-offset:2px}
