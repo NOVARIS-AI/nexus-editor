@@ -1,5 +1,5 @@
 export type CreativeFilter = { name:string; category:string; css:string };
-export const CREATIVE_FILTERS:CreativeFilter[] = [
+const BASE_CREATIVE_FILTERS:CreativeFilter[] = [
 {name:"Cinematic Teal",category:"Cinematic",css:"contrast(1.18) saturate(1.2) sepia(.08) hue-rotate(145deg)"},
 {name:"Hollywood Warm",category:"Cinematic",css:"contrast(1.12) saturate(1.18) sepia(.16)"},
 {name:"Epic Film",category:"Cinematic",css:"contrast(1.28) saturate(1.08)"},
@@ -54,6 +54,109 @@ export const CREATIVE_FILTERS:CreativeFilter[] = [
 {name:"Summer Glow",category:"Color",css:"sepia(.1) saturate(1.24) brightness(1.1)"},
 {name:"Winter Frost",category:"Color",css:"hue-rotate(185deg) saturate(.65) brightness(1.06)"}
 ];
+const EXPANDED_FILTERS:CreativeFilter[] = [
+  {name:"Studio Teal",category:"Cinematic",css:"hue-rotate(145deg) sepia(0.06) saturate(1.16) contrast(1.08) brightness(1.02)"},
+  {name:"Midnight Cinema",category:"Cinematic",css:"hue-rotate(158deg) sepia(0.08) saturate(1.25) contrast(1.10) brightness(1.06)"},
+  {name:"Amber Cinema",category:"Cinematic",css:"hue-rotate(171deg) sepia(0.11) saturate(1.35) contrast(1.08) brightness(1.11)"},
+  {name:"Silver Cinema",category:"Cinematic",css:"hue-rotate(189deg) sepia(0.14) saturate(1.44) contrast(1.10) brightness(1.02)"},
+  {name:"Deep Focus",category:"Cinematic",css:"hue-rotate(202deg) sepia(0.06) saturate(1.54) contrast(1.08) brightness(1.06)"},
+  {name:"Wide Screen",category:"Cinematic",css:"hue-rotate(215deg) sepia(0.08) saturate(1.16) contrast(1.18) brightness(1.11)"},
+  {name:"Drama Blue",category:"Cinematic",css:"hue-rotate(233deg) sepia(0.11) saturate(1.25) contrast(1.16) brightness(1.02)"},
+  {name:"Copper Frame",category:"Cinematic",css:"hue-rotate(246deg) sepia(0.14) saturate(1.35) contrast(1.18) brightness(1.06)"},
+  {name:"Soft Trailer",category:"Cinematic",css:"hue-rotate(259deg) sepia(0.06) saturate(1.44) contrast(1.16) brightness(1.11)"},
+  {name:"Cinematic Rose",category:"Cinematic",css:"hue-rotate(277deg) sepia(0.08) saturate(1.54) contrast(1.18) brightness(1.02)"},
+  {name:"Super 8",category:"Film",css:"hue-rotate(12deg) sepia(0.24) saturate(1.08) contrast(0.96) brightness(1.03)"},
+  {name:"Expired Negative",category:"Film",css:"hue-rotate(25deg) sepia(0.27) saturate(1.18) contrast(0.98) brightness(1.07)"},
+  {name:"Cinema 5219",category:"Film",css:"hue-rotate(38deg) sepia(0.29) saturate(1.27) contrast(0.96) brightness(1.12)"},
+  {name:"Classic Reversal",category:"Film",css:"hue-rotate(56deg) sepia(0.32) saturate(1.37) contrast(0.98) brightness(1.03)"},
+  {name:"Summer 16mm",category:"Film",css:"hue-rotate(69deg) sepia(0.24) saturate(1.46) contrast(0.96) brightness(1.07)"},
+  {name:"Kodak Warmth",category:"Film",css:"hue-rotate(82deg) sepia(0.27) saturate(1.08) contrast(1.06) brightness(1.12)"},
+  {name:"Indie Grain Look",category:"Film",css:"hue-rotate(100deg) sepia(0.29) saturate(1.18) contrast(1.03) brightness(1.03)"},
+  {name:"Soft Halation",category:"Film",css:"hue-rotate(113deg) sepia(0.32) saturate(1.27) contrast(1.06) brightness(1.07)"},
+  {name:"Analog Memory",category:"Film",css:"hue-rotate(126deg) sepia(0.24) saturate(1.37) contrast(1.03) brightness(1.12)"},
+  {name:"Archive Print",category:"Film",css:"hue-rotate(144deg) sepia(0.27) saturate(1.46) contrast(1.06) brightness(1.03)"},
+  {name:"Vivid Coral",category:"Color",css:"hue-rotate(210deg) sepia(0.02) saturate(1.28) contrast(1.12) brightness(1.02)"},
+  {name:"Electric Cobalt",category:"Color",css:"hue-rotate(223deg) sepia(0.04) saturate(1.38) contrast(1.15) brightness(1.06)"},
+  {name:"Emerald Pop",category:"Color",css:"hue-rotate(236deg) sepia(0.07) saturate(1.47) contrast(1.12) brightness(1.11)"},
+  {name:"Ruby Contrast",category:"Color",css:"hue-rotate(254deg) sepia(0.10) saturate(1.56) contrast(1.15) brightness(1.02)"},
+  {name:"Lemon Bright",category:"Color",css:"hue-rotate(267deg) sepia(0.02) saturate(1.66) contrast(1.12) brightness(1.06)"},
+  {name:"Aqua Saturation",category:"Color",css:"hue-rotate(280deg) sepia(0.04) saturate(1.28) contrast(1.22) brightness(1.11)"},
+  {name:"Violet Punch",category:"Color",css:"hue-rotate(298deg) sepia(0.07) saturate(1.38) contrast(1.20) brightness(1.02)"},
+  {name:"True Color",category:"Color",css:"hue-rotate(311deg) sepia(0.10) saturate(1.47) contrast(1.22) brightness(1.06)"},
+  {name:"Candy Contrast",category:"Color",css:"hue-rotate(324deg) sepia(0.02) saturate(1.56) contrast(1.20) brightness(1.11)"},
+  {name:"Primary Pop",category:"Color",css:"hue-rotate(342deg) sepia(0.04) saturate(1.66) contrast(1.22) brightness(1.02)"},
+  {name:"Peach Portrait",category:"Portrait",css:"hue-rotate(348deg) sepia(0.08) saturate(1.04) contrast(0.98) brightness(1.06)"},
+  {name:"Honey Skin",category:"Portrait",css:"hue-rotate(1deg) sepia(0.11) saturate(1.14) contrast(1.00) brightness(1.10)"},
+  {name:"Soft Ivory",category:"Portrait",css:"hue-rotate(14deg) sepia(0.13) saturate(1.23) contrast(0.98) brightness(1.15)"},
+  {name:"Rose Portrait",category:"Portrait",css:"hue-rotate(32deg) sepia(0.16) saturate(1.33) contrast(1.00) brightness(1.06)"},
+  {name:"Neutral Skin",category:"Portrait",css:"hue-rotate(45deg) sepia(0.08) saturate(1.42) contrast(0.98) brightness(1.10)"},
+  {name:"Golden Complexion",category:"Portrait",css:"hue-rotate(58deg) sepia(0.11) saturate(1.04) contrast(1.08) brightness(1.15)"},
+  {name:"Window Light",category:"Portrait",css:"hue-rotate(76deg) sepia(0.13) saturate(1.14) contrast(1.05) brightness(1.06)"},
+  {name:"Silk Tone",category:"Portrait",css:"hue-rotate(89deg) sepia(0.16) saturate(1.23) contrast(1.08) brightness(1.10)"},
+  {name:"Warm Studio",category:"Portrait",css:"hue-rotate(102deg) sepia(0.08) saturate(1.33) contrast(1.05) brightness(1.15)"},
+  {name:"Natural Glow",category:"Portrait",css:"hue-rotate(120deg) sepia(0.11) saturate(1.42) contrast(1.08) brightness(1.06)"},
+  {name:"Catalogue White",category:"Product",css:"hue-rotate(35deg) sepia(0.01) saturate(1.22) contrast(1.14) brightness(1.04)"},
+  {name:"Luxury Detail",category:"Product",css:"hue-rotate(48deg) sepia(0.04) saturate(1.31) contrast(1.16) brightness(1.08)"},
+  {name:"Retail Bright",category:"Product",css:"hue-rotate(61deg) sepia(0.06) saturate(1.41) contrast(1.14) brightness(1.13)"},
+  {name:"Gloss Finish",category:"Product",css:"hue-rotate(79deg) sepia(0.09) saturate(1.50) contrast(1.16) brightness(1.04)"},
+  {name:"Clean Product",category:"Product",css:"hue-rotate(92deg) sepia(0.01) saturate(1.60) contrast(1.14) brightness(1.08)"},
+  {name:"Texture Reveal",category:"Product",css:"hue-rotate(105deg) sepia(0.04) saturate(1.22) contrast(1.24) brightness(1.13)"},
+  {name:"Studio Neutral",category:"Product",css:"hue-rotate(123deg) sepia(0.06) saturate(1.31) contrast(1.21) brightness(1.04)"},
+  {name:"Premium Contrast",category:"Product",css:"hue-rotate(136deg) sepia(0.09) saturate(1.41) contrast(1.24) brightness(1.08)"},
+  {name:"Fresh Display",category:"Product",css:"hue-rotate(149deg) sepia(0.01) saturate(1.50) contrast(1.21) brightness(1.13)"},
+  {name:"Showcase Crisp",category:"Product",css:"hue-rotate(167deg) sepia(0.04) saturate(1.60) contrast(1.24) brightness(1.04)"},
+  {name:"Ultraviolet",category:"Creative",css:"hue-rotate(275deg) sepia(0.04) saturate(1.48) contrast(1.16) brightness(1.03)"},
+  {name:"Infra Pop",category:"Creative",css:"hue-rotate(288deg) sepia(0.07) saturate(1.57) contrast(1.18) brightness(1.07)"},
+  {name:"Dream Spectrum",category:"Creative",css:"hue-rotate(301deg) sepia(0.09) saturate(1.67) contrast(1.16) brightness(1.12)"},
+  {name:"Acid Neon",category:"Creative",css:"hue-rotate(319deg) sepia(0.12) saturate(1.77) contrast(1.18) brightness(1.03)"},
+  {name:"Laser Violet",category:"Creative",css:"hue-rotate(332deg) sepia(0.04) saturate(1.86) contrast(1.16) brightness(1.07)"},
+  {name:"Hyperreal",category:"Creative",css:"hue-rotate(345deg) sepia(0.07) saturate(1.48) contrast(1.26) brightness(1.12)"},
+  {name:"Chromatic Rush",category:"Creative",css:"hue-rotate(3deg) sepia(0.09) saturate(1.57) contrast(1.23) brightness(1.03)"},
+  {name:"Electric Dream",category:"Creative",css:"hue-rotate(16deg) sepia(0.12) saturate(1.67) contrast(1.26) brightness(1.07)"},
+  {name:"Prism Shift",category:"Creative",css:"hue-rotate(29deg) sepia(0.04) saturate(1.77) contrast(1.23) brightness(1.12)"},
+  {name:"Digital Candy",category:"Creative",css:"hue-rotate(47deg) sepia(0.07) saturate(1.86) contrast(1.26) brightness(1.03)"},
+  {name:"Apricot Light",category:"Warm",css:"hue-rotate(8deg) sepia(0.20) saturate(1.18) contrast(1.02) brightness(1.08)"},
+  {name:"Burnt Honey",category:"Warm",css:"hue-rotate(21deg) sepia(0.23) saturate(1.27) contrast(1.04) brightness(1.13)"},
+  {name:"Terracotta",category:"Warm",css:"hue-rotate(34deg) sepia(0.25) saturate(1.37) contrast(1.02) brightness(1.17)"},
+  {name:"Soft Saffron",category:"Warm",css:"hue-rotate(52deg) sepia(0.28) saturate(1.46) contrast(1.04) brightness(1.08)"},
+  {name:"Candle Warmth",category:"Warm",css:"hue-rotate(65deg) sepia(0.20) saturate(1.56) contrast(1.02) brightness(1.13)"},
+  {name:"Peach Sunset",category:"Warm",css:"hue-rotate(78deg) sepia(0.23) saturate(1.18) contrast(1.12) brightness(1.17)"},
+  {name:"Amber Glow",category:"Warm",css:"hue-rotate(96deg) sepia(0.25) saturate(1.27) contrast(1.09) brightness(1.08)"},
+  {name:"Cocoa Warmth",category:"Warm",css:"hue-rotate(109deg) sepia(0.28) saturate(1.37) contrast(1.12) brightness(1.13)"},
+  {name:"Rose Gold",category:"Warm",css:"hue-rotate(122deg) sepia(0.20) saturate(1.46) contrast(1.09) brightness(1.17)"},
+  {name:"Desert Heat",category:"Warm",css:"hue-rotate(140deg) sepia(0.23) saturate(1.56) contrast(1.12) brightness(1.08)"},
+  {name:"Glacier Blue",category:"Cool",css:"hue-rotate(178deg) sepia(0.02) saturate(0.88) contrast(1.08) brightness(0.98)"},
+  {name:"Polar Light",category:"Cool",css:"hue-rotate(191deg) sepia(0.04) saturate(0.97) contrast(1.10) brightness(1.02)"},
+  {name:"Steel Blue",category:"Cool",css:"hue-rotate(204deg) sepia(0.07) saturate(1.07) contrast(1.08) brightness(1.07)"},
+  {name:"Aqua Mist",category:"Cool",css:"hue-rotate(222deg) sepia(0.10) saturate(1.17) contrast(1.10) brightness(0.98)"},
+  {name:"Deep Ocean",category:"Cool",css:"hue-rotate(235deg) sepia(0.02) saturate(1.26) contrast(1.08) brightness(1.02)"},
+  {name:"Blue Steel",category:"Cool",css:"hue-rotate(248deg) sepia(0.04) saturate(0.88) contrast(1.18) brightness(1.07)"},
+  {name:"Frosted Glass",category:"Cool",css:"hue-rotate(266deg) sepia(0.07) saturate(0.97) contrast(1.16) brightness(0.98)"},
+  {name:"Cool Shadow",category:"Cool",css:"hue-rotate(279deg) sepia(0.10) saturate(1.07) contrast(1.18) brightness(1.02)"},
+  {name:"Arctic Night",category:"Cool",css:"hue-rotate(292deg) sepia(0.02) saturate(1.17) contrast(1.16) brightness(1.07)"},
+  {name:"Rainy Day",category:"Cool",css:"hue-rotate(310deg) sepia(0.04) saturate(1.26) contrast(1.18) brightness(0.98)"},
+  {name:"Silver Mono",category:"Mono",css:"hue-rotate(0deg) sepia(0.00) saturate(1.00) contrast(1.18) brightness(1.00) grayscale(1.00)"},
+  {name:"Graphite",category:"Mono",css:"hue-rotate(13deg) sepia(0.03) saturate(1.09) contrast(1.20) brightness(1.04) grayscale(0.84)"},
+  {name:"Soft Charcoal",category:"Mono",css:"hue-rotate(26deg) sepia(0.05) saturate(1.19) contrast(1.18) brightness(1.09) grayscale(0.68)"},
+  {name:"Hard Noir",category:"Mono",css:"hue-rotate(44deg) sepia(0.08) saturate(1.29) contrast(1.20) brightness(1.00) grayscale(0.52)"},
+  {name:"Pearl Mono",category:"Mono",css:"hue-rotate(57deg) sepia(0.00) saturate(1.38) contrast(1.18) brightness(1.04) grayscale(1.00)"},
+  {name:"Classic B&W",category:"Mono",css:"hue-rotate(70deg) sepia(0.03) saturate(1.00) contrast(1.28) brightness(1.09) grayscale(0.84)"},
+  {name:"Urban Mono",category:"Mono",css:"hue-rotate(88deg) sepia(0.05) saturate(1.09) contrast(1.25) brightness(1.00) grayscale(0.68)"},
+  {name:"Matte Mono",category:"Mono",css:"hue-rotate(101deg) sepia(0.08) saturate(1.19) contrast(1.28) brightness(1.04) grayscale(0.52)"},
+  {name:"High-Key Mono",category:"Mono",css:"hue-rotate(114deg) sepia(0.00) saturate(1.29) contrast(1.25) brightness(1.09) grayscale(1.00)"},
+  {name:"Low-Key Mono",category:"Mono",css:"hue-rotate(132deg) sepia(0.03) saturate(1.38) contrast(1.28) brightness(1.00) grayscale(0.84)"},
+  {name:"Forest Canopy",category:"Nature",css:"hue-rotate(72deg) sepia(0.12) saturate(1.16) contrast(1.04) brightness(1.03)"},
+  {name:"Moss Light",category:"Nature",css:"hue-rotate(85deg) sepia(0.14) saturate(1.25) contrast(1.06) brightness(1.07)"},
+  {name:"Ocean Air",category:"Nature",css:"hue-rotate(98deg) sepia(0.17) saturate(1.35) contrast(1.04) brightness(1.12)"},
+  {name:"Coastal Green",category:"Nature",css:"hue-rotate(116deg) sepia(0.20) saturate(1.44) contrast(1.06) brightness(1.03)"},
+  {name:"Wildflower",category:"Nature",css:"hue-rotate(129deg) sepia(0.12) saturate(1.54) contrast(1.04) brightness(1.07)"},
+  {name:"Earth Tones",category:"Nature",css:"hue-rotate(142deg) sepia(0.14) saturate(1.16) contrast(1.14) brightness(1.12)"},
+  {name:"Tropical Leaf",category:"Nature",css:"hue-rotate(160deg) sepia(0.17) saturate(1.25) contrast(1.11) brightness(1.03)"},
+  {name:"Mountain Mist",category:"Nature",css:"hue-rotate(173deg) sepia(0.20) saturate(1.35) contrast(1.14) brightness(1.07)"},
+  {name:"Desert Bloom",category:"Nature",css:"hue-rotate(186deg) sepia(0.12) saturate(1.44) contrast(1.11) brightness(1.12)"},
+  {name:"River Stone",category:"Nature",css:"hue-rotate(204deg) sepia(0.14) saturate(1.54) contrast(1.14) brightness(1.03)"}
+];
+export const CREATIVE_FILTERS:CreativeFilter[] = [...BASE_CREATIVE_FILTERS, ...EXPANDED_FILTERS];
 export const CREATIVE_FILTER_CSS:Record<string,string>=Object.fromEntries(CREATIVE_FILTERS.map(x=>[x.name,x.css]));
 export type CreativeTemplate={name:string;type:string;color:string;length:string;seconds:number;ratio:string;filter:string;title:string;subtitle:string;footer:string;accent:string;gradient:string};
 const make=(name:string,type:string,color:string,seconds:number,ratio:string,filter:string,title:string,subtitle:string,footer:string,accent:string,gradient:string):CreativeTemplate=>({name,type,color,length:"00:"+String(seconds).padStart(2,"0"),seconds,ratio,filter,title,subtitle,footer,accent,gradient});
@@ -131,39 +234,31 @@ export const CREATIVE_EFFECTS = [
 ] as const;
 
 
-// A 200-item real-time video effect library. Every entry maps to an existing
-// renderer-supported filter plus editable clip adjustments; these are not mock buttons.
+// NEXUS effect presets are 120 distinct, editable clip looks. They use the
+// same filter and clip-adjustment properties as the live preview and export.
 type NexusEffectPatch = { filter: string; brightness: number; contrast: number; saturation: number; vignette: number; exposure?: number };
-type NexusEffectBase = { name: string; category?: string; patch: Partial<NexusEffectPatch> & { filter: string } };
-const NEXUS_EFFECT_VARIANTS: Array<{ label: string; brightness: number; contrast: number; saturation: number; vignette: number }> = [
-  { label: "Soft", brightness: 104, contrast: 96, saturation: 96, vignette: 6 },
-  { label: "Punch", brightness: 100, contrast: 118, saturation: 122, vignette: 10 },
-  { label: "Glow", brightness: 110, contrast: 94, saturation: 112, vignette: 4 },
-  { label: "Deep", brightness: 92, contrast: 124, saturation: 88, vignette: 20 }
+type NexusEffectBase = { name: string; category: string; patch: Partial<NexusEffectPatch> & { filter: string } };
+const EXTRA_EFFECT_RECIPES: NexusEffectBase[] = [
+  {name:"Velvet Night",category:"Cinematic",patch:{filter:"Midnight Cinema",brightness:88,contrast:128,saturation:82,vignette:32}},
+  {name:"Porcelain Portrait",category:"Portrait",patch:{filter:"Soft Ivory",brightness:108,contrast:92,saturation:88,vignette:5}},
+  {name:"Emerald Editorial",category:"Color",patch:{filter:"Emerald Pop",brightness:102,contrast:118,saturation:132,vignette:12}},
+  {name:"Analog Sunset",category:"Film",patch:{filter:"Expired Negative",brightness:104,contrast:96,saturation:112,vignette:22}},
+  {name:"Luxury Showcase",category:"Product",patch:{filter:"Luxury Detail",brightness:106,contrast:122,saturation:110,vignette:8}}
 ];
 const NEXUS_EFFECT_BASES: NexusEffectBase[] = [
-  ...CREATIVE_EFFECTS,
-  ...CREATIVE_FILTERS.map(item => ({
-    name: item.name,
-    category: item.category,
-    patch: { filter: item.name, brightness: 100, contrast: 100, saturation: 100, vignette: 0 }
-  }))
-];
-export const NEXUS_VIDEO_EFFECTS: Array<{ name: string; category: string; patch: NexusEffectPatch }> = Array.from({ length: 200 }, (_, index) => {
-  const base = NEXUS_EFFECT_BASES[index % NEXUS_EFFECT_BASES.length];
-  const variant = NEXUS_EFFECT_VARIANTS[Math.floor(index / NEXUS_EFFECT_BASES.length) % NEXUS_EFFECT_VARIANTS.length];
-  const patch: NexusEffectPatch = {
-    ...base.patch,
-    filter: base.patch.filter,
-    brightness: variant.brightness,
-    contrast: variant.contrast,
-    saturation: variant.saturation,
-    vignette: variant.vignette
-  };
-  const variantNumber = Math.floor(index / NEXUS_EFFECT_BASES.length);
-  return {
-    name: index < CREATIVE_EFFECTS.length ? base.name : base.name + " · " + variant.label + (variantNumber > 0 ? " " + (variantNumber + 1) : ""),
-    category: base.category || "Creative",
-    patch
-  };
+  ...CREATIVE_EFFECTS.map((item,index)=>({...item,category:["Cinematic","Film","Portrait","Product","Creative"][index%5]})),
+  ...EXTRA_EFFECT_RECIPES
+].slice(0,30);
+const NEXUS_EFFECT_VARIANTS = [
+  {label:"Soft",brightness:104,contrast:96,saturation:96,vignette:6},
+  {label:"Punch",brightness:100,contrast:118,saturation:122,vignette:10},
+  {label:"Glow",brightness:110,contrast:94,saturation:112,vignette:4},
+  {label:"Deep",brightness:92,contrast:124,saturation:88,vignette:20}
+] as const;
+export const NEXUS_VIDEO_EFFECTS: Array<{name:string;category:string;patch:NexusEffectPatch}> = Array.from({length:120},(_,index)=>{
+  const base=NEXUS_EFFECT_BASES[index%NEXUS_EFFECT_BASES.length];
+  const variant=NEXUS_EFFECT_VARIANTS[Math.floor(index/NEXUS_EFFECT_BASES.length)];
+  const patch:NexusEffectPatch={...base.patch,filter:base.patch.filter,brightness:variant.brightness,contrast:variant.contrast,saturation:variant.saturation,vignette:variant.vignette};
+  const variantNumber=Math.floor(index/NEXUS_EFFECT_BASES.length);
+  return {name:variantNumber===0?base.name:base.name+" · "+variant.label,category:base.category,patch};
 });
