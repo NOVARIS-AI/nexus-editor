@@ -2422,7 +2422,6 @@ export default function App() {
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
     { id: "for-you" as Page, label: "For You", icon: Compass },
-    { id: "editor" as Page, label: "Editor", icon: Clapperboard },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
     { id: "profile" as Page, label: "My Profile", icon: UserCircle }
   ];
@@ -2461,13 +2460,13 @@ export default function App() {
       {page === "saved" && <SavedPage onBack={() => setPage("for-you")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "moderation" && <ModerationCentre onBack={() => setPage("home")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
       {page === "appeals" && <CreatorAppealsPage onBack={() => setPage("profile")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
-      {page === "for-you" && <ForYouPage onOpenStudio={() => { setPage("editor"); setEditorView("workspace"); }} onOpenTemplates={() => setPage("templates")} onOpenSaved={() => setPage("saved")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
+      {page === "for-you" && <ForYouPage onOpenStudio={() => setPage("ai")} onOpenTemplates={() => setPage("templates")} onOpenSaved={() => setPage("saved")} onRequireSignIn={() => window.dispatchEvent(new CustomEvent("nexus:require-auth"))} />}
 
       </Suspense>
 
       {page === "home" && <section className="page-content">
         <div className="welcome-line"><div><div className="eyebrow">YOUR CREATIVE WORKSPACE</div><h1>Welcome back, Creator <span>✦</span></h1><p>Ready to turn your next idea into something incredible?</p></div><button className="outline-button" onClick={() => projectInput.current?.click()}><FolderOpen size={16}/> Open project</button></div>
-        <div className="hero-banner"><div className="hero-copy"><span className="hero-tag"><Sparkles size={13}/> THE CREATIVE PLAYGROUND</span><h2>Edit smarter.<br/>Create <em>bigger.</em></h2><p>Everything you need to bring your vision to life, in one place.</p><button className="gradient-button" onClick={() => setPage("editor")}>Start creating <ArrowDownToLine size={16}/></button></div><div className="hero-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-clapper"><div/><span>▶</span></div><div className="hero-glow"/></div></div>
+        <div className="hero-banner"><div className="hero-copy"><span className="hero-tag"><Sparkles size={13}/> THE CREATIVE PLAYGROUND</span><h2>Edit smarter.<br/>Create <em>bigger.</em></h2><p>Everything you need to bring your vision to life, in one place.</p><button className="gradient-button" onClick={() => setPage("ai")}>Open AI Studio <ArrowDownToLine size={16}/></button></div><div className="hero-art"><div className="hero-orbit orbit-one"/><div className="hero-orbit orbit-two"/><div className="hero-clapper"><div/><span>▶</span></div><div className="hero-glow"/></div></div>
         <div className="quick-grid">
           <button className="quick-card" onClick={startNewProject}><span className="quick-icon purple"><Plus/></span><b>New project</b><small>Start from scratch</small></button>
           <button className="quick-card" onClick={() => setPage("templates")}><span className="quick-icon cyan"><Grid2X2/></span><b>Explore templates</b><small>Find your style</small></button>
@@ -2475,7 +2474,7 @@ export default function App() {
           <button className="quick-card" onClick={() => setPage("projects")}><span className="quick-icon amber"><Folder/></span><b>My projects</b><small>Your creations</small></button>
         </div>
         <div className="section-heading"><div><h2>Recent projects</h2><p>Pick up where you left off</p></div><button className="text-link" onClick={() => setPage("projects")}>View all <span>→</span></button></div>
-        <div className="recent-grid">{recent.map((name, i) => <button className="recent-card" key={name} onClick={() => { setProjectName(name); setPage("editor"); }}><div className={"recent-art art-" + i}><span>{i === 0 ? "VLOG / 01" : i === 1 ? "TECH / 02" : "MOMENTS / 03"}</span><b>{i === 0 ? "Make it a story." : i === 1 ? "Ideas in motion." : "Keep the moment."}</b></div><div className="recent-info"><span><b>{name}</b><small>{i === 0 ? "Edited recently" : i === 1 ? "Yesterday" : "2 days ago"}</small></span><span className="more-dots">•••</span></div></button>)}</div>
+        <div className="recent-grid">{recent.map((name, i) => <button className="recent-card" key={name} onClick={() => { setProjectName(name); setPage("projects"); }}><div className={"recent-art art-" + i}><span>{i === 0 ? "VLOG / 01" : i === 1 ? "TECH / 02" : "MOMENTS / 03"}</span><b>{i === 0 ? "Make it a story." : i === 1 ? "Ideas in motion." : "Keep the moment."}</b></div><div className="recent-info"><span><b>{name}</b><small>{i === 0 ? "Edited recently" : i === 1 ? "Yesterday" : "2 days ago"}</small></span><span className="more-dots">•••</span></div></button>)}</div>
       </section>}
 
       {page === "ai" && <section className="page-content ai-studio-page">
@@ -2512,7 +2511,7 @@ export default function App() {
         <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The timeline is not created until you approve this blueprint. The AI planning page is separate from the editor.</p>
       </section>}
 
-      {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
+      {false && page === "editor" && <section className="editor-fullscreen nexus-studio-page">
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{setPage("home");setEditorView("workspace");}}><ArrowLeft size={18}/><span>NEXUS</span></button>
           <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
@@ -2737,7 +2736,7 @@ export default function App() {
         </div>
       </section></div>}
       {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} onRenderVideo={async()=>{const blob=await startVideoExport({returnBlob:true});if(!blob)return null;const extension=blob.type.toLowerCase().includes("mp4")?"mp4":"webm";return new File([blob],makeExportFilename(projectName,extension),{type:blob.type||(extension==="mp4"?"video/mp4":"video/webm")});}} /></Suspense>}
-      {page!=="editor" && <nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"for-you",label:"For You",icon:Compass},{id:"editor",label:"Editor",icon:Clapperboard},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);if(item.id==="editor")setEditorView("workspace");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
+      {<nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"for-you",label:"For You",icon:Compass},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>setPage(item.id as Page)}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
   </div>;
