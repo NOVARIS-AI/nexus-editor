@@ -1,4 +1,4 @@
-const CACHE_NAME = "nexus-studio-shell-v1";
+const CACHE_NAME = "nexus-studio-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest"];
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
