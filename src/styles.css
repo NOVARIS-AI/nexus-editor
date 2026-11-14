@@ -3194,3 +3194,113 @@ body:has(.nexus-foryou) .top-header{display:none!important}
   .editor-preview-meta{gap:4px}
   .preview-meta-actions{gap:4px}
 }
+
+
+/* Final mobile structural corrections: override legacy desktop sizing rules */
+@media(max-width:700px){
+  .nexus-shell .nexus-studio-page .editor-topbar{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    width:100%!important;min-width:0!important;gap:5px!important;overflow:visible!important;
+    box-sizing:border-box!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-project-title{flex:1 1 0!important;min-width:0!important;overflow:hidden!important}
+  .nexus-shell .nexus-studio-page .editor-project-title b{display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .nexus-shell .nexus-studio-page .editor-topbar button{position:relative!important;flex:0 0 auto!important;white-space:nowrap!important;z-index:2!important}
+  .nexus-shell .nexus-studio-page .editor-preview-zone{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    justify-content:flex-start!important;width:100%!important;min-width:0!important;
+    padding:6px 8px!important;box-sizing:border-box!important;overflow:visible!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-meta{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    flex-wrap:wrap!important;width:100%!important;min-width:0!important;gap:6px!important;
+  }
+  .nexus-shell .nexus-studio-page .preview-meta-actions{
+    display:flex!important;flex:1 1 100%!important;align-items:center!important;
+    justify-content:flex-end!important;flex-wrap:wrap!important;gap:5px!important;min-width:0!important;
+  }
+  .nexus-shell .nexus-studio-page .preview-meta-actions button,
+  .nexus-shell .nexus-studio-page .preview-meta-actions select{
+    position:relative!important;flex:0 1 auto!important;min-width:0!important;
+    max-width:100%!important;white-space:nowrap!important;overflow:visible!important;
+    padding:6px 7px!important;font-size:9px!important;box-sizing:border-box!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-frame{
+    display:grid!important;place-items:center!important;position:relative!important;
+    flex:0 1 auto!important;width:min(calc(100vw - 36px),calc((100dvh - 330px)*.5625))!important;
+    height:auto!important;min-height:170px!important;max-height:42dvh!important;
+    aspect-ratio:9/16!important;margin:8px auto!important;justify-self:center!important;
+    align-self:center!important;overflow:hidden!important;box-sizing:border-box!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-frame video,
+  .nexus-shell .nexus-studio-page .editor-preview-frame img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
+  .nexus-shell .nexus-studio-page .nexus-text-overlay{
+    width:max-content!important;min-width:120px!important;max-width:90%!important;
+    white-space:pre-wrap!important;overflow-wrap:normal!important;word-break:keep-all!important;
+    padding:6px 10px!important;box-sizing:border-box!important;text-align:center!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-actionbar{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    width:100%!important;min-width:0!important;flex:0 0 auto!important;margin:2px auto!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-actionbar .preview-actionbar-spacer{flex:1 1 auto!important}
+  .nexus-shell .nexus-studio-page .editor-preview-zone>.editor-transport{
+    display:flex!important;align-items:center!important;justify-content:space-between!important;
+    flex-wrap:wrap!important;gap:8px!important;width:100%!important;min-width:0!important;
+    box-sizing:border-box!important;margin:5px 0!important;padding:8px!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone>.editor-transport button{
+    flex:0 0 auto!important;min-width:34px!important;white-space:nowrap!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone>.editor-transport .editor-play{
+    margin-inline:auto!important;min-width:42px!important;min-height:38px!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone>.editor-transport span{flex:0 0 auto!important;margin-left:auto!important;white-space:nowrap!important;font-variant-numeric:tabular-nums!important}
+  .nexus-shell .nexus-studio-page .editor-preview-zone>details.editor-transport{
+    display:block!important;width:100%!important;flex:0 0 100%!important;
+    order:20!important;margin:4px 0!important;box-sizing:border-box!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-preview-zone>details.editor-transport>summary{display:block!important;width:100%!important;white-space:nowrap!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-rows{
+    display:grid!important;grid-template-columns:56px minmax(0,1fr)!important;
+    width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-timeline-ruler{margin-left:56px!important}
+  .nexus-shell .nexus-studio-page .editor-lane-labels{width:56px!important;min-width:56px!important;overflow:hidden!important}
+  .nexus-shell .nexus-studio-page .editor-lane-labels>span{
+    width:56px!important;min-width:56px!important;max-width:56px!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    padding:2px!important;overflow:hidden!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-lane-labels>span>b{display:none!important}
+  .nexus-shell .nexus-studio-page .editor-lane-labels>span>small{display:none!important}
+  .nexus-shell .nexus-studio-page .editor-track-controls{display:flex!important;flex-wrap:nowrap!important;gap:2px!important;max-width:52px!important;overflow:hidden!important}
+  .nexus-shell .nexus-studio-page .editor-track-controls button{display:none!important}
+  .nexus-shell .nexus-studio-page .editor-lanes{min-width:0!important;overflow-x:auto!important}
+  .nexus-shell .nexus-studio-page .editor-lanes-inner{min-width:620px!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-zone{min-width:0!important;width:calc(100% - 10px)!important;overflow:hidden!important}
+  .nexus-shell .nexus-studio-page .editor-bottom-tools.nexus-tool-stack{
+    display:flex!important;flex-direction:column!important;min-width:0!important;
+    max-height:none!important;overflow:visible!important;margin:0 5px 4px!important;padding:5px!important;
+  }
+  .nexus-shell .nexus-studio-page .nexus-subtool-ribbon{
+    order:1!important;display:flex!important;flex:0 0 auto!important;width:100%!important;
+    max-width:100%!important;overflow-x:auto!important;overflow-y:hidden!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-tool-dock{
+    order:2!important;position:sticky!important;bottom:0!important;z-index:50!important;
+    flex:0 0 58px!important;width:100%!important;height:58px!important;min-height:58px!important;
+    max-height:58px!important;overflow-x:auto!important;overflow-y:hidden!important;
+    justify-content:flex-start!important;padding:4px 6px!important;
+    background:#11161c!important;border-top:1px solid #303842!important;
+  }
+  .nexus-shell .nexus-studio-page .editor-status-line{min-width:0!important;overflow:hidden!important}
+}
+@media(max-width:390px){
+  .nexus-shell .nexus-studio-page .preview-meta-actions button{font-size:8px!important;padding:5px!important}
+  .nexus-shell .nexus-studio-page .editor-preview-frame{width:min(calc(100vw - 28px),calc((100dvh - 320px)*.5625))!important;max-height:39dvh!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-rows{grid-template-columns:50px minmax(0,1fr)!important}
+  .nexus-shell .nexus-studio-page .editor-timeline-ruler{margin-left:50px!important}
+  .nexus-shell .nexus-studio-page .editor-lane-labels{width:50px!important;min-width:50px!important}
+  .nexus-shell .nexus-studio-page .editor-lane-labels>span{width:50px!important;min-width:50px!important;max-width:50px!important}
+}
