@@ -159,7 +159,6 @@ export async function renderWithElah(input: RenderInput): Promise<Blob> {
         color: layer.color,
         fontFamily: layer.fontFamily || "Arial",
         textAlign: layer.align ?? "center",
-        padding: Math.max(0, Math.min(96, layer.padding ?? 0)),
         shadow: layer.shadow ?? false,
       },
       opacity: Math.max(0, Math.min(1, layer.opacity ?? 1)),
