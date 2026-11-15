@@ -192,7 +192,7 @@ export default function App() {
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [mediaImportTarget, setMediaImportTarget] = useState<"timeline" | "overlay">("timeline");
   const [mediaLibraryQuery, setMediaLibraryQuery] = useState("");
-  const [mediaLibraryFilter, setMediaLibraryFilter] = useState<"all" | "video" | "image" | "audio">("all");
+  const [mediaLibraryFilter, setMediaLibraryFilter] = useState<"all" | "video" | "image" | "audio" | "favourites">("all");
   const [mediaLibrarySelection, setMediaLibrarySelection] = useState<string[]>([]);
   const [mediaPreviewAssetId, setMediaPreviewAssetId] = useState<string | null>(null);
   const [favouriteMediaIds, setFavouriteMediaIds] = useState<string[]>([]);
@@ -2749,7 +2749,7 @@ export default function App() {
             <label className="media-library-search"><Search size={17}/><input value={mediaLibraryQuery} onChange={event=>setMediaLibraryQuery(event.target.value)} placeholder="Search your project media"/></label>
             <div className="media-library-filters">
               {(["all","video","image","audio"] as const).map(kind=><button key={kind} className={mediaLibraryFilter===kind?"active":""} onClick={()=>setMediaLibraryFilter(kind)}>{kind==="all"?"All":kind==="image"?"Images":kind==="video"?"Videos":"Audio"} <small>{kind==="all"?assets.length:assets.filter(item=>item.kind===kind).length}</small></button>)}
-              <button className={mediaLibraryFilter==="favourites" as string?"active":""} onClick={()=>{setMediaLibraryFilter("all");setMediaLibraryQuery("");setMediaLibrarySelection(favouriteMediaIds);}}>Favourites <small>{favouriteMediaIds.length}</small></button>
+              <button className={mediaLibraryFilter==="favourites"?"active":""} onClick={()=>{setMediaLibraryFilter("favourites");setMediaLibrarySelection([]);}}>Favourites <small>{favouriteMediaIds.length}</small></button>
             </div>
           </div>
           <div className="media-library-layout">
@@ -2760,7 +2760,7 @@ export default function App() {
             </section>
             <section className="media-library-assets">
               <div className="media-library-assets-head"><b>Project assets</b><small>{assets.length} total · Select multiple to reuse</small></div>
-              {assets.filter(item=>(mediaLibraryFilter==="all"||item.kind===mediaLibraryFilter)&&(!mediaLibraryQuery.trim()||item.name.toLowerCase().includes(mediaLibraryQuery.trim().toLowerCase()))).length===0?<div className="media-library-empty"><FolderOpen size={26}/><b>No matching media</b><span>Import files or change your search/filter.</span></div>:<div className="media-library-grid">
+              {assets.filter(item=>(mediaLibraryFilter==="all"||(mediaLibraryFilter==="favourites"?favouriteMediaIds.includes(item.id):item.kind===mediaLibraryFilter))&&(!mediaLibraryQuery.trim()||item.name.toLowerCase().includes(mediaLibraryQuery.trim().toLowerCase()))).length===0?<div className="media-library-empty"><FolderOpen size={26}/><b>No matching media</b><span>Import files or change your search/filter.</span></div>:<div className="media-library-grid">
                 {assets.filter(item=>(mediaLibraryFilter==="all"||item.kind===mediaLibraryFilter)&&(!mediaLibraryQuery.trim()||item.name.toLowerCase().includes(mediaLibraryQuery.trim().toLowerCase()))).map(item=><article key={item.id} className={"media-library-card"+(mediaPreviewAssetId===item.id?" previewing":"")+(mediaLibrarySelection.includes(item.id)?" chosen":"")}>
                   <button className="media-library-thumb" onClick={()=>setMediaPreviewAssetId(item.id)} aria-label={"Preview "+item.name}>{item.kind==="image"&&item.objectUrl?<img src={item.objectUrl} alt=""/>:item.kind==="video"&&item.objectUrl?<video src={item.objectUrl} muted playsInline preload="metadata"/>:<span>{item.kind==="audio"?<Music2 size={25}/>:<Film size={25}/>}</span>}<i>{item.kind==="audio"?"AUDIO":item.kind.toUpperCase()}</i></button>
                   <div className="media-library-card-info"><b title={item.name}>{item.name}</b><small>{item.duration?clock(item.duration):"Reading duration…"}</small></div>
