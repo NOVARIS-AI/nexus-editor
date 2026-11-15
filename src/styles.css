@@ -5859,3 +5859,42 @@ body > nav.nexus-mobile-tool-dock > button {
 .media-import-review-actions .media-import-review-confirm:disabled{opacity:.42;box-shadow:none}
 @media(min-width:761px){.media-import-backdrop{align-items:center!important}.media-import-review{border-radius:24px!important}}
 @media(max-width:420px){.media-import-backdrop{padding:8px 8px max(8px,env(safe-area-inset-bottom))!important}.media-import-review{padding:14px 12px 12px!important;border-radius:20px!important;max-height:88dvh!important}.media-import-review-stats{padding:9px;gap:5px}.media-import-review-stats>div+div{padding-left:7px}.media-import-review-stats span{font-size:7px;letter-spacing:.5px}.media-import-review-stats b{font-size:13px}.media-import-review-list{max-height:42dvh}.media-import-review-actions .media-import-review-cancel{flex-basis:78px;padding:0 9px}.media-import-review-actions button{min-height:44px;padding:0 10px;font-size:10px}}
+
+
+/* NEXUS media review — restore reliable touch scrolling on Android */
+.media-import-backdrop{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+}
+.media-import-review{
+  min-height:0!important;
+  max-height:calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
+  flex:0 1 auto!important;
+  overflow:hidden!important;
+  touch-action:pan-y!important;
+}
+.media-import-review-top,
+.media-import-review-stats,
+.media-import-review-footnote,
+.media-import-review-actions{
+  flex:0 0 auto!important;
+}
+.media-import-review-list{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;
+  scrollbar-width:thin;
+  pointer-events:auto!important;
+}
+@media(max-width:420px){
+  .media-import-review{max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important}
+  .media-import-review-list{max-height:none!important;min-height:0!important}
+}
