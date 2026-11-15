@@ -96,6 +96,7 @@ type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "modera
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
+import { restoreMediaAssets, saveMediaAsset } from "./editor/media-storage";
 const readLocalDraft = readRecoverableDraft;
 const themes = [
   { id: "royal-wine", name: "Royal Wine", colors: ["#28101D", "#70233E", "#B84B68", "#F0B7C4"] },
@@ -265,6 +266,28 @@ export default function App() {
   const [draftSaveStatus, setDraftSaveStatus] = useState(recoveryDraft ? "Recovered draft · re-import media" : "Autosave ready");
   const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
+  useEffect(() => {
+    const referencedIds = Array.from(new Set([
+      ...(recoveryDraft?.clips || []).map(clip => clip.assetId),
+      ...(recoveryDraft?.imageLayers || []).map(layer => layer.assetId)
+    ]));
+    if (!referencedIds.length) return;
+    let active = true;
+    void restoreMediaAssets(referencedIds).then(restored => {
+      if (!active || !restored.length) return;
+      setAssets(old => {
+        const existing = new Set(old.map(item => item.id));
+        return [...old, ...restored.filter(item => !existing.has(item.id))];
+      });
+      setDraftSaveStatus(restored.length === referencedIds.length
+        ? "Project and imported media restored on this device"
+        : "Project restored · some media needs to be re-imported");
+    }).catch(() => {
+      if (active) setDraftSaveStatus("Project recovered · re-import media to relink missing files");
+    });
+    return () => { active = false; };
+  }, [recoveryDraft]);
+
   const [pendingProjectAssets, setPendingProjectAssets] = useState<MediaAsset[]>([]);
   const [clips, setClips] = useState<TimelineClip[]>(() => recoveryDraft?.clips || []);
   const [trackMix, setTrackMix] = useState<Record<string,{volume:number;pan:number;solo:boolean;muted:boolean}>>(() => Object.fromEntries((recoveryDraft?.tracks || []).filter(track=>track.kind==="audio").map(track=>[track.id,{volume:track.volume??1,pan:track.pan??0,solo:track.solo??false,muted:track.muted??false}])));
@@ -855,6 +878,12 @@ export default function App() {
       return { ...(saved || {}), id: saved?.id || uid(), name: file.name, kind, duration: saved?.duration || (kind === "image" ? 5 : 0), mimeType: file.type, file, objectUrl: URL.createObjectURL(file) } as MediaAsset;
     });
     setPendingProjectAssets(remaining);
+    // Keep original media bytes in IndexedDB so a reload can restore the project.
+    void Promise.all(added.map(item => saveMediaAsset(item))).then(() => {
+      setDraftSaveStatus("Media saved on this device · project recovery ready");
+    }).catch(() => {
+      setDraftSaveStatus("Media imported for this session · device storage could not save a backup");
+    });
     setAssets(old => [...old.filter(existing => !added.some(item => item.id === existing.id)), ...added]);
     const overlayMode = mediaImportTarget === "overlay";
     const freshAssets = added.filter(item => !pendingProjectAssets.some(saved => saved.id === item.id));
@@ -915,6 +944,7 @@ export default function App() {
         probe.onloadedmetadata = () => {
           const actualDuration = Number.isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 5;
           setAssets(old => old.map(asset => asset.id === item.id ? { ...asset, duration: actualDuration } : asset));
+          void saveMediaAsset({ ...item, duration: actualDuration });
           setClips(old => old.map(clip => clip.assetId === item.id ? { ...clip, sourceOut: actualDuration } : clip));
           probe.removeAttribute("src"); probe.load();
         };
