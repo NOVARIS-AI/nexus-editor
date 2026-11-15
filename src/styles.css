@@ -6655,3 +6655,167 @@ body > nav.nexus-mobile-tool-dock > button {
     max-height:38dvh!important;
   }
 }
+
+
+/* NEXUS timeline repair: fixed centre playhead, compact track stack, visible extracted frames. */
+.editor-fullscreen.nexus-studio-page .editor-screen{
+  grid-template-rows:minmax(0,1fr) auto 20px!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+  display:block!important;
+  flex:0 0 auto!important;
+  align-self:stretch!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:38dvh!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  max-height:38dvh!important;
+  margin:0!important;
+  padding:0!important;
+  overflow-x:auto!important;
+  overflow-y:auto!important;
+  background:#11141a!important;
+  border:0!important;
+  box-shadow:none!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+  overscroll-behavior:contain!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll::-webkit-scrollbar{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  position:relative!important;
+  display:flex!important;
+  height:27px!important;
+  min-height:27px!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:4px!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows{
+  display:flex!important;
+  align-items:stretch!important;
+  width:max-content!important;
+  height:auto!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels,
+.editor-fullscreen.nexus-studio-page .editor-lanes,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner{
+  height:auto!important;
+  min-height:0!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane{
+  height:50px!important;
+  min-height:50px!important;
+  background:transparent!important;
+  border:0!important;
+  border-bottom:1px solid rgba(255,255,255,.07)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  top:4px!important;
+  height:42px!important;
+  min-height:42px!important;
+  overflow:hidden!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip{
+  position:absolute!important;
+  inset:0!important;
+  display:flex!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip img,
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip img{
+  display:block!important;
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  height:100%!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  background:#242a33!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-title{
+  position:relative!important;
+  z-index:3!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  background:rgba(17,20,26,.35)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-filmstrip-loading{
+  position:relative!important;
+  z-index:2!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  background:rgba(255,255,255,.035)!important;
+  color:rgba(255,255,255,.72)!important;
+  font-size:8px!important;
+}
+/* Absolute positioning keeps the cursor at the viewport centre while timeline content moves underneath. */
+.editor-fullscreen.nexus-studio-page .editor-fixed-playhead{
+  position:absolute!important;
+  z-index:100!important;
+  top:0!important;
+  bottom:0!important;
+  left:50%!important;
+  display:block!important;
+  width:2px!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  transform:translateX(-50%)!important;
+  pointer-events:none!important;
+  background:#fff!important;
+  border:0!important;
+  border-radius:2px!important;
+  box-shadow:0 0 8px rgba(255,255,255,.4)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-fixed-playhead::before{
+  content:""!important;
+  position:absolute!important;
+  top:0!important;
+  left:50%!important;
+  width:10px!important;
+  height:10px!important;
+  transform:translateX(-50%)!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 2px 4px rgba(0,0,0,.55)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-fixed-playhead i{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-fixed-playhead::after{content:none!important;display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-playhead{display:none!important}
