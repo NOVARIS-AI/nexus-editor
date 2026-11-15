@@ -5756,3 +5756,13 @@ body > nav.nexus-mobile-tool-dock > button {
     z-index: 1 !important;
   }
 }
+
+
+/* Contextual footer controls for tools that should not open a tool sheet. */
+.nexus-inline-tool-controls{position:fixed;left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));z-index:2147483002;display:flex;align-items:center;gap:7px;min-height:54px;padding:8px 10px;overflow-x:auto;overscroll-behavior-x:contain;box-sizing:border-box;background:rgba(17,22,29,.97);border-top:1px solid rgba(145,157,176,.24);box-shadow:0 -8px 24px rgba(0,0,0,.28);backdrop-filter:blur(18px);scrollbar-width:none}
+.nexus-inline-tool-controls::-webkit-scrollbar{display:none}
+.nexus-inline-tool-controls>span{flex:0 0 auto;color:#aeb8c4;font-size:11px;font-weight:700;padding:0 5px}
+.nexus-inline-tool-controls button{flex:0 0 auto;min-width:52px;min-height:34px;padding:7px 11px;border:1px solid rgba(145,157,176,.28);border-radius:9px;background:#202a36;color:#e7edf5;font-size:11px;font-weight:600}
+.nexus-inline-tool-controls button.active{border-color:#e6b47e;background:rgba(230,180,126,.18);color:#ffd7ad}
+.nexus-inline-tool-controls button.nexus-inline-done{margin-left:auto;background:#493525;border-color:#8e6948;color:#ffe0bd}
+@media(min-width:761px){.nexus-inline-tool-controls{bottom:0;left:auto;right:20px;width:auto;max-width:min(90vw,520px);border:1px solid rgba(145,157,176,.24);border-radius:14px 14px 0 0}}
