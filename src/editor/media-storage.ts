@@ -23,7 +23,8 @@ function openMediaDatabase(): Promise<IDBDatabase> {
 }
 
 export async function saveMediaAsset(asset: MediaAsset): Promise<void> {
-  if (!asset.file) return;
+  const file = asset.file;
+  if (!file) return;
   const db = await openMediaDatabase();
   try {
     await new Promise<void>((resolve, reject) => {
@@ -31,7 +32,7 @@ export async function saveMediaAsset(asset: MediaAsset): Promise<void> {
       tx.objectStore(STORE_NAME).put({
         id: asset.id, name: asset.name, kind: asset.kind, duration: asset.duration,
         mimeType: asset.mimeType, width: asset.width, height: asset.height, source: asset.source,
-        file: asset.file
+        file
       } satisfies StoredMediaAsset);
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error || new Error("Media could not be saved."));
