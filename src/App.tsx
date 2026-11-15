@@ -122,12 +122,15 @@ function TimelineVideoFilmstrip({ src, duration, sourceIn = 0, sourceOut }: { sr
     let cancelled = false;
     const video = document.createElement("video");
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) { setFailed(true); return; }
+    const context = canvas.getContext("2d");
+    setFrames([]);
+    setFailed(false);
+    if (!context || !src) { setFailed(true); return; }
     video.muted = true;
+    video.defaultMuted = true;
     video.playsInline = true;
     video.preload = "auto";
-    const waitFor = (eventName: string, timeoutMs = 5000) => new Promise<void>((resolve, reject) => {
+    const waitFor = (eventName: string, timeoutMs = 7000) => new Promise<void>((resolve, reject) => {
       let settled = false;
       const finish = (error?: Error) => {
         if (settled) return;
@@ -140,40 +143,56 @@ function TimelineVideoFilmstrip({ src, duration, sourceIn = 0, sourceOut }: { sr
       const onReady = () => finish();
       const onError = () => finish(new Error("Video decode failed"));
       const timer = window.setTimeout(() => finish(new Error("Video decode timed out")), timeoutMs);
-      video.addEventListener(eventName, onReady, { once: true });
-      video.addEventListener("error", onError, { once: true });
+      video.addEventListener(eventName, onReady);
+      video.addEventListener("error", onError);
+      if ((eventName === "loadedmetadata" && video.readyState >= HTMLMediaElement.HAVE_METADATA) ||
+          (eventName === "loadeddata" && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) ||
+          (eventName === "seeked" && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA)) finish();
     });
     const capture = async () => {
       try {
+        const metadataReady = waitFor("loadedmetadata");
         video.src = src;
         video.load();
-        if (video.readyState < HTMLMediaElement.HAVE_METADATA) await waitFor("loadedmetadata");
-        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) await waitFor("loadeddata");
+        if (video.readyState < HTMLMediaElement.HAVE_METADATA) await metadataReady;
         if (cancelled) return;
+        const dataReady = waitFor("loadeddata");
+        if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) await dataReady;
+        if (cancelled || !video.videoWidth || !video.videoHeight) throw new Error("Video has no decoded frame");
         const width = 112;
-        const height = Math.max(48, Math.round(width * ((video.videoHeight || 9) / Math.max(1, video.videoWidth || 16))));
+        const height = Math.max(48, Math.round(width * video.videoHeight / Math.max(1, video.videoWidth)));
         canvas.width = width;
         canvas.height = Math.min(160, height);
-        const clipStart = Math.max(0, sourceIn);
-        const clipEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
+        const mediaEnd = Number.isFinite(video.duration) ? video.duration : Math.max(0, duration);
+        const clipStart = Math.max(0, Math.min(sourceIn, Math.max(0, mediaEnd - 0.05)));
+        const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
+        const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
         const positions = [0.04, 0.22, 0.40, 0.58, 0.76, 0.94];
         const output: string[] = [];
         for (const fraction of positions) {
           if (cancelled) return;
-          const target = Math.max(0, Math.min(Math.max(clipStart, clipEnd - 0.06), clipStart + (clipEnd - clipStart) * fraction));
-          if (Math.abs(video.currentTime - target) > 0.025) {
-            const seek = waitFor("seeked", 3500);
-            video.currentTime = target;
-            await seek;
+          const target = Math.max(0, Math.min(Math.max(0, mediaEnd - 0.04), clipStart + Math.max(0.04, clipEnd - clipStart) * fraction));
+          if (Math.abs(video.currentTime - target) > 0.04) {
+            try {
+              const seekReady = waitFor("seeked", 4500);
+              video.currentTime = target;
+              await seekReady;
+            } catch {
+              // Keep the last decoded frame rather than failing the entire strip.
+            }
           }
           if (cancelled) return;
           if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && video.videoWidth > 0) {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            output.push(canvas.toDataURL("image/jpeg", 0.7));
-            setFrames([...output]);
+            try {
+              context.drawImage(video, 0, 0, canvas.width, canvas.height);
+              output.push(canvas.toDataURL("image/jpeg", 0.72));
+              setFrames([...output]);
+            } catch {
+              // A later frame may still be drawable on constrained mobile decoders.
+            }
           }
         }
-        if (!output.length) setFailed(true);
+        if (!output.length && !cancelled) setFailed(true);
       } catch {
         if (!cancelled) setFailed(true);
       }
@@ -182,7 +201,7 @@ function TimelineVideoFilmstrip({ src, duration, sourceIn = 0, sourceOut }: { sr
     return () => { cancelled = true; video.pause(); video.removeAttribute("src"); video.load(); };
   }, [src, duration, sourceIn, sourceOut]);
   return <span className="editor-video-filmstrip" aria-label="Extracted video frame thumbnails">
-    {frames.length ? frames.map((frame, index) => <img key={index} src={frame} alt="" />) : <span className="editor-filmstrip-loading">{failed ? "Preview unavailable" : "Preparing frames…"}</span>}
+    {frames.length ? frames.map((frame, index) => <img key={index} src={frame} alt="" />) : <span className="editor-filmstrip-loading">{failed ? "Frames unavailable" : "Preparing frames…"}</span>}
   </span>;
 }
 
@@ -491,6 +510,14 @@ export default function App() {
   const primaryVideoTrackId = trackStates.find(track => track.kind === "video" && !track.hidden)?.id;
   const previewClip = activeVisualClips.filter(clip => clip.trackId === primaryVideoTrackId).slice(-1)[0] || activeVisualClips[0] || activeTimelineClips.slice(-1)[0];
   const previewAsset = assets.find(item => item.id === previewClip?.assetId);
+  // Recreate object URLs when a restored/imported asset still has its File but its
+  // temporary browser URL was lost. This keeps the preview and filmstrip usable.
+  useEffect(() => {
+    const missing = assets.filter(item => !item.objectUrl && item.file);
+    if (!missing.length) return;
+    const urls = new Map(missing.map(item => [item.id, URL.createObjectURL(item.file!)]));
+    setAssets(current => current.map(item => urls.has(item.id) && !item.objectUrl ? { ...item, objectUrl: urls.get(item.id)! } : item));
+  }, [assets]);
   const getPreviewLayerMotion = (clip: TimelineClip) => {
     const base={zoom:clip.zoom??100,rotation:clip.rotation??0,offsetX:clip.offsetX??0,offsetY:clip.offsetY??0,opacity:clip.opacity??1};
     const frames=[...(clip.keyframes||[])].filter(frame=>Number.isFinite(frame.time)).sort((a,b)=>a.time-b.time);
@@ -2767,7 +2794,7 @@ export default function App() {
             <div className="editor-preview-meta"><span>PREVIEW <small className="preview-live-label">· LIVE CANVAS</small></span><div className="preview-meta-actions"><button className="preview-expand-toggle" onClick={()=>setPreviewRatio(value=>value>=78?64:80)} title={previewRatio>=78?"Restore preview size":"Expand preview"}><Maximize2 size={14}/>{previewRatio>=78?"Restore":"Expand"}</button><button className="preview-add-media" onClick={()=>setTimelineCollapsed(v=>!v)} title={timelineCollapsed?"Show timeline":"Hide timeline"}>{timelineCollapsed?"Show timeline":"Hide timeline"}</button><button onClick={()=>setShowAttachmentPicker(true)} className="preview-add-media"><Plus size={14}/> Add media</button><select aria-label="Choose image for sticker layer" value={selectedImageAssetId} onChange={e=>setSelectedImageAssetId(e.target.value)}><option value="">Image asset…</option>{assets.filter(item=>item.kind==="image").map(item=><option key={item.id} value={item.id}>{item.name}</option>)}</select><button disabled={!selectedImageAssetId} onClick={addImageLayer}><Sticker size={14}/> Add sticker</button><button onClick={()=>{setActiveTool("adjust");setActiveSubtool("Position");setToolPanelOpen(true);}}><SlidersHorizontal size={14}/> Adjust</button></div></div>
             <div ref={previewFrameRef} className={"editor-preview-frame ratio-frame ratio-"+aspectRatio.replace(":","-")} onPointerMove={e=>{const drag=previewTransformDrag.current;if(!drag||drag.pointerId!==e.pointerId)return;const rect=e.currentTarget.getBoundingClientRect();if(drag.kind==="group"){const dx=(e.clientX-drag.startX)/Math.max(1,rect.width)*100,dy=(e.clientY-drag.startY)/Math.max(1,rect.height)*100;setImageLayers(drag.originalImages.map((item: TimelineImageLayer)=>drag.selectedIds.includes("image:"+item.id)&&!item.locked&&item.fit!=="cover"?{...item,x:Math.max(0,Math.min(100,(item.x??50)+dx)),y:Math.max(0,Math.min(100,(item.y??50)+dy))}:item));setTextLayers(drag.originalTexts.map((item: TimelineTextLayer)=>drag.selectedIds.includes("text:"+item.id)&&!item.locked?{...item,x:Math.max(0,Math.min(100,(item.x??50)+dx)),y:Math.max(0,Math.min(100,(item.y??50)+dy))}:item));setAlignmentGuides({x:false,y:false});}else if(drag.kind==="image"){if(drag.mode==="resize"){const distance=Math.hypot(e.clientX-drag.centerX,e.clientY-drag.centerY);const scale=Math.max(.1,Math.min(2.5,drag.originalScale*distance/Math.max(12,drag.initialDistance)));setImageLayers(old=>old.map(item=>item.id===drag.id?{...item,scale}:item));}else{let x=Math.max(0,Math.min(100,drag.originalX+(e.clientX-drag.startX)/Math.max(1,rect.width)*100));let y=Math.max(0,Math.min(100,drag.originalY+(e.clientY-drag.startY)/Math.max(1,rect.height)*100));const sx=[0,25,50,75,100].sort((a,b)=>Math.abs(a-x)-Math.abs(b-x))[0];const sy=[0,25,50,75,100].sort((a,b)=>Math.abs(a-y)-Math.abs(b-y))[0];const snapX=Math.abs(sx-x)<=1.4,snapY=Math.abs(sy-y)<=1.4;if(snapX)x=sx;if(snapY)y=sy;setAlignmentGuides({x:snapX,y:snapY});setImageLayers(old=>old.map(item=>item.id===drag.id?{...item,x,y}:item));}}else{if(drag.mode==="resize"){const distance=Math.hypot(e.clientX-drag.centerX,e.clientY-drag.centerY);const fontSize=Math.max(10,Math.min(240,drag.originalFontSize*distance/Math.max(12,drag.initialDistance)));setTextLayers(old=>old.map(item=>item.id===drag.id?{...item,fontSize}:item));}else{let x=Math.max(0,Math.min(100,drag.originalX+(e.clientX-drag.startX)/Math.max(1,rect.width)*100));let y=Math.max(0,Math.min(100,drag.originalY+(e.clientY-drag.startY)/Math.max(1,rect.height)*100));const sx=[0,25,50,75,100].sort((a,b)=>Math.abs(a-x)-Math.abs(b-x))[0];const sy=[0,25,50,75,100].sort((a,b)=>Math.abs(a-y)-Math.abs(b-y))[0];const snapX=Math.abs(sx-x)<=1.4,snapY=Math.abs(sy-y)<=1.4;if(snapX)x=sx;if(snapY)y=sy;setAlignmentGuides({x:snapX,y:snapY});setTextLayers(old=>old.map(item=>item.id===drag.id?{...item,x,y}:item));}}}} onPointerUp={e=>{const drag=previewTransformDrag.current;if(!drag||drag.pointerId!==e.pointerId)return;previewTransformDrag.current=null;setAlignmentGuides({x:false,y:false});try{e.currentTarget.releasePointerCapture(e.pointerId);}catch{}if(Math.abs(e.clientX-drag.startX)>2||Math.abs(e.clientY-drag.startY)>2){setUndoStack(old=>[...old.slice(-49),drag.snapshot]);setRedoStack([]);setStatus((drag.kind==="image"?"Image":"Text")+" layer adjusted in preview. Undo is available.");}}} onPointerCancel={e=>{const drag=previewTransformDrag.current;if(!drag||drag.pointerId!==e.pointerId)return;previewTransformDrag.current=null;setAlignmentGuides({x:false,y:false});setImageLayers(drag.snapshot.imageLayers);setTextLayers(drag.snapshot.textLayers);}}>
               <svg aria-hidden="true" width="0" height="0" style={{position:"absolute"}}><defs>{activeTimelineClips.filter(item=>item.chromaKeyEnabled).map(item=><filter key={item.id} id={"nexus-chroma-"+item.id} colorInterpolationFilters="sRGB"><feColorMatrix type="matrix" values={getChromaSvgMatrix(item.chromaKeyColor||"#00ff00",item.chromaKeyTolerance??70,item.chromaKeySoftness??28)}/></filter>)}</defs></svg>
-              {previewAsset?.objectUrl&&(previewAsset.kind==="image"||previewAsset.kind==="video")&&(activeTool==="filters"||activeTool==="effects")&&<PixiEffectPreview source={previewAsset.objectUrl} mediaKind={previewAsset.kind} effectName={selectedClip?.filter||activeSubtool||"Original"} variant="stage" />}{previewAsset?.kind==="video"&&previewAsset.objectUrl?<video key={previewClip?.id+"-"+previewAsset.id} ref={video} src={previewAsset.objectUrl} playsInline preload="auto" muted={false} onLoadedMetadata={e=>{if(previewClip){const target=clipSourceAtTimeline(previewClip,Math.max(0,playhead-previewClip.start));try{e.currentTarget.currentTime=Math.min(target,Math.max(0,e.currentTarget.duration-.04));}catch{}}}} onLoadedData={e=>{if(previewClip){const target=clipSourceAtTimeline(previewClip,Math.max(0,playhead-previewClip.start));if(Math.abs(e.currentTarget.currentTime-target)>.08){try{e.currentTarget.currentTime=Math.min(target,Math.max(0,e.currentTarget.duration-.04));}catch{}}}}} onError={e=>{const code=e.currentTarget.error?.code;setStatus("Video preview could not decode this file (media error "+(code||"unknown")+"). Try an H.264 MP4 or WebM version.");}} onTimeUpdate={e=>{if(previewClip){const el=e.currentTarget;setPlayhead(previewClip.start+clipTimelineAtSource(previewClip,el.currentTime));}}} style={{width:"100%",height:"100%",maxWidth:"100%",maxHeight:"100%",minWidth:0,minHeight:0,display:"block",background:"#050508",visibility:(activeTool==="filters"||activeTool==="effects")?"hidden":"visible",filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : "") + (previewClip?.chromaKeyEnabled ? ` url(#nexus-chroma-${previewClip.id})` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha * (trackStates.find(item=>item.id===previewClip?.trackId)?.opacity??1), mixBlendMode: (trackStates.find(item=>item.id===previewClip?.trackId)?.blendMode??"normal") as CSSProperties["mixBlendMode"], transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", objectFit: previewClip?.fit === "contain" ? "contain" : "cover", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewClip?.maskShape==="diamond"?"polygon(50% 0, 100% 50%, 50% 100%, 0 50%)":previewClip?.maskShape==="hexagon"?"polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)":previewClip?.maskShape==="star"?"polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 93%, 50% 71%, 21% 93%, 32% 57%, 2% 35%, 39% 35%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:previewAsset?.kind==="image"&&previewAsset.objectUrl?<img src={previewAsset.objectUrl} alt="Selected media preview" onError={()=>setStatus("This photo could not be decoded for preview. Try a JPG or PNG image.")} style={{visibility:(activeTool==="filters"||activeTool==="effects")?"hidden":"visible",filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha * (trackStates.find(item=>item.id===previewClip?.trackId)?.opacity??1), mixBlendMode: (trackStates.find(item=>item.id===previewClip?.trackId)?.blendMode??"normal") as CSSProperties["mixBlendMode"], transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:(!activeTimelineClips.some(clip=>assets.some(asset=>asset.id===clip.assetId&&asset.kind!=="audio"))&&!visibleTextLayers.length&&!imageLayers.some(layer=>layer.visible&&playhead>=layer.start&&playhead<layer.start+layer.duration))?<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>:null}
+              {previewAsset?.objectUrl&&(previewAsset.kind==="image"||previewAsset.kind==="video")&&(activeTool==="filters"||activeTool==="effects")&&<PixiEffectPreview source={previewAsset.objectUrl} mediaKind={previewAsset.kind} effectName={selectedClip?.filter||activeSubtool||"Original"} variant="stage" />}{previewAsset?.kind==="video"&&!previewAsset.objectUrl?<div className="editor-preview-empty"><b>{previewAsset.file ? "Restoring video preview…" : "Video file needs to be re-imported"}</b><small>{previewAsset.file ? "Preparing a fresh local media link" : "The project has its edit data, but the original video file is not attached on this device."}</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Re-import video</button></div>:previewAsset?.kind==="video"&&previewAsset.objectUrl?<video key={previewClip?.id+"-"+previewAsset.id} ref={video} src={previewAsset.objectUrl} playsInline preload="auto" muted={false} onLoadedMetadata={e=>{if(previewClip){const target=clipSourceAtTimeline(previewClip,Math.max(0,playhead-previewClip.start));try{e.currentTarget.currentTime=Math.min(target,Math.max(0,e.currentTarget.duration-.04));}catch{}}}} onLoadedData={e=>{if(previewClip){const target=clipSourceAtTimeline(previewClip,Math.max(0,playhead-previewClip.start));if(Math.abs(e.currentTarget.currentTime-target)>.08){try{e.currentTarget.currentTime=Math.min(target,Math.max(0,e.currentTarget.duration-.04));}catch{}}}}} onError={e=>{const code=e.currentTarget.error?.code;setStatus("Video preview could not decode this file (media error "+(code||"unknown")+"). Try an H.264 MP4 or WebM version.");}} onTimeUpdate={e=>{if(previewClip){const el=e.currentTarget;setPlayhead(previewClip.start+clipTimelineAtSource(previewClip,el.currentTime));}}} style={{width:"100%",height:"100%",maxWidth:"100%",maxHeight:"100%",minWidth:0,minHeight:0,display:"block",background:"#050508",visibility:(activeTool==="filters"||activeTool==="effects")?"hidden":"visible",filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : "") + (previewClip?.chromaKeyEnabled ? ` url(#nexus-chroma-${previewClip.id})` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha * (trackStates.find(item=>item.id===previewClip?.trackId)?.opacity??1), mixBlendMode: (trackStates.find(item=>item.id===previewClip?.trackId)?.blendMode??"normal") as CSSProperties["mixBlendMode"], transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", objectFit: previewClip?.fit === "contain" ? "contain" : "cover", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewClip?.maskShape==="diamond"?"polygon(50% 0, 100% 50%, 50% 100%, 0 50%)":previewClip?.maskShape==="hexagon"?"polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%)":previewClip?.maskShape==="star"?"polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 93%, 50% 71%, 21% 93%, 32% 57%, 2% 35%, 39% 35%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:previewAsset?.kind==="image"&&previewAsset.objectUrl?<img src={previewAsset.objectUrl} alt="Selected media preview" onError={()=>setStatus("This photo could not be decoded for preview. Try a JPG or PNG image.")} style={{visibility:(activeTool==="filters"||activeTool==="effects")?"hidden":"visible",filter: visualFilter(previewClip) + (previewAnimated.transitionBlur ? ` blur(${previewAnimated.transitionBlur}px)` : ""), opacity: previewAnimated.opacity * previewAnimated.transitionAlpha * (trackStates.find(item=>item.id===previewClip?.trackId)?.opacity??1), mixBlendMode: (trackStates.find(item=>item.id===previewClip?.trackId)?.blendMode??"normal") as CSSProperties["mixBlendMode"], transform: `translate(${previewAnimated.offsetX + previewAnimated.slide}%, ${previewAnimated.offsetY}%) rotate(${previewAnimated.rotation}deg) scale(${previewAnimated.zoom * previewAnimated.zoomBoost}%) scaleX(${previewClip?.flipHorizontal ? -1 : 1}) scaleY(${previewClip?.flipVertical ? -1 : 1})`, transformOrigin: "center", clipPath: previewClip?.maskShape==="circle"?"ellipse(50% 50% at 50% 50%)":previewClip?.maskShape==="rounded"?`inset(0 round ${previewClip?.maskRadius ?? 12}%)`:previewClip?.maskShape==="horizontal"?"inset(25% 0)":previewClip?.maskShape==="vertical"?"inset(0 25%)":previewAnimated.wipe<1?`inset(0 ${(1-previewAnimated.wipe)*100}% 0 0)`:"none"}}/>:(!activeTimelineClips.some(clip=>assets.some(asset=>asset.id===clip.assetId&&asset.kind!=="audio"))&&!visibleTextLayers.length&&!imageLayers.some(layer=>layer.visible&&playhead>=layer.start&&playhead<layer.start+layer.duration))?<div className="editor-preview-empty"><div className="preview-n">N</div><b>Your story starts here</b><small>Import media to begin editing</small><button onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import media</button></div>:null}
               {activeTimelineClips.filter(clip=>clip.id!==previewClip?.id && assets.some(item=>item.id===clip.assetId && item.kind!=="audio") && !trackStates.find(track=>track.id===clip.trackId)?.hidden).map(layerClip=>{
                 const layerAsset=assets.find(item=>item.id===layerClip.assetId); if(!layerAsset?.objectUrl)return null;
                 const motion=getPreviewLayerMotion(layerClip);
