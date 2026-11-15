@@ -2597,15 +2597,30 @@ export default function App() {
         <input ref={mediaInput} hidden type="file" accept="image/*,video/*" multiple onChange={e=>{stageMediaFiles(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={audioInput} hidden type="file" accept="audio/*" multiple onChange={e=>{stageMediaFiles(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={filesInput} hidden type="file" multiple onChange={e=>{stageMediaFiles(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
-        {stagedImportFiles.length>0 && <div className="attachment-backdrop" onClick={()=>setStagedImportFiles([])}>
+        {stagedImportFiles.length>0 && <div className="attachment-backdrop media-import-backdrop" onClick={()=>setStagedImportFiles([])}>
           <section className="attachment-sheet media-import-review" role="dialog" aria-modal="true" aria-label="Review media import" onClick={event=>event.stopPropagation()}>
             <div className="attachment-sheet-handle"/>
-            <div className="attachment-sheet-heading"><div><b>Review media import</b><small>{stagedImportFiles.length} file(s) selected · Nothing has been added yet</small></div><button onClick={()=>setStagedImportFiles([])} aria-label="Close"><X size={19}/></button></div>
-            <div className="media-import-review-list">
-              {stagedImportFiles.map((file,index)=>{const extension=file.name.split(".").pop()?.toLowerCase()||"";const kind=file.type.startsWith("video/")||["mp4","m4v","mov","webm","mkv"].includes(extension)?"Video":file.type.startsWith("audio/")||["mp3","m4a","wav","ogg","aac"].includes(extension)?"Audio":"Image";return <div className="media-import-review-item" key={file.name+"-"+file.size+"-"+file.lastModified}><span className="media-import-review-icon">{kind==="Video"?<Film size={17}/>:kind==="Audio"?<Music2 size={17}/>:<ImageIcon size={17}/>}</span><div><b>{file.name}</b><small>{kind} · {file.size>=1024*1024?(file.size/1024/1024).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB"}</small></div><button onClick={()=>setStagedImportFiles(old=>old.filter((_,i)=>i!==index))} aria-label={"Remove "+file.name}><X size={16}/></button></div>;})}
+            <header className="media-import-review-top">
+              <div className="media-import-review-title">
+                <span className="media-import-review-kicker"><Upload size={12}/> MEDIA INTAKE</span>
+                <div><b>Review your media</b><small>Check the files before adding them to your project</small></div>
+              </div>
+              <button className="media-import-review-close" onClick={()=>setStagedImportFiles([])} aria-label="Close"><X size={19}/></button>
+            </header>
+            <div className="media-import-review-stats">
+              <div><span>SELECTED FILES</span><b>{stagedImportFiles.length}</b></div>
+              <div><span>TOTAL SIZE</span><b>{(stagedImportFiles.reduce((sum,file)=>sum+file.size,0)/1024/1024).toFixed(1)} <small>MB</small></b></div>
+              <div><span>DESTINATION</span><b>{mediaImportTarget==="overlay"?"Overlay":"Timeline"}</b></div>
             </div>
-            <div className="media-import-review-summary"><span>{stagedImportFiles.length} file(s) · {(stagedImportFiles.reduce((sum,file)=>sum+file.size,0)/1024/1024).toFixed(1)} MB total</span><small>Original files are selected from your device. Importing does not intentionally duplicate them.</small></div>
-            <div className="media-import-review-actions"><button onClick={()=>setStagedImportFiles([])}>Cancel</button><button disabled={!stagedImportFiles.length} onClick={confirmStagedMediaImport}><Plus size={16}/> Import {stagedImportFiles.length} file(s)</button></div>
+            <div className="media-import-review-list" aria-label="Selected files">
+              {stagedImportFiles.map((file,index)=>{const extension=file.name.split(".").pop()?.toLowerCase()||"FILE";const kind=file.type.startsWith("video/")||["mp4","m4v","mov","webm","mkv"].includes(extension)?"Video":file.type.startsWith("audio/")||["mp3","m4a","wav","ogg","aac"].includes(extension)?"Audio":"Image";const size=file.size>=1024*1024?(file.size/1024/1024).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB";return <article className="media-import-review-item" key={file.name+"-"+file.size+"-"+file.lastModified}>
+                <span className={"media-import-review-icon "+kind.toLowerCase()}>{kind==="Video"?<Film size={21}/>:kind==="Audio"?<Music2 size={21}/>:<ImageIcon size={21}/>}<i>{extension.slice(0,5)}</i></span>
+                <div className="media-import-review-file-copy"><b title={file.name}>{file.name}</b><small><span>{kind}</span><i/> <span>{size}</span></small></div>
+                <button className="media-import-review-remove" onClick={()=>setStagedImportFiles(old=>old.filter((_,i)=>i!==index))} aria-label={"Remove "+file.name}><X size={16}/></button>
+              </article>;})}
+            </div>
+            <div className="media-import-review-footnote"><CheckCircle2 size={15}/><span>Nothing has been imported yet. Your selected files are ready to add to this project.</span></div>
+            <footer className="media-import-review-actions"><button className="media-import-review-cancel" onClick={()=>setStagedImportFiles([])}>Cancel</button><button className="media-import-review-confirm" disabled={!stagedImportFiles.length} onClick={confirmStagedMediaImport}><Plus size={17}/> Add {stagedImportFiles.length} {stagedImportFiles.length===1?"file":"files"} to project</button></footer>
           </section>
         </div>}
         {showAttachmentPicker && <div className="attachment-backdrop" onClick={()=>{setShowAttachmentPicker(false);setMediaImportTarget("timeline");}}>
