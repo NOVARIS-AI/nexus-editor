@@ -191,6 +191,11 @@ export default function App() {
   const [textFont, setTextFont] = useState("Arial");
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [mediaImportTarget, setMediaImportTarget] = useState<"timeline" | "overlay">("timeline");
+  const [mediaLibraryQuery, setMediaLibraryQuery] = useState("");
+  const [mediaLibraryFilter, setMediaLibraryFilter] = useState<"all" | "video" | "image" | "audio">("all");
+  const [mediaLibrarySelection, setMediaLibrarySelection] = useState<string[]>([]);
+  const [mediaPreviewAssetId, setMediaPreviewAssetId] = useState<string | null>(null);
+  const [favouriteMediaIds, setFavouriteMediaIds] = useState<string[]>([]);
   const [muteClip, setMuteClip] = useState(false);
   const [clipGain, setClipGain] = useState(1);
   const [aspectRatio, setAspectRatio] = useState(() => recoveryDraft?.aspectRatio || "16:9");
@@ -754,6 +759,30 @@ export default function App() {
       const linked = added.filter(item => pendingProjectAssets.some(saved => saved.id === item.id)).length;
       setStatus(remaining.length ? linked + " project media file(s) relinked · " + remaining.length + " still needed" : "All project media relinked and placed on the timeline.");
     } else setStatus(overlayMode ? added.length + " media file(s) imported as editable overlay layer(s)." : added.length + " media file(s) imported and added to the timeline.");
+  }
+  function addSelectedLibraryAssets() {
+    const chosen = assets.filter(item => mediaLibrarySelection.includes(item.id));
+    if (!chosen.length) return;
+    let visualStart = timelineDuration(clips);
+    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
+    const usedAudioTracks = new Set(clips.filter(clip => assets.find(item => item.id === clip.assetId)?.kind === "audio").map(clip => clip.trackId));
+    const additions: TimelineClip[] = chosen.map(item => {
+      let trackId = "video-1";
+      let start = visualStart;
+      if (item.kind === "audio") {
+        trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || "audio-4";
+        usedAudioTracks.add(trackId);
+        start = Math.max(0, playhead);
+      } else {
+        visualStart += Math.max(0.5, item.duration || 5);
+      }
+      return { id: uid(), assetId: item.id, trackId, start, sourceIn: 0, sourceOut: Math.max(0.5, item.duration || 5), label: item.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
+    });
+    applyClipChange([...clips, ...additions], chosen.length + " selected media asset(s) added to the timeline.");
+    const first = additions[0];
+    if (first) { setSelected(first.id); setPlayhead(first.start); }
+    setMediaLibrarySelection([]);
+    setEditorView("workspace");
   }
   async function extractSelectedVideoAudio() {
     if (extractingAudio) return;
@@ -2551,6 +2580,7 @@ export default function App() {
               <button onClick={()=>void openNativeMediaPicker(["audio/*"],audioInput)}><span className="attachment-option-icon audio"><Music2 size={23}/></span><b>Audio</b><small>Choose music or sound</small></button>
               <button onClick={()=>void openNativeMediaPicker(["image/*","video/*","audio/*"],filesInput)}><span className="attachment-option-icon files"><FolderOpen size={23}/></span><b>Browse files</b><small>Choose from device storage</small></button>
             </div>
+            <button className="attachment-open-library" onClick={()=>{setShowAttachmentPicker(false);setEditorView("import");setMediaLibrarySelection([]);}}><FolderOpen size={17}/> Open full Media Library <ArrowRight size={15}/></button>
           </section>
         </div>}
         {editorView==="dashboard" && <div className="editor-dashboard">
@@ -2713,7 +2743,33 @@ export default function App() {
           {createPortal(<nav className="editor-tool-dock nexus-mobile-tool-dock" aria-label="Editing tools">{[{id:"edit",label:"Edit",icon:Scissors},{id:"audio",label:"Audio",icon:Music2},{id:"text",label:"Text",icon:Type},{id:"overlay",label:"Overlay",icon:Layers},{id:"effects",label:"Effects",icon:WandSparkles},{id:"filters",label:"Filters",icon:SlidersHorizontal},{id:"adjust",label:"Adjust",icon:Palette},{id:"media",label:"Media",icon:Film},{id:"stickers",label:"Stickers",icon:Sticker},{id:"background",label:"Background",icon:ImageIcon},{id:"live-camera",label:"Live Cam",icon:Camera},{id:"ratio",label:"Ratio",icon:Crop}].map(item=>{const Icon=item.icon;return <button key={item.id} className={activeTool===item.id?"active":""} onClick={()=>{if(item.id==="filters")filterBeforeRef.current=selectedClip?{clipId:selectedClip.id,filter:selectedClip.filter,saturation:selectedClip.saturation}:null;setActiveTool(item.id);setActiveSubtool(item.id==="edit"?"select":"");setTimelineCollapsed(!["edit","audio","text","overlay","effects","stickers"].includes(item.id));setToolPanelOpen(true);if(item.id==="media"){setMediaImportTarget("timeline");setShowAttachmentPicker(true);}}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>, document.body)}
           <div className="editor-status-line" role="status" aria-live="polite"><i/>{status}</div>
         </div>}
-        {editorView==="import" && <div className="editor-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Import media</h2><p>Add videos, photos and audio to this project.</p></div></div><button className="huge-import-zone" onClick={()=>setShowAttachmentPicker(true)}><Plus size={38}/><b>Choose from gallery</b><span>Open your phone gallery to select photos and videos</span><small>Photos · Videos · Audio · Files</small></button><div className="imported-media-list"><h3>Imported media ({assets.length})</h3>{assets.map(a=><div key={a.id}><span>{a.kind==="audio"?<Music2/>:a.kind==="image"?<ImageIcon/>:<Film/>}</span><b>{a.name}</b><small>{a.kind.toUpperCase()} · {a.duration?clock(a.duration):"Reading…"}</small><button onClick={()=>{add(a);setEditorView("workspace");}}><Plus size={16}/> Add</button></div>)}</div></div>}
+        {editorView==="import" && <div className="editor-subpage media-library-page">
+          <div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Media Library</h2><p>Organise, preview and reuse every asset in this project.</p></div><button className="media-library-import" onClick={()=>setShowAttachmentPicker(true)}><Plus size={16}/> Import</button></div>
+          <div className="media-library-toolbar">
+            <label className="media-library-search"><Search size={17}/><input value={mediaLibraryQuery} onChange={event=>setMediaLibraryQuery(event.target.value)} placeholder="Search your project media"/></label>
+            <div className="media-library-filters">
+              {(["all","video","image","audio"] as const).map(kind=><button key={kind} className={mediaLibraryFilter===kind?"active":""} onClick={()=>setMediaLibraryFilter(kind)}>{kind==="all"?"All":kind==="image"?"Images":kind==="video"?"Videos":"Audio"} <small>{kind==="all"?assets.length:assets.filter(item=>item.kind===kind).length}</small></button>)}
+              <button className={mediaLibraryFilter==="favourites" as string?"active":""} onClick={()=>{setMediaLibraryFilter("all");setMediaLibraryQuery("");setMediaLibrarySelection(favouriteMediaIds);}}>Favourites <small>{favouriteMediaIds.length}</small></button>
+            </div>
+          </div>
+          <div className="media-library-layout">
+            <section className="media-library-preview">
+              <div className="media-library-preview-head"><b>Preview</b><small>{assets.find(item=>item.id===mediaPreviewAssetId)?.name || "Select an asset"}</small></div>
+              {(() => { const item=assets.find(asset=>asset.id===mediaPreviewAssetId); return item ? <div className="media-library-preview-stage">{item.kind==="video"&&item.objectUrl?<video key={item.id} src={item.objectUrl} controls playsInline preload="metadata"/>:item.kind==="audio"&&item.objectUrl?<audio key={item.id} src={item.objectUrl} controls/>:item.objectUrl?<img src={item.objectUrl} alt={item.name}/>:<div className="media-library-empty-preview">Preview unavailable</div>}<div className="media-library-preview-meta"><b>{item.name}</b><span>{item.kind.toUpperCase()} · {item.duration?clock(item.duration):"Duration pending"} · {(item.file?.size ? (item.file.size/1024/1024).toFixed(1)+" MB" : "Project asset")}</span></div></div> : <div className="media-library-empty-preview"><Film size={28}/><b>Choose media to preview</b><span>Your selected asset will appear here.</span></div>; })()}
+              <div className="media-library-selection-bar"><span>{mediaLibrarySelection.length} selected</span><button disabled={!mediaLibrarySelection.length} onClick={addSelectedLibraryAssets}><Plus size={15}/> Add selected to timeline</button></div>
+            </section>
+            <section className="media-library-assets">
+              <div className="media-library-assets-head"><b>Project assets</b><small>{assets.length} total · Select multiple to reuse</small></div>
+              {assets.filter(item=>(mediaLibraryFilter==="all"||item.kind===mediaLibraryFilter)&&(!mediaLibraryQuery.trim()||item.name.toLowerCase().includes(mediaLibraryQuery.trim().toLowerCase()))).length===0?<div className="media-library-empty"><FolderOpen size={26}/><b>No matching media</b><span>Import files or change your search/filter.</span></div>:<div className="media-library-grid">
+                {assets.filter(item=>(mediaLibraryFilter==="all"||item.kind===mediaLibraryFilter)&&(!mediaLibraryQuery.trim()||item.name.toLowerCase().includes(mediaLibraryQuery.trim().toLowerCase()))).map(item=><article key={item.id} className={"media-library-card"+(mediaPreviewAssetId===item.id?" previewing":"")+(mediaLibrarySelection.includes(item.id)?" chosen":"")}>
+                  <button className="media-library-thumb" onClick={()=>setMediaPreviewAssetId(item.id)} aria-label={"Preview "+item.name}>{item.kind==="image"&&item.objectUrl?<img src={item.objectUrl} alt=""/>:item.kind==="video"&&item.objectUrl?<video src={item.objectUrl} muted playsInline preload="metadata"/>:<span>{item.kind==="audio"?<Music2 size={25}/>:<Film size={25}/>}</span>}<i>{item.kind==="audio"?"AUDIO":item.kind.toUpperCase()}</i></button>
+                  <div className="media-library-card-info"><b title={item.name}>{item.name}</b><small>{item.duration?clock(item.duration):"Reading duration…"}</small></div>
+                  <div className="media-library-card-actions"><button className={mediaLibrarySelection.includes(item.id)?"selected":""} onClick={()=>setMediaLibrarySelection(old=>old.includes(item.id)?old.filter(id=>id!==item.id):[...old,item.id])}>{mediaLibrarySelection.includes(item.id)?"Selected":"Select"}</button><button className={favouriteMediaIds.includes(item.id)?"favourite":""} onClick={()=>setFavouriteMediaIds(old=>old.includes(item.id)?old.filter(id=>id!==item.id):[...old,item.id])} aria-label="Toggle favourite">{favouriteMediaIds.includes(item.id)?"★":"☆"}</button><button onClick={()=>add(item)} title="Add to timeline"><Plus size={15}/></button></div>
+                </article>)}
+              </div>}
+            </section>
+          </div>
+        </div>}
         {editorView==="export" && <div className="editor-subpage export-subpage"><div className="editor-subpage-title"><button onClick={()=>setEditorView("workspace")}><ArrowLeft size={18}/></button><div><h2>Export video</h2><p>Choose the quality and format for your finished video.</p></div></div><div className="export-center-layout"><div className="export-completion-card"><div className="export-big-icon"><Film size={32}/></div><h3>Ready to export</h3><p>{projectName} · {clock(duration)} · {clips.length} clips · {imageLayers.length + textLayers.length} overlay layers</p><div className="export-summary-row"><span>Resolution</span><b>{exportQuality}</b></div><div className="export-summary-row"><span>Frame rate</span><b>{exportFps}</b></div><div className="export-summary-row"><span>Aspect ratio</span><b>{aspectRatio}</b></div><button className="export-render-button" disabled={exportBusy || !hasExportableContent} onClick={()=>void startVideoExport()}><ArrowDownToLine size={18}/> {exportBusy ? "Rendering " + exportProgress + "%" : "Export video"}</button>{exportBusy && <><div className="nexus-export-progress"><i style={{width:exportProgress+"%"}}/></div><button className="outline-button" onClick={cancelVideoExport}>Cancel export</button></>}<small>Browser renderer · MP4 when supported, otherwise WebM · includes timeline video, images, timed text and audio clips. Keep this tab open while rendering.</small>{isNativeAndroid() && <><button className="outline-button" disabled={exportBusy || !selectedClip || !asset || asset.kind !== "video"} onClick={()=>void startNativeClipTranscode()}><Film size={16}/> Native Android clip transcode</button><small>Media3 transcodes one selected source video to MP4. It does not include timeline overlays, transitions or other clips.</small></>}</div><div className="export-options-panel"><h3>Social export preset</h3><label>Platform preset<select value={exportPreset} onChange={e=>applyExportPreset(e.target.value)}><option>TikTok / Reels / Shorts</option><option>YouTube</option><option>YouTube 4K</option><option>Instagram square</option><option>Instagram portrait</option><option>Facebook landscape</option><option>WhatsApp status</option></select></label><small>Presets set a starting aspect ratio, resolution and frame rate. You can customise the settings below.</small><h3>Export options</h3><label>Video quality<select value={exportQuality} onChange={e=>setExportQuality(e.target.value)}><option>720p</option><option>1080p</option><option>2K</option><option>4K Ultra HD</option></select></label><label>Frame rate<select value={exportFps} onChange={e=>setExportFps(e.target.value)}><option>24 FPS</option><option>30 FPS</option><option>60 FPS</option></select></label><button className="export-quick-action" disabled={!selectedClip} onClick={()=>{setPage("editor");setEditorView("workspace");setActiveTool("edit");setActiveSubtool("speed");setStatus("Select a clip to adjust its playback speed.");}}><Gauge size={18}/> Adjust selected clip speed</button><h3>Share destinations</h3><div className="export-share-grid">{["TikTok","YouTube","WhatsApp","Instagram","Facebook","Other"].map((name,i)=><button key={name} disabled><Share2 size={17}/><span>{name}</span></button>)}</div><small>Share options appear after a video has been rendered and saved to your device.</small></div></div></div>}
 
       </section>}
