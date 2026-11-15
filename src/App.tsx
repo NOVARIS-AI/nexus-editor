@@ -180,7 +180,7 @@ export default function App() {
   const [mediaImportTarget, setMediaImportTarget] = useState<"timeline" | "overlay">("timeline");
   const [muteClip, setMuteClip] = useState(false);
   const [clipGain, setClipGain] = useState(1);
-  const [aspectRatio, setAspectRatio] = useState(() => recoveryDraft?.aspectRatio || "9:16");
+  const [aspectRatio, setAspectRatio] = useState(() => recoveryDraft?.aspectRatio || "16:9");
   const [exportQuality, setExportQuality] = useState("1080p");
   const [exportFps, setExportFps] = useState("30 FPS");
   const [exportPreset, setExportPreset] = useState("TikTok / Reels / Shorts");
@@ -200,7 +200,7 @@ export default function App() {
   const [aiContextSummary, setAiContextSummary] = useState("");
   const [aiFiles, setAiFiles] = useState<File[]>([]);
   const [aiStyle, setAiStyle] = useState("Cinematic");
-  const [aiFormat, setAiFormat] = useState("9:16");
+  const [aiFormat, setAiFormat] = useState("16:9");
   const [aiMode, setAiMode] = useState("create");
   const [aiWorkspaceOpen, setAiWorkspaceOpen] = useState(false);
   const [assistantToolsOpen, setAssistantToolsOpen] = useState(false);
@@ -2381,7 +2381,7 @@ export default function App() {
     setClips([]); setTextLayers([]); setImageLayers([]); setSelected(null);
     setSelectedTextLayer(null); setSelectedImageLayer(null); setSelectedImageAssetId("");
     setUndoStack([]); setRedoStack([]); setTrackStates(defaultTracks.map(track => ({ ...track, locked: false })));
-    setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setAspectRatio("9:16");
+    setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setAspectRatio("16:9");
     setPage("editor"); setEditorView("workspace"); setActiveTool("edit"); setActiveSubtool("select");
     setStatus("New project ready · import your media to begin.");
   }
