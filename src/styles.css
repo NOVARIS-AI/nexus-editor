@@ -5607,213 +5607,152 @@ body > nav.nexus-mobile-tool-dock > button {
 .media-import-review-actions button:disabled{opacity:.4}
 @media(max-width:560px){.media-import-review{width:calc(100vw - 18px);max-height:82vh;padding:12px}.media-import-review-list{max-height:48vh}.media-import-review-actions button{flex:1}}
 
-/* NEXUS mobile tool workspace — full-height panel, never clipped by the footer dock. */
+
+
+/* NEXUS adaptive mobile tool sheet — compact first, draggable, internally scrollable. */
 @media (max-width: 760px) {
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) {
+  body > .nexus-mobile-tool-sheet {
     position: fixed !important;
-    inset: calc(52px + env(safe-area-inset-top)) 0 0 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: calc(66px + env(safe-area-inset-bottom)) !important;
+    top: auto !important;
     z-index: 2147483002 !important;
     display: flex !important;
     flex-direction: column !important;
     flex-wrap: nowrap !important;
     align-items: stretch !important;
+    gap: 9px !important;
     width: 100vw !important;
+    min-width: 0 !important;
     height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    min-height: 104px !important;
+    max-height: min(34dvh, 290px) !important;
     margin: 0 !important;
-    padding: 12px 14px calc(16px + env(safe-area-inset-bottom)) !important;
+    padding: 7px 12px calc(12px + env(safe-area-inset-bottom)) !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
     overscroll-behavior: contain !important;
     -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
     box-sizing: border-box !important;
-    border: 1px solid #43505c !important;
+    border: 1px solid rgba(145, 157, 176, .28) !important;
     border-bottom: 0 !important;
-    border-radius: 16px 16px 0 0 !important;
-    background: rgba(19, 25, 32, .99) !important;
-    box-shadow: 0 -18px 48px #000b !important;
-    backdrop-filter: blur(18px) !important;
-    scroll-padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    border-radius: 17px 17px 0 0 !important;
+    background: rgba(17, 21, 29, .97) !important;
+    color: #f1f2f4 !important;
+    box-shadow: 0 -14px 38px rgba(0,0,0,.42) !important;
+    backdrop-filter: blur(22px) !important;
   }
-
-  body:has(> div.nexus-mobile-tool-sheet:not(.is-closed)) > nav.nexus-mobile-tool-dock {
-    visibility: hidden !important;
-    pointer-events: none !important;
+  body > .nexus-mobile-tool-sheet.is-closed { display: none !important; }
+  body > .nexus-mobile-tool-sheet[data-expanded="true"] {
+    max-height: min(72dvh, 620px) !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-mobile-sheet-head {
-    position: sticky !important;
-    top: -12px !important;
-    z-index: 2 !important;
-    flex: 0 0 auto !important;
-    margin: -12px -14px 2px !important;
-    padding: 14px 14px 10px !important;
-    background: rgba(19, 25, 32, .99) !important;
-    border-bottom: 1px solid #35414d !important;
+  body > .nexus-mobile-tool-sheet[data-tool-size="compact"]:not([data-expanded="true"]) {
+    max-height: min(23dvh, 190px) !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-context-controls,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-group,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-library-head,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-adjust-grid {
-    flex: 0 0 auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
+  body > .nexus-mobile-tool-sheet[data-tool-size="medium"]:not([data-expanded="true"]) {
+    max-height: min(40dvh, 340px) !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) input,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) select,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) textarea,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) button {
-    scroll-margin-block: 16px !important;
+  body > .nexus-mobile-tool-sheet[data-tool-size="large"]:not([data-expanded="true"]) {
+    max-height: min(48dvh, 410px) !important;
   }
-}
-
-/* NEXUS mobile tool panel: override legacy compact-ribbon rules and use a true full-height workspace. */
-@media (max-width: 760px) {
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) {
-    position: fixed !important;
-    inset: calc(56px + env(safe-area-inset-top)) 0 0 0 !important;
+  .nexus-sheet-drag-handle {
+    flex: 0 0 19px !important;
+    width: 100% !important;
+    min-height: 19px !important;
     display: flex !important;
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch !important;
-    align-content: flex-start !important;
-    gap: 12px !important;
-    width: 100vw !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 0 !important;
     margin: 0 !important;
-    padding: 12px 14px calc(22px + env(safe-area-inset-bottom)) !important;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    overscroll-behavior: contain !important;
-    -webkit-overflow-scrolling: touch !important;
-    box-sizing: border-box !important;
-    border: 1px solid #43505c !important;
-    border-bottom: 0 !important;
-    border-radius: 16px 16px 0 0 !important;
-    background: rgba(19, 25, 32, .99) !important;
-    box-shadow: 0 -18px 48px #000b !important;
-    backdrop-filter: blur(18px) !important;
-    scroll-padding: 16px 0 calc(24px + env(safe-area-inset-bottom)) !important;
+    border: 0 !important;
+    background: transparent !important;
+    cursor: grab !important;
+    touch-action: none !important;
   }
-
-  body:has(> div.nexus-mobile-tool-sheet:not(.is-closed)) > nav.nexus-mobile-tool-dock {
-    display: none !important;
+  .nexus-sheet-drag-handle span {
+    display: block !important;
+    width: 38px !important;
+    height: 4px !important;
+    border-radius: 99px !important;
+    background: #8993a2 !important;
+    opacity: .8 !important;
   }
-
-  body:has(> div.nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-timeline-zone {
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-
-  body:has(> div.nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-preview-zone {
-    flex: 1 1 auto !important;
-  }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-mobile-sheet-head {
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head {
     position: sticky !important;
-    top: -12px !important;
-    z-index: 5 !important;
-    display: flex !important;
+    top: 0 !important;
+    z-index: 4 !important;
     flex: 0 0 auto !important;
+    min-height: 38px !important;
+    display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    width: calc(100% + 28px) !important;
-    min-height: 46px !important;
-    height: auto !important;
-    margin: -12px -14px 2px !important;
-    padding: 10px 14px !important;
-    background: rgba(19, 25, 32, .99) !important;
-    border-bottom: 1px solid #35414d !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 3px 0 8px !important;
+    background: rgba(17, 21, 29, .98) !important;
+    border-bottom: 1px solid rgba(137,147,162,.2) !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) > button {
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head b {
+    font-size: 13px !important;
+    color: #f5f3fa !important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head button {
     display: flex !important;
-    flex: 0 0 auto !important;
-    flex-direction: row !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 44px !important;
-    height: auto !important;
-    padding: 10px 12px !important;
-    text-align: left !important;
-    white-space: normal !important;
-    border-radius: 10px !important;
+    gap: 5px !important;
+    min-height: 32px !important;
+    padding: 6px 10px !important;
+    border: 1px solid rgba(145,157,176,.28) !important;
+    border-radius: 8px !important;
+    background: rgba(42,48,60,.9) !important;
+    color: #f5f3fa !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-context-controls,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-group,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-library-head,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-adjust-grid,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-speed-controls {
-    display: flex !important;
+  body > .nexus-mobile-tool-sheet > :not(.nexus-mobile-sheet-head):not(.nexus-sheet-drag-handle) {
     flex: 0 0 auto !important;
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch !important;
-    gap: 10px !important;
-    width: 100% !important;
-    max-width: 100% !important;
     min-width: 0 !important;
-    min-height: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  body > .nexus-mobile-tool-sheet .nexus-context-controls,
+  body > .nexus-mobile-tool-sheet .nexus-effect-group,
+  body > .nexus-mobile-tool-sheet .nexus-effect-library-head,
+  body > .nexus-mobile-tool-sheet .nexus-adjust-grid,
+  body > .nexus-mobile-tool-sheet .nexus-speed-controls {
+    min-width: 0 !important;
+    max-width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     box-sizing: border-box !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-categories,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-sticker-tabs,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-speed-presets {
-    display: flex !important;
-    flex: 0 0 auto !important;
-    flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 8px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: visible !important;
-  }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-grid,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-filter-carousel {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    width: 100% !important;
-    max-height: none !important;
-    overflow: visible !important;
-  }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) label {
+  body > .nexus-mobile-tool-sheet .nexus-context-controls {
     display: flex !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 7px !important;
+    gap: 10px !important;
     width: 100% !important;
-    min-width: 0 !important;
-    white-space: normal !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) input,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) select,
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) textarea {
-    max-width: 100% !important;
-    scroll-margin-block: 16px !important;
+  body > .nexus-mobile-tool-sheet .nexus-effect-grid,
+  body > .nexus-mobile-tool-sheet .nexus-filter-carousel {
+    max-height: none !important;
+    overflow: visible !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) input[type="range"] {
-    width: 100% !important;
-    min-width: 0 !important;
+  body > .nexus-mobile-tool-sheet input[type="range"] { width: 100% !important; }
+  body > .nexus-mobile-tool-sheet button { scroll-margin-block: 12px !important; }
+  body > nav.nexus-mobile-tool-dock {
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 2147483001 !important;
   }
-
-  body > div.nexus-mobile-tool-sheet:not(.is-closed) button {
-    scroll-margin-block: 12px !important;
+  body:has(> .nexus-mobile-tool-sheet:not(.is-closed)) .nexus-shell .nexus-studio-page .editor-preview-zone {
+    min-height: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
   }
 }
