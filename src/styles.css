@@ -5606,3 +5606,66 @@ body > nav.nexus-mobile-tool-dock > button {
 .media-import-review-actions button:last-child{border:0;background:linear-gradient(110deg,var(--accent-a),var(--accent-b));color:#fff}
 .media-import-review-actions button:disabled{opacity:.4}
 @media(max-width:560px){.media-import-review{width:calc(100vw - 18px);max-height:82vh;padding:12px}.media-import-review-list{max-height:48vh}.media-import-review-actions button{flex:1}}
+
+/* NEXUS mobile tool workspace — full-height panel, never clipped by the footer dock. */
+@media (max-width: 760px) {
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) {
+    position: fixed !important;
+    inset: calc(52px + env(safe-area-inset-top)) 0 0 0 !important;
+    z-index: 2147483002 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    width: 100vw !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px 14px calc(16px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+    border: 1px solid #43505c !important;
+    border-bottom: 0 !important;
+    border-radius: 16px 16px 0 0 !important;
+    background: rgba(19, 25, 32, .99) !important;
+    box-shadow: 0 -18px 48px #000b !important;
+    backdrop-filter: blur(18px) !important;
+    scroll-padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body:has(> div.nexus-mobile-tool-sheet:not(.is-closed)) > nav.nexus-mobile-tool-dock {
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-mobile-sheet-head {
+    position: sticky !important;
+    top: -12px !important;
+    z-index: 2 !important;
+    flex: 0 0 auto !important;
+    margin: -12px -14px 2px !important;
+    padding: 14px 14px 10px !important;
+    background: rgba(19, 25, 32, .99) !important;
+    border-bottom: 1px solid #35414d !important;
+  }
+
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-context-controls,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-group,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-effect-library-head,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) .nexus-adjust-grid {
+    flex: 0 0 auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) input,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) select,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) textarea,
+  body > div.nexus-mobile-tool-sheet:not(.is-closed) button {
+    scroll-margin-block: 16px !important;
+  }
+}
