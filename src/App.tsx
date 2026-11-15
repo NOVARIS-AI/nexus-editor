@@ -146,8 +146,7 @@ function TimelineVideoFilmstrip({ src, duration, sourceIn = 0, sourceOut }: { sr
       video.addEventListener(eventName, onReady);
       video.addEventListener("error", onError);
       if ((eventName === "loadedmetadata" && video.readyState >= HTMLMediaElement.HAVE_METADATA) ||
-          (eventName === "loadeddata" && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) ||
-          (eventName === "seeked" && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA)) finish();
+          (eventName === "loadeddata" && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA)) finish();
     });
     const capture = async () => {
       try {
