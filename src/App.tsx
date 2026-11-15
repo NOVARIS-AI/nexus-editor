@@ -191,6 +191,7 @@ export default function App() {
   const [textFont, setTextFont] = useState("Arial");
   const [showAttachmentPicker, setShowAttachmentPicker] = useState(false);
   const [mediaImportTarget, setMediaImportTarget] = useState<"timeline" | "overlay">("timeline");
+  const [stagedImportFiles, setStagedImportFiles] = useState<File[]>([]);
   const [mediaLibraryQuery, setMediaLibraryQuery] = useState("");
   const [mediaLibraryFilter, setMediaLibraryFilter] = useState<"all" | "video" | "image" | "audio" | "favourites">("all");
   const [mediaLibrarySelection, setMediaLibrarySelection] = useState<string[]>([]);
@@ -668,11 +669,32 @@ export default function App() {
     try {
       setStatus("Opening Android media picker…");
       const picked = await pickNativeMediaFiles(types);
-      importMedia(picked);
+      stageMediaFiles(picked);
       setEditorView("workspace"); setShowAttachmentPicker(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Android could not open the selected media.");
     }
+  }
+  function stageMediaFiles(files: FileList | File[] | null) {
+    if (!files) return;
+    const supported = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/") || ["mp4","m4v","mov","webm","mkv","mp3","m4a","wav","ogg","aac","jpg","jpeg","png","webp","gif","bmp","heic","heif"].includes(file.name.split(".").pop()?.toLowerCase() || ""));
+    if (!supported.length) { setStatus("Choose a supported photo, video or audio file."); return; }
+    setStagedImportFiles(old => {
+      const next = [...old];
+      for (const file of supported) {
+        const duplicate = next.some(item => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified);
+        if (!duplicate) next.push(file);
+      }
+      return next;
+    });
+    setShowAttachmentPicker(false);
+    setStatus(supported.length + " media file(s) ready for review before import.");
+  }
+  function confirmStagedMediaImport() {
+    if (!stagedImportFiles.length) return;
+    const selectedFiles = [...stagedImportFiles];
+    setStagedImportFiles([]);
+    importMedia(selectedFiles);
   }
   function importMedia(files: FileList | File[] | null) {
     if (!files) return;
@@ -2568,9 +2590,20 @@ export default function App() {
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
         </header>
          {creativeFabricOpen && <Suspense fallback={<div className="nexus-ai-inline">Loading Creative Fabric…</div>}><CreativeFabricPanel projectName={projectName} aspectRatio={aspectRatio} assets={assets} clips={clips} textLayers={textLayers} imageLayers={imageLayers} transcriptSegments={Object.values(internalTranscripts).flat()} beatMarkers={beatMarkers} selectedClipId={selectedClip?.id} onSeekTo={(time:number)=>setPlayhead(time)} onSendToDirector={(brief:string,context?:Record<string,unknown>)=>{setAiBrief(brief);setFabricDirectorContext(context||null);setAiWorkspaceOpen(true);setStatus("Creative Fabric scene intelligence and structured project evidence sent to NEXUS AI Director.");}} onApplyPlan={(operations: FabricOperation[])=>{if(!operations.length)return;const execution=prepareExecutionPlan(operations,{assets,clips,textLayers,selectedClipId:selectedClip?.id,playhead});if(!execution.accepted.length){setStatus("AI execution review: "+execution.rejected.map(item=>item.reason).join(" "));return;}recordProjectHistory();for(const op of execution.accepted){if(op.kind==="move-text"){setTextLayers(old=>old.map(layer=>layer.id===op.textId?{...layer,x:op.x,y:op.y}:layer));setSelectedTextLayer(op.textId);setActiveTool("text");}else if(op.kind==="split-clip"){const target=clips.find(item=>item.id===op.clipId);if(target){const [left,right]=splitTimelineClipAtTime(target,op.time);setClips(old=>old.flatMap(item=>item.id===target.id?[left,right]:[item]));setSelected(right.id);setPlayhead(right.start);}}else if(op.kind==="add-title"){const layer:TimelineTextLayer={id:uid(),trackId:trackStates.find(track=>track.kind==="overlay"&&!track.locked)?.id||"text-1",start:op.start??playhead,duration:op.duration||5,text:op.text,color:op.color||"#ffffff",fontSize:op.fontSize||64,fontFamily:op.fontFamily||"Arial",x:op.x??50,y:op.y??42,align:op.align||"center",backgroundColor:op.backgroundColor||"transparent",padding:12,shadow:op.shadow??true,animation:op.animation||"fade"};setTextLayers(old=>[...old,layer]);setSelectedTextLayer(layer.id);setActiveTool("text");}else if(op.kind==="apply-look"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,filter:op.filter}:clip));}else if(op.kind==="apply-transition"){setClips(old=>old.map(clip=>((assets.find(item=>item.id===clip.assetId)?.kind==="video"||assets.find(item=>item.id===clip.assetId)?.kind==="image")&&(op.clipId?clip.id===op.clipId:(!selectedClip||clip.id===selectedClip.id)))?{...clip,transitionIn:Math.max(clip.transitionIn||0,0.45),transitionOut:Math.max(clip.transitionOut||0,0.45),transitionStyle:op.transition}:clip));}}setStatus("AI execution engine applied "+execution.accepted.length+" approved operation(s). "+(execution.rejected.length?execution.rejected.length+" invalid operation(s) were skipped. ":"")+"Use Undo to reverse the changes.");}} onClose={()=>setCreativeFabricOpen(false)}/></Suspense>}
-        <input ref={mediaInput} hidden type="file" accept="image/*,video/*" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
+        <input ref={mediaInput} hidden type="file" accept="image/*,video/*" multiple onChange={e=>{stageMediaFiles(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={audioInput} hidden type="file" accept="audio/*" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
         <input ref={filesInput} hidden type="file" multiple onChange={e=>{importMedia(e.target.files);setEditorView("workspace");setShowAttachmentPicker(false);e.currentTarget.value="";}}/>
+        {stagedImportFiles.length>0 && <div className="attachment-backdrop" onClick={()=>setStagedImportFiles([])}>
+          <section className="attachment-sheet media-import-review" role="dialog" aria-modal="true" aria-label="Review media import" onClick={event=>event.stopPropagation()}>
+            <div className="attachment-sheet-handle"/>
+            <div className="attachment-sheet-heading"><div><b>Review media import</b><small>{stagedImportFiles.length} file(s) selected · Nothing has been added yet</small></div><button onClick={()=>setStagedImportFiles([])} aria-label="Close"><X size={19}/></button></div>
+            <div className="media-import-review-list">
+              {stagedImportFiles.map((file,index)=>{const extension=file.name.split(".").pop()?.toLowerCase()||"";const kind=file.type.startsWith("video/")||["mp4","m4v","mov","webm","mkv"].includes(extension)?"Video":file.type.startsWith("audio/")||["mp3","m4a","wav","ogg","aac"].includes(extension)?"Audio":"Image";return <div className="media-import-review-item" key={file.name+"-"+file.size+"-"+file.lastModified}><span className="media-import-review-icon">{kind==="Video"?<Film size={17}/>:kind==="Audio"?<Music2 size={17}/>:<ImageIcon size={17}/>}</span><div><b>{file.name}</b><small>{kind} · {file.size>=1024*1024?(file.size/1024/1024).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB"}</small></div><button onClick={()=>setStagedImportFiles(old=>old.filter((_,i)=>i!==index))} aria-label={"Remove "+file.name}><X size={16}/></button></div>;})}
+            </div>
+            <div className="media-import-review-summary"><span>{stagedImportFiles.length} file(s) · {(stagedImportFiles.reduce((sum,file)=>sum+file.size,0)/1024/1024).toFixed(1)} MB total</span><small>Original files are selected from your device. Importing does not intentionally duplicate them.</small></div>
+            <div className="media-import-review-actions"><button onClick={()=>setStagedImportFiles([])}>Cancel</button><button disabled={!stagedImportFiles.length} onClick={confirmStagedMediaImport}><Plus size={16}/> Import {stagedImportFiles.length} file(s)</button></div>
+          </section>
+        </div>}
         {showAttachmentPicker && <div className="attachment-backdrop" onClick={()=>{setShowAttachmentPicker(false);setMediaImportTarget("timeline");}}>
           <section className="attachment-sheet" role="dialog" aria-modal="true" aria-label="Add media" onClick={e=>e.stopPropagation()}>
             <div className="attachment-sheet-handle"/>
