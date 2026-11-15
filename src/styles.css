@@ -5766,3 +5766,57 @@ body > nav.nexus-mobile-tool-dock > button {
 .nexus-inline-tool-controls button.active{border-color:#e6b47e;background:rgba(230,180,126,.18);color:#ffd7ad}
 .nexus-inline-tool-controls button.nexus-inline-done{margin-left:auto;background:#493525;border-color:#8e6948;color:#ffe0bd}
 @media(min-width:761px){.nexus-inline-tool-controls{bottom:0;left:auto;right:20px;width:auto;max-width:min(90vw,520px);border:1px solid rgba(145,157,176,.24);border-radius:14px 14px 0 0}}
+
+
+/* NEXUS Stage 2 mobile fix — keep Media Library preview clear of the footer and make the page scroll. */
+@media (max-width: 760px) {
+  .editor-fullscreen.nexus-studio-page > .editor-subpage.media-library-page {
+    display: block !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    padding: 10px 9px calc(112px + env(safe-area-inset-bottom)) !important;
+    scroll-padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important;
+  }
+  .editor-fullscreen.nexus-studio-page .media-library-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    gap: 10px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .media-library-preview {
+    position: relative !important;
+    top: auto !important;
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    scroll-margin-top: 8px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .media-library-preview-stage {
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+  .editor-fullscreen.nexus-studio-page .media-library-preview-stage > video,
+  .editor-fullscreen.nexus-studio-page .media-library-preview-stage > img {
+    width: 100% !important;
+    max-height: min(38dvh, 320px) !important;
+    min-height: 150px !important;
+    object-fit: contain !important;
+  }
+  .editor-fullscreen.nexus-studio-page .media-library-assets {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+}
