@@ -5587,3 +5587,22 @@ body > nav.nexus-mobile-tool-dock > button {
  .media-library-card-actions button{height:23px}
 }
 @media(max-width:360px){.media-library-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* NEXUS Stage 1 — media import review */
+.media-import-review{width:min(560px,calc(100vw - 24px));max-height:min(78vh,720px);overflow:hidden;display:flex;flex-direction:column;gap:0}
+.media-import-review .attachment-sheet-heading{flex:0 0 auto}
+.media-import-review-list{display:grid;gap:6px;max-height:min(46vh,420px);overflow:auto;padding:8px 2px}
+.media-import-review-item{min-width:0;display:flex;align-items:center;gap:10px;padding:9px;border:1px solid #302d50;border-radius:9px;background:#171629}
+.media-import-review-icon{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent-text)}
+.media-import-review-item>div{min-width:0;flex:1;display:grid;gap:4px}
+.media-import-review-item b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f5f2ff;font-size:10px}
+.media-import-review-item small{color:#9994ad;font-size:8px}
+.media-import-review-item>button{width:30px;height:30px;display:grid;place-items:center;border:1px solid #393550;border-radius:7px;background:#211f34;color:#d9d4e8}
+.media-import-review-summary{display:grid;gap:5px;padding:10px 2px;border-top:1px solid #302d50;color:#dcd7e9;font-size:9px}
+.media-import-review-summary small{color:#9692ad;font-size:8px;line-height:1.5}
+.media-import-review-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:10px}
+.media-import-review-actions button{min-height:38px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 13px;border:1px solid #393550;border-radius:9px;background:#211f34;color:#e5e1ef;font-size:9px;font-weight:700}
+.media-import-review-actions button:last-child{border:0;background:linear-gradient(110deg,var(--accent-a),var(--accent-b));color:#fff}
+.media-import-review-actions button:disabled{opacity:.4}
+@media(max-width:560px){.media-import-review{width:calc(100vw - 18px);max-height:82vh;padding:12px}.media-import-review-list{max-height:48vh}.media-import-review-actions button{flex:1}}
