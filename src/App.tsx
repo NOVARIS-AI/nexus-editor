@@ -998,6 +998,7 @@ export default function App() {
       const objectUrl = URL.createObjectURL(extracted);
       const created: MediaAsset = { id: uid(), name: asset.name.replace(/\\.[^.]+$/, "") + (extracted.type === "audio/mp4" ? "-audio-extract.m4a" : "-audio-extract.webm"), kind: "audio", duration: sourceEnd - sourceStart, mimeType: extracted.type || "audio/webm", file: extracted, objectUrl, source: { type: "personal", attribution: "Audio extracted from " + asset.name } };
       setAssets(old => [...old, created]);
+      void saveMediaAsset(created).catch(() => setDraftSaveStatus("Extracted audio is available in this session but could not be backed up on this device."));
       const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
       const used = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
       const trackId = audioTrackIds.find(id => !used.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
@@ -1022,6 +1023,7 @@ export default function App() {
     });
     const finalAsset = { ...created, duration: mediaDuration || 5 };
     setAssets(old => old.map(item => item.id === created.id ? finalAsset : item));
+    void saveMediaAsset(finalAsset).catch(() => setDraftSaveStatus("Downloaded audio is available in this session but could not be backed up on this device."));
     const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
     const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
     const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
@@ -1254,6 +1256,7 @@ export default function App() {
     if (targetLayer) {
       recordProjectHistory();
       setAssets(old => [...old, created]);
+      void saveMediaAsset(created).catch(() => setDraftSaveStatus("Generated image is available in this session but could not be backed up on this device."));
       setImageLayers(old => old.map(layer => layer.id === targetLayer.id ? { ...layer, assetId: created.id, generationPrompt: prompt, generationJobId: "cloudflare-sync" } : layer));
       setSelectedImageLayer(targetLayer.id);
       setAiReply("Generated image imported and replaced the selected layer. Its timing, position, scale, opacity and stacking settings were preserved.");
@@ -1263,12 +1266,14 @@ export default function App() {
       setUndoStack(old => [...old.slice(-49), { ...captureProjectSnapshot(), clips: historyClips || clips }]);
       setRedoStack([]);
       setAssets(old => [...old, created]);
+      void saveMediaAsset(created).catch(() => setDraftSaveStatus("Generated image is available in this session but could not be backed up on this device."));
       setClips(old => old.map(clip => clip.id === targetClipId ? { ...clip, assetId: created.id, sourceIn: 0, sourceOut: Math.max(0.5, clip.sourceOut), label: sceneTitle + " · AI generated", aiScene: clip.aiScene ? { ...clip.aiScene, sourceType: "generated" } : undefined } : clip));
       setSelected(targetClipId);
       setAiReply("Generated image imported and automatically replaced its matching storyboard placeholder.");
       return created;
     }
     setAssets(old => [...old, created]);
+    void saveMediaAsset(created).catch(() => setDraftSaveStatus("Generated image is available in this session but could not be backed up on this device."));
     const isBackground = /background|backdrop|wallpaper/i.test(sceneTitle + " " + prompt);
     if (isBackground) {
       recordProjectHistory();
@@ -2126,6 +2131,7 @@ export default function App() {
       cursor += sourceDuration;
     }
     setAssets(old => [...old, ...additions]);
+    void Promise.all(additions.map(item => saveMediaAsset(item))).catch(() => setDraftSaveStatus("Storyboard media is available in this session but some files could not be backed up on this device."));
     setTextLayers(old => [...old, ...newTextLayers]);
     applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable scenes with timed title layers");
     setSelected(newClips[0]?.id || null);
