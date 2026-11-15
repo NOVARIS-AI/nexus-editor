@@ -6001,3 +6001,17 @@ body > nav.nexus-mobile-tool-dock > button {
 /* Keep the centre marker sticky to the timeline viewport, not the whole device screen. */
 .editor-fixed-playhead{position:sticky!important;left:50%!important;top:0!important;z-index:40!important;width:0!important;height:0!important;pointer-events:none!important}
 .editor-fixed-playhead i{position:absolute!important;left:-1px!important;top:0!important;bottom:-1200px!important;height:auto!important;width:2px!important;background:#fff!important;box-shadow:0 0 0 1px #ffffff55,0 0 10px #ffffff99!important;border-radius:2px!important}
+
+
+/* Media rendering repair: target the real editor preview frame and keep video pixels visible. */
+.editor-preview-frame{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;background:#07070d!important;isolation:isolate!important}
+.editor-preview-frame>video,.editor-preview-frame>img{display:block!important;flex:0 1 auto!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;min-width:0!important;min-height:0!important;object-fit:contain!important;background:#050508!important}
+.editor-preview-frame>video{z-index:1!important}
+.editor-video-filmstrip{position:absolute!important;inset:0!important;z-index:1!important}
+.editor-video-filmstrip img{object-fit:cover!important}
+.editor-filmstrip-loading{position:relative!important;z-index:2!important}
+.editor-audio-waveform{z-index:1!important;padding:3px 5px!important;box-sizing:border-box!important}
+.editor-audio-waveform i{max-width:none!important;min-width:1px!important;opacity:.92!important}
+.editor-waveform-loading{align-self:center!important;display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;color:rgba(235,255,245,.72)!important;font-size:8px!important;letter-spacing:.2px!important}
+.editor-clip:has(.editor-audio-waveform){isolation:isolate!important}
+.editor-clip:has(.editor-audio-waveform) .editor-clip-title{z-index:3!important}
