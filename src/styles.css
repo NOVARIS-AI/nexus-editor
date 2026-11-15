@@ -5943,3 +5943,57 @@ body > nav.nexus-mobile-tool-dock > button {
     flex: none !important;
   }
 }
+
+
+/* NEXUS timeline experience refresh — centered playhead, clean tracks and compact drawers */
+.editor-timeline-zone{min-width:0;background:transparent!important;border:0!important;border-radius:0!important;padding:8px 0 0!important;margin:0!important}
+.editor-timeline-head{padding:0 2px 9px!important}
+.editor-timeline-scroll{position:relative!important;overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:thin;scrollbar-color:rgba(196,178,225,.35) transparent;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scroll-padding-inline:50%}
+.editor-timeline-scroll:before,.editor-timeline-scroll:after{content:"";display:block;position:absolute;top:0;bottom:0;width:50%;pointer-events:none}
+.editor-fixed-playhead{position:sticky!important;left:50%!important;top:0!important;bottom:0!important;width:0!important;height:0!important;z-index:30!important;pointer-events:none!important}
+.editor-fixed-playhead i{position:fixed!important;left:50%!important;top:var(--timeline-top,0px);height:var(--timeline-height,220px);width:2px!important;background:#fff!important;box-shadow:0 0 0 1px rgba(255,255,255,.16),0 0 10px rgba(255,255,255,.4)!important;border-radius:3px}
+.editor-timeline-ruler{display:flex!important;align-items:flex-end!important;min-height:28px!important;border:0!important;background:transparent!important}
+.editor-timeline-ruler>span{flex:0 0 auto!important;color:#aaa6b7!important;font-size:9px!important;padding:0 0 5px 3px!important;border-left:1px solid rgba(220,214,235,.22)!important}
+.editor-timeline-rows{display:flex!important;min-height:0!important;background:transparent!important}
+.editor-lane-labels{flex:0 0 76px!important;background:transparent!important}
+.editor-lane-labels>span{min-height:54px!important;height:54px!important;padding:5px!important;border:0!important;border-bottom:1px solid rgba(190,180,210,.12)!important}
+.editor-lane-labels>span>b{font-size:9px!important}
+.editor-lane-labels>span>small{font-size:7px!important;opacity:.65}
+.editor-lanes{min-width:0!important;overflow:visible!important;background:transparent!important}
+.editor-lanes-inner{min-height:0!important;background:transparent!important}
+.editor-lane{height:54px!important;min-height:54px!important;border:0!important;border-bottom:1px solid rgba(190,180,210,.12)!important;background:transparent!important}
+.editor-clip{height:43px!important;top:5px!important;min-width:0!important;padding:0 5px!important;border-radius:8px!important;overflow:hidden!important}
+.editor-clip.active{outline:2px solid rgba(255,255,255,.9)!important;outline-offset:1px!important}
+.editor-trim-handle{display:none!important}
+.editor-clip.active .editor-trim-handle{display:block!important;position:absolute!important;top:0!important;bottom:0!important;width:7px!important;background:rgba(255,255,255,.95)!important;border:0!important;border-radius:5px!important;z-index:8!important}
+.editor-trim-start{left:0!important}.editor-trim-end{right:0!important}
+.editor-clip-visual{position:absolute!important;inset:0!important;display:flex!important;overflow:hidden!important;opacity:.92!important;pointer-events:none!important}
+.editor-video-filmstrip,.editor-image-filmstrip{display:flex!important;flex:1!important;min-width:0!important;height:100%!important;overflow:hidden!important}
+.editor-video-filmstrip img,.editor-image-filmstrip img{flex:1 1 0!important;width:0!important;min-width:0!important;height:100%!important;object-fit:cover!important;border-right:1px solid rgba(255,255,255,.14)!important}
+.editor-filmstrip-loading{display:flex;align-items:center;padding:0 7px;font-size:8px;color:rgba(255,255,255,.7)}
+.editor-clip-title{position:relative!important;z-index:3!important;display:block!important;max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;text-shadow:0 1px 4px #000!important;padding:3px 4px!important;font-size:8px!important}
+.editor-audio-waveform{position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:space-around!important;gap:1px!important;opacity:.72!important;pointer-events:none!important}
+.editor-audio-waveform i{flex:1 1 0!important;max-width:4px!important;background:rgba(193,255,224,.9)!important;border-radius:3px!important}
+.editor-clip:has(.editor-audio-waveform){background:linear-gradient(90deg,#176d59,#238f75)!important}
+.editor-playhead{display:none!important}
+.preview-stage{display:flex!important;align-items:center!important;justify-content:center!important;position:relative!important;padding:10px!important;background:#090910!important}
+.preview-stage:has(video),.preview-stage:has(img){gap:0!important}
+.preview-stage>video,.preview-stage>img{width:auto!important;height:100%!important;max-width:100%!important;max-height:100%!important;aspect-ratio:9/16!important;object-fit:contain!important;margin:auto!important;background:#050508!important}
+.preview-stage .preview-empty{max-width:100%!important}
+@media(max-width:760px){
+ .editor-timeline-zone{padding:5px 0 0!important}
+ .editor-timeline-head{gap:6px!important}
+ .editor-timeline-actions{gap:3px!important;overflow-x:auto!important}
+ .editor-timeline-actions button{min-width:30px!important;min-height:30px!important;padding:4px 7px!important}
+ .editor-lane-labels{flex-basis:62px!important}
+ .editor-lane-labels>span{height:50px!important;min-height:50px!important}
+ .editor-lane{height:50px!important;min-height:50px!important}
+ .editor-clip{height:40px!important;top:4px!important}
+ .editor-fixed-playhead i{height:var(--timeline-height,190px)!important}
+ body > .nexus-mobile-tool-sheet{max-height:min(40dvh,340px)!important}
+ body > .nexus-mobile-tool-sheet .nexus-sticker-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ body > .nexus-mobile-tool-sheet .nexus-sticker-grid>*{aspect-ratio:1/1!important;min-width:0!important}
+ body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head{display:grid!important;grid-template-columns:1fr auto!important;row-gap:7px!important;align-items:center!important}
+ body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head>*{min-width:0!important}
+ body > .nexus-mobile-tool-sheet .nexus-category-pills{display:flex!important;overflow-x:auto!important;white-space:nowrap!important;max-width:100%!important}
+}
