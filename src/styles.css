@@ -5997,3 +5997,7 @@ body > nav.nexus-mobile-tool-dock > button {
  body > .nexus-mobile-tool-sheet .nexus-mobile-sheet-head>*{min-width:0!important}
  body > .nexus-mobile-tool-sheet .nexus-category-pills{display:flex!important;overflow-x:auto!important;white-space:nowrap!important;max-width:100%!important}
 }
+
+/* Keep the centre marker sticky to the timeline viewport, not the whole device screen. */
+.editor-fixed-playhead{position:sticky!important;left:50%!important;top:0!important;z-index:40!important;width:0!important;height:0!important;pointer-events:none!important}
+.editor-fixed-playhead i{position:absolute!important;left:-1px!important;top:0!important;bottom:-1200px!important;height:auto!important;width:2px!important;background:#fff!important;box-shadow:0 0 0 1px #ffffff55,0 0 10px #ffffff99!important;border-radius:2px!important}
