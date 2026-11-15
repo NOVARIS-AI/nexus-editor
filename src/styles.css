@@ -4801,7 +4801,6 @@ body>nav.nexus-mobile-tool-dock button{min-width:54px!important;flex:0 0 54px!im
   display:grid!important;
   grid-template-columns:50px minmax(0,1fr)!important;
   align-items:stretch!important;
-  width:max-content!important;
   min-width:100%!important;
   height:auto!important;
   min-height:0!important;
@@ -4862,7 +4861,6 @@ body>nav.nexus-mobile-tool-dock button{min-width:54px!important;flex:0 0 54px!im
   position:relative!important;
   display:block!important;
   min-width:0!important;
-  width:max-content!important;
   overflow:visible!important;
   background:#0f060f!important;
   touch-action:pan-x pan-y!important;
@@ -4871,7 +4869,6 @@ body>nav.nexus-mobile-tool-dock button{min-width:54px!important;flex:0 0 54px!im
   display:flex!important;
   flex-direction:column!important;
   align-items:stretch!important;
-  width:max-content!important;
   min-width:100%!important;
   height:auto!important;
   min-height:0!important;
