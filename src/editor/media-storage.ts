@@ -4,7 +4,7 @@ const DB_NAME = "nexus-editor-media";
 const STORE_NAME = "assets";
 const DB_VERSION = 1;
 
-type StoredMediaAsset = Omit<MediaAsset, "objectUrl"> & { file: Blob };
+type StoredMediaAsset = Omit<MediaAsset, "objectUrl" | "file"> & { file: Blob };
 
 function openMediaDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
