@@ -5898,3 +5898,48 @@ body > nav.nexus-mobile-tool-dock > button {
   .media-import-review{max-height:calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important}
   .media-import-review-list{max-height:none!important;min-height:0!important}
 }
+
+
+/* NEXUS Android media review — scroll the sheet itself, not a nested file list.
+   This avoids nested flex/grid scroll sizing failures in Android WebView. */
+@media (max-width: 760px) {
+  .media-import-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    display: block !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 12px 10px calc(18px + env(safe-area-inset-bottom)) !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
+    touch-action: pan-y !important;
+  }
+  .media-import-review {
+    display: block !important;
+    width: min(620px, 100%) !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+    animation: none !important;
+  }
+  .media-import-review-list {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    flex: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    touch-action: pan-y !important;
+    padding-bottom: 8px !important;
+  }
+  .media-import-review-top,
+  .media-import-review-stats,
+  .media-import-review-footnote,
+  .media-import-review-actions {
+    flex: none !important;
+  }
+}
