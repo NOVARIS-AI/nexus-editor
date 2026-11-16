@@ -8190,3 +8190,20 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   .editor-fullscreen.nexus-studio-page .editor-track-cover{display:none!important}
   .editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute>button.editor-track-mute-button{flex-basis:38px!important;width:38px!important;min-width:38px!important}
 }
+
+
+/* NEXUS centre-playhead mechanics: media time zero sits under the centre line.
+   The track-label column stays pinned; ruler and media lanes share equal gutters. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  margin-left:50%!important;
+  margin-right:50%!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lanes{
+  margin-left:calc(50% - 142px)!important;
+  margin-right:50%!important;
+}
+@media(max-width:380px){
+  .editor-fullscreen.nexus-studio-page .editor-lanes{
+    margin-left:calc(50% - 132px)!important;
+  }
+}
