@@ -124,6 +124,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
     let cancelled = false;
     let ownedUrl: string | null = null;
     const video = document.createElement("video");
+    const deviceProfile = getMobilePerformanceProfile({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:(navigator as Navigator & {deviceMemory?:number}).deviceMemory});
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     setFrames([]);
@@ -188,6 +189,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
               sourceIn,
               sourceOut,
               partial => { if (!cancelled) setFrames(partial); },
+              deviceProfile.tier,
             );
             if (!cancelled && extracted.length) { setFrames(extracted); return; }
           } catch { /* Fall through to the browser video-element decoder. */ }
@@ -208,7 +210,8 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const clipStart = Math.max(0, Math.min(sourceIn, Math.max(0, mediaEnd - 0.05)));
         const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
-        const frameCount = Math.max(8, Math.min(96, Math.ceil((clipEnd - clipStart) * 0.45)));
+        const fallbackFrameLimit = deviceProfile.tier === "compact" ? 28 : deviceProfile.tier === "power" ? 72 : 48;
+        const frameCount = Math.max(8, Math.min(fallbackFrameLimit, Math.ceil((clipEnd - clipStart) * 0.45)));
         const output: string[] = [];
         for (let index = 0; index < frameCount; index++) {
           if (cancelled) return;
@@ -250,6 +253,8 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
   useEffect(() => {
     let cancelled = false;
     let context: AudioContext | null = null;
+    const deviceProfile = getMobilePerformanceProfile({hardwareConcurrency:navigator.hardwareConcurrency,deviceMemory:(navigator as Navigator & {deviceMemory?:number}).deviceMemory});
+    const waveformBars = deviceProfile.tier === "compact" ? 72 : deviceProfile.tier === "power" ? 192 : 144;
     if (fallback?.length) { setWaveform(fallback); return; }
     setWaveform([]);
     setFailed(false);
@@ -260,11 +265,12 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
         // Mediabunny decodes short chunks incrementally, avoiding a full-file
         // AudioBuffer allocation for long recordings on memory-constrained phones.
         try {
-          const peaks = await extractAudioWaveformPeaks(asset.file!, 144);
+          const peaks = await extractAudioWaveformPeaks(asset.file!, waveformBars);
           if (cancelled) return;
           if (peaks.length) { setWaveform(peaks); return; }
         } catch { /* Use Web Audio fallback for older or unsupported codecs. */ }
-        if (asset.file!.size > 96 * 1024 * 1024) throw new Error("Audio is too large for the legacy decoder");
+        const legacyDecodeLimit = deviceProfile.tier === "compact" ? 48 : 96;
+        if (asset.file!.size > legacyDecodeLimit * 1024 * 1024) throw new Error("Audio is too large for the legacy decoder on this device profile");
         if (!AudioContextCtor) throw new Error("Web Audio is unavailable");
         context = new AudioContextCtor();
         const decoded = await context.decodeAudioData(await asset.file!.arrayBuffer());
