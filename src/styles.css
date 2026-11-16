@@ -7192,8 +7192,8 @@ body > nav.nexus-mobile-tool-dock > button {
 }
 .editor-fullscreen.nexus-studio-page .editor-timeline-rows{
   display:flex!important;
-  width:calc(var(--nexus-timeline-content-width, 1px) + 50vw)!important;
-  min-width:calc(var(--nexus-timeline-content-width, 1px) + 50vw)!important;
+  width:max-content!important;
+  min-width:0!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-lane-labels{
   position:sticky!important;
