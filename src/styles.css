@@ -8341,21 +8341,24 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 }
 
 
-/* Desktop-mode viewport guard: preserve the mobile studio composition on wide phone browsers. */
+/* Wide viewport / browser Desktop Site guard.
+   Keep the mobile editing workspace centred, with the preview, transport and timeline
+   in one bounded vertical stack. The timeline itself remains a real scrollable lane. */
 @media (min-width: 761px) {
   .editor-fullscreen.nexus-studio-page {
     position: fixed !important;
     inset: 0 auto 0 50% !important;
     transform: translateX(-50%) !important;
-    width: min(100vw, 480px) !important;
-    max-width: 480px !important;
+    width: min(100vw, 420px) !important;
+    max-width: 420px !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     min-height: 0 !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
-    border-left: 1px solid rgba(255,255,255,.08) !important;
-    border-right: 1px solid rgba(255,255,255,.08) !important;
+    border-left: 1px solid rgba(255,255,255,.12) !important;
+    border-right: 1px solid rgba(255,255,255,.12) !important;
+    background: #080817 !important;
     display: flex !important;
     flex-direction: column !important;
   }
@@ -8367,8 +8370,9 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     gap: 7px !important;
     overflow: hidden !important;
   }
-  .editor-fullscreen.nexus-studio-page .editor-topbar .nexus-fabric-trigger,
-  .editor-fullscreen.nexus-studio-page .editor-topbar .editor-top-icon,
+  /* Keep Save and Export available; hide only the wide-workspace extras. */
+  .editor-fullscreen.nexus-studio-page .editor-topbar button[title="Open creative tools"],
+  .editor-fullscreen.nexus-studio-page .editor-topbar button[title="Open NEXUS AI Studio"],
   .editor-fullscreen.nexus-studio-page .editor-topbar button[title="Prepare a community post"] {
     display: none !important;
   }
@@ -8391,32 +8395,39 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     max-height: calc(100dvh - 52px) !important;
     display: grid !important;
     grid-template-columns: minmax(0,1fr) !important;
-    grid-template-rows: minmax(220px,1fr) minmax(190px,26dvh) 138px 16px !important;
+    grid-template-rows: minmax(180px,1fr) 150px 112px 14px !important;
     align-content: stretch !important;
     overflow: hidden !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"] {
-    grid-template-rows: minmax(0,1fr) 0 138px 16px !important;
+    grid-template-rows: minmax(0,1fr) 0 112px 14px !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-preview-zone {
     grid-row: 1 !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    max-height: 52dvh !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
+    align-items: stretch !important;
     justify-content: flex-start !important;
+    gap: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: hidden !important;
   }
+  .editor-fullscreen.nexus-studio-page .editor-preview-meta {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+  }
   .editor-fullscreen.nexus-studio-page .editor-preview-frame {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
+    align-self: stretch !important;
+    width: calc(100% - 12px) !important;
     min-width: 0 !important;
     min-height: 0 !important;
     max-width: 100% !important;
-    max-height: calc(52dvh - 76px) !important;
+    max-height: none !important;
     height: auto !important;
-    margin: 3px auto !important;
+    margin: 2px auto !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-preview-frame video,
   .editor-fullscreen.nexus-studio-page .editor-preview-frame img {
@@ -8429,33 +8440,75 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   .editor-fullscreen.nexus-studio-page .preview-meta-actions > button:nth-of-type(n+4) {
     display: none !important;
   }
+  .editor-fullscreen.nexus-studio-page .editor-preview-resize-handle {
+    flex: 0 0 6px !important;
+    height: 6px !important;
+    min-height: 6px !important;
+    max-height: 6px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-transport-compact {
+    flex: 0 0 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    margin-top: 0 !important;
+  }
   .editor-fullscreen.nexus-studio-page .editor-timeline-zone {
     grid-row: 2 !important;
     position: relative !important;
-    min-width: 0 !important;
-    min-height: 190px !important;
-    max-height: 26dvh !important;
-    height: 100% !important;
     display: flex !important;
     flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 150px !important;
+    height: 150px !important;
+    max-height: 150px !important;
     overflow: hidden !important;
+    flex-shrink: 0 !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-head {
+    flex: 0 0 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-timeline-scroll {
-    flex: 1 1 auto !important;
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
     min-height: 0 !important;
-    height: auto !important;
+    height: 0 !important;
+    max-height: none !important;
     overflow: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-rows,
+  .editor-fullscreen.nexus-studio-page .editor-lanes,
+  .editor-fullscreen.nexus-studio-page .editor-lanes-inner {
+    min-width: 0 !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-bottom-tools {
     grid-row: 3 !important;
-    height: 138px !important;
-    min-height: 138px !important;
-    max-height: 138px !important;
+    height: 112px !important;
+    min-height: 112px !important;
+    max-height: 112px !important;
     overflow: hidden !important;
   }
   .editor-fullscreen.nexus-studio-page .editor-status-line {
     grid-row: 4 !important;
-    min-height: 16px !important;
-    height: 16px !important;
+    min-height: 14px !important;
+    height: 14px !important;
+  }
+}
+@media (min-width: 761px) and (max-height: 620px) {
+  .editor-fullscreen.nexus-studio-page .editor-screen {
+    grid-template-rows: minmax(150px,1fr) 150px 86px 12px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"] {
+    grid-template-rows: minmax(0,1fr) 0 86px 12px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools {
+    height: 86px !important;
+    min-height: 86px !important;
+    max-height: 86px !important;
   }
 }
