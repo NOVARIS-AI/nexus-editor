@@ -305,7 +305,8 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
 }
 
 export default function App() {
-  const [page, setPage] = useState<Page>("home");
+  const hasRecoverableProject = !!recoveryDraft && ((recoveryDraft.clips?.length || 0) + (recoveryDraft.imageLayers?.length || 0) + (recoveryDraft.textLayers?.length || 0) + (recoveryDraft.assetIds?.length || 0) > 0);
+  const [page, setPage] = useState<Page>(() => hasRecoverableProject ? "editor" : "home");
   const [workspaceSetupVisible, setWorkspaceSetupVisible] = useState(() => !["complete","skipped"].includes(localStorage.getItem("nexus-workspace-setup") || ""));
   const finishWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "complete"); setWorkspaceSetupVisible(false); };
   const skipWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "skipped"); setWorkspaceSetupVisible(false); };
@@ -315,6 +316,7 @@ export default function App() {
   const [assets, setAssets] = useState<MediaAsset[]>([]);
   useEffect(() => {
     const referencedIds = Array.from(new Set([
+      ...(recoveryDraft?.assetIds || []),
       ...(recoveryDraft?.clips || []).map(clip => clip.assetId),
       ...(recoveryDraft?.imageLayers || []).map(layer => layer.assetId)
     ]));
@@ -352,20 +354,20 @@ export default function App() {
   const [alignmentGuides, setAlignmentGuides] = useState({x:false,y:false});
   const [undoStack, setUndoStack] = useState<EditorHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<EditorHistorySnapshot[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => recoveryDraft?.selectedClipId || null);
   const [touchDragPreview, setTouchDragPreview] = useState<{id:string;start:number}|null>(null);
   const touchClipDragMoved = useRef(false);
-  const [playhead, setPlayhead] = useState(0);
-  const [timelineZoom, setTimelineZoom] = useState(60);
+  const [playhead, setPlayhead] = useState(() => recoveryDraft?.playhead || 0);
+  const [timelineZoom, setTimelineZoom] = useState(() => recoveryDraft?.timelineZoom || 60);
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
   const [precisionTrim, setPrecisionTrim] = useState<{clipId:string;startOffset:number;endOffset:number}|null>(null);
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const [previewRatio, setPreviewRatio] = useState(64);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(() => recoveryDraft?.timelineCollapsed || false);
+  const [previewRatio, setPreviewRatio] = useState(() => recoveryDraft?.previewRatio || 64);
   const previewResizeDrag = useRef<{ startY: number; startRatio: number; pointerId: number } | null>(null);
   const [toolPanelOpen, setToolPanelOpen] = useState(false);
   const [status, setStatus] = useState("Your creative space is ready");
   const [editorTool, setEditorTool] = useState("Media");
-  const [editorView, setEditorView] = useState("workspace");
+  const [editorView, setEditorView] = useState(() => recoveryDraft?.editorView || "workspace");
   const [activeTool, setActiveTool] = useState("closed");
   const [activeSubtool, setActiveSubtool] = useState("select");
   const [toolSheetExpanded, setToolSheetExpanded] = useState(false);
@@ -555,19 +557,32 @@ export default function App() {
   useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); checkNexusWorker(controller.signal).then(setWorkerHealth).catch(error => setWorkerHealth({ ok:false, status:"unavailable", message:error instanceof Error ? error.message : "Worker health check failed.", checkedAt:Date.now() })); return () => controller.abort(); }, []);
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const persistSnapshot = () => {
       const snapshot: LocalDraft = {
-        version: 3, projectName, clips, textLayers, imageLayers,
+        version: 4, projectName, clips, textLayers, imageLayers,
         tracks: trackStates.map(track => ({ ...track, ...(trackMix[track.id] || {}) })),
-        aspectRatio, savedAt: Date.now()
+        aspectRatio, assetIds: assets.map(item => item.id), playhead, timelineZoom,
+        previewRatio, timelineCollapsed, editorView, selectedClipId: selected,
+        savedAt: Date.now()
       };
-      const saved = writeRecoverableDraft(snapshot);
+      return writeRecoverableDraft(snapshot);
+    };
+    const timer = window.setTimeout(() => {
+      const saved = persistSnapshot();
       setDraftSaveStatus(saved
         ? "Autosaved · recovery backup kept on this device"
         : "Autosave storage is full · export a project backup");
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [projectName, clips, textLayers, imageLayers, trackStates, trackMix, aspectRatio]);
+    }, 250);
+    const saveBeforeExit = () => { persistSnapshot(); };
+    const saveWhenHidden = () => { if (document.visibilityState === "hidden") persistSnapshot(); };
+    window.addEventListener("pagehide", saveBeforeExit);
+    document.addEventListener("visibilitychange", saveWhenHidden);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pagehide", saveBeforeExit);
+      document.removeEventListener("visibilitychange", saveWhenHidden);
+    };
+  }, [projectName, clips, textLayers, imageLayers, trackStates, trackMix, aspectRatio, assets, playhead, timelineZoom, previewRatio, timelineCollapsed, editorView, selected]);
   useEffect(() => {
     const pending = generationJobs.filter(job => !job.id.startsWith("unavailable-") && (job.state === "queued" || job.state === "running"));
     if (!pending.length) return;
