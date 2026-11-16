@@ -8339,3 +8339,123 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     max-height: 78px !important;
   }
 }
+
+
+/* Desktop-mode viewport guard: preserve the mobile studio composition on wide phone browsers. */
+@media (min-width: 761px) {
+  .editor-fullscreen.nexus-studio-page {
+    position: fixed !important;
+    inset: 0 auto 0 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(100vw, 480px) !important;
+    max-width: 480px !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    border-left: 1px solid rgba(255,255,255,.08) !important;
+    border-right: 1px solid rgba(255,255,255,.08) !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-topbar {
+    flex: 0 0 52px !important;
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 9px !important;
+    gap: 7px !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-topbar .nexus-fabric-trigger,
+  .editor-fullscreen.nexus-studio-page .editor-topbar .editor-top-icon,
+  .editor-fullscreen.nexus-studio-page .editor-topbar button[title="Prepare a community post"] {
+    display: none !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-project-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-project-title b,
+  .editor-fullscreen.nexus-studio-page .editor-project-title small {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    height: calc(100dvh - 52px) !important;
+    min-height: 0 !important;
+    max-height: calc(100dvh - 52px) !important;
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) !important;
+    grid-template-rows: minmax(220px,1fr) minmax(190px,26dvh) 138px 16px !important;
+    align-content: stretch !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"] {
+    grid-template-rows: minmax(0,1fr) 0 138px 16px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone {
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-height: 52dvh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: calc(52dvh - 76px) !important;
+    height: auto !important;
+    margin: 3px auto !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame video,
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame img {
+    display: block !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+  }
+  .editor-fullscreen.nexus-studio-page .preview-meta-actions > select,
+  .editor-fullscreen.nexus-studio-page .preview-meta-actions > button:nth-of-type(n+4) {
+    display: none !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone {
+    grid-row: 2 !important;
+    position: relative !important;
+    min-width: 0 !important;
+    min-height: 190px !important;
+    max-height: 26dvh !important;
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: auto !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools {
+    grid-row: 3 !important;
+    height: 138px !important;
+    min-height: 138px !important;
+    max-height: 138px !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-status-line {
+    grid-row: 4 !important;
+    min-height: 16px !important;
+    height: 16px !important;
+  }
+}
