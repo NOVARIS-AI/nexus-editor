@@ -710,9 +710,14 @@ export default function App() {
     const fps = Math.max(1, Number.parseInt(exportFps, 10) || 30);
     const frameTime = Math.round(Math.max(0, value) * fps) / fps;
     if (!timelineSnapEnabled) return frameTime;
-    const candidates = [0, playhead, ...clips.filter(item => item.id !== excludeId).flatMap(item => [item.start, item.start + clipDuration(item)])];
+    // Snap consistently across every editable lane, not just neighbouring video clips.
+    const clipEdges = clips.filter(item => item.id !== excludeId).flatMap(item => [item.start, item.start + clipDuration(item)]);
+    const imageEdges = imageLayers.filter(item => !item.locked).flatMap(item => [item.start, item.start + item.duration]);
+    const textEdges = textLayers.filter(item => !item.locked).flatMap(item => [item.start, item.start + item.duration]);
+    const candidates = [0, playhead, ...clipEdges, ...imageEdges, ...textEdges];
     const nearest = candidates.reduce((best, point) => Math.abs(point - frameTime) < Math.abs(best - frameTime) ? point : best, frameTime);
-    return Math.max(0, Math.abs(nearest - frameTime) <= 0.12 ? nearest : frameTime);
+    // A time-based threshold stays predictable at every timeline zoom level.
+    return Math.max(0, Math.abs(nearest - frameTime) <= Math.max(0.08, 3 / fps) ? nearest : frameTime);
   }
   function alignSelectedOverlays(axis: "left"|"center-x"|"right"|"top"|"center-y"|"bottom") {
     const ids=selectedOverlayIds.length?selectedOverlayIds:[selectedImageLayer?"image:"+selectedImageLayer:selectedTextLayer?"text:"+selectedTextLayer:""];
