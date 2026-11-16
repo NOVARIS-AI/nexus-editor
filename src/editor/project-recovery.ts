@@ -73,8 +73,9 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
       playhead: Number.isFinite(value.playhead) ? Math.max(0, Number(value.playhead)) : 0,
       timelineZoom: Number.isFinite(value.timelineZoom) ? Math.max(10, Math.min(240, Number(value.timelineZoom))) : 60,
       previewRatio: Number.isFinite(value.previewRatio) ? Math.max(42, Math.min(82, Number(value.previewRatio))) : 64,
-      timelineCollapsed: value.timelineCollapsed === true,
-      editorView: value.editorView === "workspace" ? "workspace" : "workspace",
+      // A recovered project must not reopen with its timeline hidden.
+      timelineCollapsed: false,
+      editorView: ["workspace", "dashboard", "import", "export"].includes(String(value.editorView)) ? String(value.editorView) : "workspace",
       selectedClipId: typeof value.selectedClipId === "string" ? value.selectedClipId : null,
       projectName: value.projectName.slice(0, 180),
       clips: value.clips as TimelineClip[],
