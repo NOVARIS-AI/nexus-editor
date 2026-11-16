@@ -306,8 +306,16 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
 
 export default function App() {
   const [recoveryDraft] = useState<LocalDraft | null>(() => readLocalDraft());
-  const hasRecoverableProject = !!recoveryDraft && ((recoveryDraft.clips?.length || 0) + (recoveryDraft.imageLayers?.length || 0) + (recoveryDraft.textLayers?.length || 0) + (recoveryDraft.assetIds?.length || 0) > 0);
-  const [page, setPage] = useState<Page>(() => hasRecoverableProject ? "editor" : "home");
+  const [page, setPage] = useState<Page>(() => {
+    try {
+      const saved = localStorage.getItem("nexus-last-page");
+      return saved && ["home","for-you","profile","notifications","saved","moderation","appeals","editor","projects","templates","ai","settings"].includes(saved)
+        ? saved as Page : "home";
+    } catch { return "home"; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("nexus-last-page", page); } catch { /* storage may be unavailable */ }
+  }, [page]);
   const [workspaceSetupVisible, setWorkspaceSetupVisible] = useState(() => !["complete","skipped"].includes(localStorage.getItem("nexus-workspace-setup") || ""));
   const finishWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "complete"); setWorkspaceSetupVisible(false); };
   const skipWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "skipped"); setWorkspaceSetupVisible(false); };
@@ -362,7 +370,8 @@ export default function App() {
   const [timelineZoom, setTimelineZoom] = useState(() => recoveryDraft?.timelineZoom || 60);
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
   const [precisionTrim, setPrecisionTrim] = useState<{clipId:string;startOffset:number;endOffset:number}|null>(null);
-  const [timelineCollapsed, setTimelineCollapsed] = useState(() => recoveryDraft?.timelineCollapsed || false);
+  // Always reopen the editor with its timeline visible; collapsing is a temporary view choice.
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [previewRatio, setPreviewRatio] = useState(() => recoveryDraft?.previewRatio || 64);
   const previewResizeDrag = useRef<{ startY: number; startRatio: number; pointerId: number } | null>(null);
   const [toolPanelOpen, setToolPanelOpen] = useState(false);
@@ -563,7 +572,7 @@ export default function App() {
         version: 4, projectName, clips, textLayers, imageLayers,
         tracks: trackStates.map(track => ({ ...track, ...(trackMix[track.id] || {}) })),
         aspectRatio, assetIds: assets.map(item => item.id), playhead, timelineZoom,
-        previewRatio, timelineCollapsed, editorView, selectedClipId: selected,
+        previewRatio, timelineCollapsed: false, editorView, selectedClipId: selected,
         savedAt: Date.now()
       };
       return writeRecoverableDraft(snapshot);
