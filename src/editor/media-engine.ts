@@ -37,6 +37,7 @@ export async function extractVideoFilmstripFrames(
   const frames: string[] = [];
 
   for await (const result of sink.canvasesAtTimestamps(timestamps)) {
+    if (!result) continue;
     const source = result.canvas;
     if (!source) continue;
     const width = 112;
