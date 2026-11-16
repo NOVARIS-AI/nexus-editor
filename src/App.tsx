@@ -196,7 +196,8 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         }
         // Canvas extraction is optional. Skip remote URLs that cannot safely be sampled without CORS headers; the main preview uses its own media element and is never touched here.
         const localOrSafeSource = source.startsWith("blob:") || source.startsWith("data:") || (() => { try { return new URL(source, window.location.href).origin === window.location.origin; } catch { return false; } })();
-        if (!localOrSafeSource) { if (!cancelled) setFailed(true); return; }\n        const metadataReady = waitFor("loadedmetadata");
+        if (!localOrSafeSource) { if (!cancelled) setFailed(true); return; }
+        const metadataReady = waitFor("loadedmetadata");
         video.src = source;
         video.load();
         if (video.readyState < HTMLMediaElement.HAVE_METADATA) await metadataReady;
