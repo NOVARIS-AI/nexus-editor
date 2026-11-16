@@ -7637,3 +7637,53 @@ body > nav.nexus-mobile-tool-dock > button {
   .nexus-precision-readouts b{font-size:11px!important}
   .nexus-precision-readouts small{font-size:8px!important}
 }
+
+
+/* NEXUS timeline finish: larger rectangular editing surface and reliable edge targets. */
+.editor-fullscreen.nexus-studio-page .editor-lane{
+  height:60px!important;
+  min-height:60px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute{
+  height:60px!important;
+  min-height:60px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  top:3px!important;
+  height:54px!important;
+  min-height:54px!important;
+  border-radius:2px!important;
+  overflow:hidden!important;
+  touch-action:pan-y!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle{
+  flex:0 0 12px!important;
+  width:12px!important;
+  min-width:12px!important;
+  min-height:40px!important;
+  cursor:ew-resize!important;
+  touch-action:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip.active .editor-trim-handle{
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual{
+  inset:0!important;
+  overflow:hidden!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-lane{
+    height:60px!important;
+    min-height:60px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-clip{
+    height:54px!important;
+    min-height:54px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-trim-handle{
+    flex-basis:14px!important;
+    width:14px!important;
+    min-width:14px!important;
+  }
+}
