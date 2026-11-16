@@ -6974,3 +6974,65 @@ body > nav.nexus-mobile-tool-dock > button {
     max-height:48px !important;
   }
 }
+
+
+/* Hotfix: force the timeline to occupy a visible, usable mobile row. */
+@media (max-width: 760px) {
+  .editor-fullscreen.nexus-studio-page .editor-screen {
+    display: grid !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    grid-template-rows: minmax(0, 1fr) minmax(220px, 32dvh) 88px 14px !important;
+    align-content: stretch !important;
+    overflow: hidden !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone {
+    display: flex !important;
+    grid-row: 2 !important;
+    position: relative !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-height: 220px !important;
+    height: 100% !important;
+    max-height: none !important;
+    overflow: hidden !important;
+    z-index: 2 !important;
+    padding: 5px 7px 4px !important;
+    background: #15171d !important;
+    border-top: 1px solid rgba(255,255,255,.16) !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-head {
+    display: flex !important;
+    flex: 0 0 30px !important;
+    min-height: 30px !important;
+    visibility: visible !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    visibility: visible !important;
+    overflow: auto !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools.nexus-tool-stack {
+    grid-row: 3 !important;
+    height: 88px !important;
+    min-height: 88px !important;
+    max-height: 88px !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools.nexus-tool-stack .nexus-subtool-ribbon,
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools.nexus-tool-stack .nexus-context-controls {
+    display: none !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools.nexus-tool-stack .editor-tool-dock {
+    height: 88px !important;
+    min-height: 88px !important;
+    flex: 1 1 auto !important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-status-line {
+    grid-row: 4 !important;
+    height: 14px !important;
+    min-height: 14px !important;
+  }
+}
