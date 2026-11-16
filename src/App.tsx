@@ -40,7 +40,7 @@ import {
   Activity, UserCircle, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Bookmark, Check, ChevronDown, Clapperboard,
   Cloud, Command, Compass, Film, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Plus, Search, Settings,
-  SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X, Copy, Magnet,
+  SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X, Copy,
   Volume2, Crop, Type, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines, GitBranch, ShieldCheck, Undo2, Redo2, Diamond, Camera, Lock, Unlock
 } from "lucide-react";
 import type { ClipKeyframe, MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "./types";
@@ -325,7 +325,7 @@ export default function App() {
   const touchClipDragMoved = useRef(false);
   const [playhead, setPlayhead] = useState(0);
   const [timelineZoom, setTimelineZoom] = useState(60);
-  const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
+  const [timelineSnapEnabled] = useState(true);
   const [precisionTrim, setPrecisionTrim] = useState<{clipId:string;startOffset:number;endOffset:number}|null>(null);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const [previewRatio, setPreviewRatio] = useState(64);
