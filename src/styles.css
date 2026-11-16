@@ -8207,3 +8207,54 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     margin-left:calc(50% - 132px)!important;
   }
 }
+
+
+/* NEXUS mobile timeline: horizontal swipes scrub the fixed-centre time position.
+   The playhead stays centred because scrollLeft is mapped to playhead seconds. */
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-timeline-head{
+    display:none!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+    padding-top:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+    touch-action:pan-x pan-y!important;
+    overscroll-behavior-x:contain!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-playhead-marker:before{
+    width:11px!important;height:11px!important;left:3.5px!important;
+    box-shadow:0 0 0 2px rgba(255,255,255,.14),0 1px 6px #000b!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-playhead-marker i{
+    left:8px!important;width:2px!important;
+    background:#fff!important;
+    box-shadow:0 0 9px rgba(255,255,255,.58)!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-track-lock svg{
+    width:16px!important;height:16px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-track-mute-button small{
+    font-size:8px!important;
+  }
+}
+/* Keep portrait and landscape media centred inside the NEXUS canvas without
+   forcing a crop; per-clip Fit/Fill remains controlled by the media element. */
+.editor-fullscreen.nexus-studio-page .editor-preview-zone{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  min-width:0!important;
+  width:100%!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame{
+  align-self:center!important;
+  justify-self:center!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame>video,
+.editor-fullscreen.nexus-studio-page .editor-preview-frame>img{
+  object-position:center center!important;
+}
