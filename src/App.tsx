@@ -554,7 +554,8 @@ export default function App() {
   const visibleTextLayers = textLayers.filter(layer => layer.visible !== false && playhead >= layer.start && playhead < layer.start + layer.duration && !trackStates.find(track=>track.id===layer.trackId)?.hidden);
   const duration = useMemo(() => Math.max(timelineDuration(clips), ...imageLayers.map(layer => layer.start + layer.duration), ...textLayers.map(layer => layer.start + layer.duration), 0), [clips, imageLayers, textLayers]);
   const hasExportableContent = clips.length > 0 || imageLayers.some(layer => layer.visible) || textLayers.some(layer => layer.visible !== false);
-  const timelineLeadingSpace = Math.max(0, ((typeof window !== "undefined" ? window.innerWidth : 360) - 54) / 2);\n  const timelineWidth = Math.max(1, (duration + 2) * timelineZoom + timelineLeadingSpace);
+  const timelineLeadingSpace = Math.max(0, ((typeof window !== "undefined" ? window.innerWidth : 360) - 54) / 2);
+  const timelineWidth = Math.max(1, (duration + 2) * timelineZoom + timelineLeadingSpace);
   const changeTimelineZoom = (nextZoom:number, anchor?:{time:number;clientX:number}) => {
     const viewport=timelineScrollRef.current;
     if(viewport){
