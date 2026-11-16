@@ -9,7 +9,7 @@ export async function extractVideoFilmstripFrames(
   sourceIn = 0,
   sourceOut?: number,
   onProgress?: (frames: string[]) => void,
-  performanceTier: "compact" | "balanced" | "power" = "balanced",
+  performanceTier: string = "balanced",
 ): Promise<string[]> {
   const { Input, ALL_FORMATS, BlobSource, CanvasSink } = await import("mediabunny");
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
