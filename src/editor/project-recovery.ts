@@ -1,8 +1,15 @@
 import type { TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "../types";
 
 export type LocalDraft = {
-  version: 3;
+  version: 4;
   projectName: string;
+  assetIds?: string[];
+  playhead?: number;
+  timelineZoom?: number;
+  previewRatio?: number;
+  timelineCollapsed?: boolean;
+  editorView?: string;
+  selectedClipId?: string | null;
   clips: TimelineClip[];
   textLayers: TimelineTextLayer[];
   imageLayers: TimelineImageLayer[];
@@ -50,7 +57,7 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
   if (!raw) return null;
   try {
     const value: unknown = JSON.parse(raw);
-    if (!isRecord(value) || ![1, 2, 3].includes(Number(value.version)) ||
+    if (!isRecord(value) || ![1, 2, 3, 4].includes(Number(value.version)) ||
       typeof value.projectName !== "string" || !Array.isArray(value.clips) ||
       !Array.isArray(value.textLayers) ||
       (value.tracks !== undefined && !Array.isArray(value.tracks)) ||
@@ -61,7 +68,14 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
     const tracks = (value.tracks || []).filter(validTrack) as TimelineTrack[];
     if (new Set(tracks.map(track => track.id)).size !== tracks.length) return null;
     return {
-      version: 3,
+      version: 4,
+      assetIds: Array.isArray(value.assetIds) ? value.assetIds.filter((id): id is string => typeof id === "string").slice(0, 5000) : [],
+      playhead: Number.isFinite(value.playhead) ? Math.max(0, Number(value.playhead)) : 0,
+      timelineZoom: Number.isFinite(value.timelineZoom) ? Math.max(10, Math.min(240, Number(value.timelineZoom))) : 60,
+      previewRatio: Number.isFinite(value.previewRatio) ? Math.max(42, Math.min(82, Number(value.previewRatio))) : 64,
+      timelineCollapsed: value.timelineCollapsed === true,
+      editorView: value.editorView === "workspace" ? "workspace" : "workspace",
+      selectedClipId: typeof value.selectedClipId === "string" ? value.selectedClipId : null,
       projectName: value.projectName.slice(0, 180),
       clips: value.clips as TimelineClip[],
       textLayers: value.textLayers as TimelineTextLayer[],
@@ -77,7 +91,7 @@ export function parseLocalDraft(raw: string | null): LocalDraft | null {
 
 export function readRecoverableDraft(): LocalDraft | null {
   try {
-    const keys = ["nexus-editor-autosave-v3", "nexus-editor-autosave-v2",
+    const keys = ["nexus-editor-autosave-v4", "nexus-editor-autosave-v3", "nexus-editor-autosave-v2",
       "nexus-editor-autosave-v1", "nexus-editor-autosave-backup"];
     const candidates = keys
       .map(key => parseLocalDraft(localStorage.getItem(key)))
@@ -91,14 +105,15 @@ export function readRecoverableDraft(): LocalDraft | null {
 
 export function writeRecoverableDraft(snapshot: LocalDraft): boolean {
   try {
-    const serialised = JSON.stringify({ ...snapshot, version: 3 });
+    const serialised = JSON.stringify({ ...snapshot, version: 4 });
     // localStorage is only for the editable timeline metadata, never media blobs.
     if (serialised.length > 3_500_000) return false;
-    const current = localStorage.getItem("nexus-editor-autosave-v3") ||
+    const current = localStorage.getItem("nexus-editor-autosave-v4") || localStorage.getItem("nexus-editor-autosave-v3") ||
       localStorage.getItem("nexus-editor-autosave-v2");
     if (current && current !== serialised) {
       localStorage.setItem("nexus-editor-autosave-backup", current);
     }
+    localStorage.setItem("nexus-editor-autosave-v4", serialised);
     localStorage.setItem("nexus-editor-autosave-v3", serialised);
     localStorage.setItem("nexus-editor-autosave-v2", serialised);
     return true;
