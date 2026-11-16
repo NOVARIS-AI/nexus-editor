@@ -554,7 +554,7 @@ export default function App() {
   const visibleTextLayers = textLayers.filter(layer => layer.visible !== false && playhead >= layer.start && playhead < layer.start + layer.duration && !trackStates.find(track=>track.id===layer.trackId)?.hidden);
   const duration = useMemo(() => Math.max(timelineDuration(clips), ...imageLayers.map(layer => layer.start + layer.duration), ...textLayers.map(layer => layer.start + layer.duration), 0), [clips, imageLayers, textLayers]);
   const hasExportableContent = clips.length > 0 || imageLayers.some(layer => layer.visible) || textLayers.some(layer => layer.visible !== false);
-  const timelineWidth = Math.max(1, (duration + 2) * timelineZoom);
+  const timelineLeadingSpace = Math.max(0, ((typeof window !== "undefined" ? window.innerWidth : 360) - 54) / 2);\n  const timelineWidth = Math.max(1, (duration + 2) * timelineZoom + timelineLeadingSpace);
   const changeTimelineZoom = (nextZoom:number, anchor?:{time:number;clientX:number}) => {
     const viewport=timelineScrollRef.current;
     if(viewport){
@@ -636,15 +636,12 @@ export default function App() {
   useEffect(() => {
     const viewport = timelineScrollRef.current;
     if (!viewport) return;
-    // Keep the active time under a stable centre playhead while the ruler and
-    // tracks move together. The sticky track labels are excluded from the
-    // usable timeline width so the marker is centred over the clip area.
-    const labelWidth = viewport.querySelector(".editor-lane-labels")?.getBoundingClientRect().width ?? 94;
-    const clipViewportWidth = Math.max(1, viewport.clientWidth - labelWidth);
-    const marker = labelWidth + playhead * timelineZoom;
+    // A leading half-viewport spacer places time zero under the centre
+    // playhead. Scrolling by elapsed timeline pixels then keeps the white
+    // playhead fixed while the ruler and all tracks travel beneath it.
     const target = Math.max(0, Math.min(
       viewport.scrollWidth - viewport.clientWidth,
-      marker - (labelWidth + clipViewportWidth / 2)
+      playhead * timelineZoom
     ));
     if (Math.abs(viewport.scrollLeft - target) > 1) {
       viewport.scrollTo({ left: target, behavior: "auto" });
