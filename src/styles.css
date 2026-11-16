@@ -7450,3 +7450,190 @@ body > nav.nexus-mobile-tool-dock > button {
 .editor-fullscreen.nexus-studio-page .editor-clip{
   min-width:18px!important;
 }
+
+
+/* NEXUS timeline: CapCut-style rectangular clips, contextual controls and precision trim. */
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  top:3px!important;
+  height:44px!important;
+  max-height:none!important;
+  min-height:0!important;
+  padding:0!important;
+  border-radius:2px!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip.active{
+  outline:2px solid var(--accent-c,#f4cf82)!important;
+  outline-offset:1px!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18),0 4px 14px rgba(0,0,0,.38)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle{
+  flex:0 0 10px!important;
+  width:10px!important;
+  min-height:30px!important;
+  height:100%!important;
+  align-self:stretch!important;
+  opacity:0!important;
+  pointer-events:none!important;
+  border-radius:1px!important;
+  background:rgba(255,255,255,.94)!important;
+  box-shadow:0 0 0 1px rgba(10,10,15,.35)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip.active .editor-trim-handle{
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle:after{
+  left:4px!important;
+  top:36%!important;
+  bottom:36%!important;
+  width:2px!important;
+  background:#28202f!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip img{
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-contextbar{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  min-width:0!important;
+  min-height:34px!important;
+  flex:0 0 34px!important;
+  padding:3px 0!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+  border-bottom:1px solid rgba(255,255,255,.07)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-contextbar::-webkit-scrollbar{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-clip-contextbar button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:4px!important;
+  flex:0 0 auto!important;
+  min-width:0!important;
+  min-height:27px!important;
+  height:27px!important;
+  padding:0 8px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:6px!important;
+  background:#252832!important;
+  color:#f4f0f5!important;
+  font-size:9px!important;
+  white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-contextbar button:disabled{opacity:.35!important}
+.editor-fullscreen.nexus-studio-page .editor-clip-context-title{
+  flex:0 1 90px!important;
+  min-width:35px!important;
+  overflow:hidden!important;
+  color:#c9c4d0!important;
+  font-size:8px!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-actions button.active{
+  color:#f4d28a!important;
+  border-color:rgba(244,210,138,.5)!important;
+  background:rgba(244,210,138,.12)!important;
+}
+.nexus-precision-trim-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:10050!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:16px!important;
+  background:rgba(5,6,10,.78)!important;
+  backdrop-filter:blur(12px)!important;
+}
+.nexus-precision-trim{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:13px!important;
+  width:min(680px,100%)!important;
+  max-height:min(92dvh,820px)!important;
+  overflow:auto!important;
+  padding:16px!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:15px!important;
+  background:#191b23!important;
+  color:#f5f1f6!important;
+  box-shadow:0 24px 80px rgba(0,0,0,.55)!important;
+}
+.nexus-precision-trim>header,
+.nexus-precision-trim>footer{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.nexus-precision-trim>header>div{display:grid!important;gap:4px!important}
+.nexus-precision-trim>header b{font-size:12px!important;letter-spacing:1px!important}
+.nexus-precision-trim>header small,.nexus-precision-trim small{color:#a8a5b0!important;font-size:10px!important}
+.nexus-precision-trim button{
+  min-height:34px!important;
+  padding:0 11px!important;
+  border:1px solid rgba(255,255,255,.14)!important;
+  border-radius:7px!important;
+  background:#292c36!important;
+  color:#f5f1f6!important;
+  font-size:11px!important;
+}
+.nexus-precision-trim>header>button{width:34px!important;min-width:34px!important;padding:0!important;font-size:22px!important}
+.nexus-precision-preview{
+  display:grid!important;
+  place-items:center!important;
+  width:100%!important;
+  aspect-ratio:16/9!important;
+  max-height:38dvh!important;
+  overflow:hidden!important;
+  border-radius:9px!important;
+  background:#08090d!important;
+}
+.nexus-precision-preview video,.nexus-precision-preview img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+}
+.nexus-precision-preview audio{width:90%!important}
+.nexus-precision-preview>div{padding:18px!important;color:#aaa!important;font-size:11px!important;text-align:center!important}
+.nexus-precision-readouts{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:8px!important;
+}
+.nexus-precision-readouts>span{
+  display:grid!important;
+  gap:4px!important;
+  min-width:0!important;
+  padding:10px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+  border-radius:8px!important;
+  background:rgba(255,255,255,.035)!important;
+}
+.nexus-precision-readouts b{font-size:13px!important;font-variant-numeric:tabular-nums!important}
+.nexus-precision-readouts small{font-size:9px!important}
+.nexus-precision-range{display:grid!important;gap:7px!important;color:#e8e3ed!important;font-size:11px!important}
+.nexus-precision-range input{width:100%!important;accent-color:#d8b4fe!important}
+.nexus-precision-range>div{display:flex!important;justify-content:flex-end!important;gap:7px!important}
+.nexus-precision-trim>footer{justify-content:flex-end!important;padding-top:4px!important}
+.nexus-precision-trim>footer .primary{border-color:rgba(216,180,254,.45)!important;background:linear-gradient(110deg,#76529c,#59417d)!important}
+@media(max-width:600px){
+  .editor-fullscreen.nexus-studio-page .editor-clip-context-title{display:none!important}
+  .editor-fullscreen.nexus-studio-page .editor-clip-contextbar button{padding:0 7px!important;font-size:8px!important}
+  .nexus-precision-trim-backdrop{padding:8px!important}
+  .nexus-precision-trim{padding:12px!important;gap:10px!important;max-height:96dvh!important}
+  .nexus-precision-preview{max-height:30dvh!important}
+  .nexus-precision-readouts{gap:5px!important}
+  .nexus-precision-readouts>span{padding:7px!important}
+  .nexus-precision-readouts b{font-size:11px!important}
+  .nexus-precision-readouts small{font-size:8px!important}
+}
