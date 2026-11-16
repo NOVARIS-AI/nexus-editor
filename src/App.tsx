@@ -559,7 +559,7 @@ export default function App() {
     const viewport=timelineScrollRef.current;
     if(viewport){
       if(anchor) timelineZoomAnchor.current=anchor;
-      else { const rect=viewport.getBoundingClientRect(); const clientX=rect.left+viewport.clientWidth/2; const labelWidth=viewport.querySelector(".editor-lane-labels")?.getBoundingClientRect().width??142; timelineZoomAnchor.current={time:viewport.scrollLeft/timelineZoom,clientX}; }
+      else { const rect=viewport.getBoundingClientRect(); const clientX=rect.left+viewport.clientWidth/2; timelineZoomAnchor.current={time:viewport.scrollLeft/timelineZoom,clientX}; }
     }
     setTimelineZoom(nextZoom);
   };
@@ -569,7 +569,6 @@ export default function App() {
     const anchor=timelineZoomAnchor.current;
     const rect=viewport.getBoundingClientRect();
     if(anchor){
-      const labelWidth=viewport.querySelector(".editor-lane-labels")?.getBoundingClientRect().width??142;
       const target=viewport.clientWidth/2+anchor.time*timelineZoom-(anchor.clientX-rect.left);
       const maxScroll=Math.max(0,viewport.scrollWidth-viewport.clientWidth);
       viewport.scrollLeft=Math.max(0,Math.min(maxScroll,target));
