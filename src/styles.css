@@ -8258,3 +8258,29 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 .editor-fullscreen.nexus-studio-page .editor-preview-frame>img{
   object-position:center center!important;
 }
+
+
+/* Fixed centre playhead overlay: the ruler and every track scroll beneath it. */
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+    position:relative!important;
+    isolation:isolate!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll:after{
+    content:""!important;
+    position:absolute!important;
+    z-index:40!important;
+    top:0!important;
+    bottom:0!important;
+    left:calc(50% + 71px)!important;
+    width:2px!important;
+    background:rgba(255,255,255,.96)!important;
+    border-radius:2px!important;
+    box-shadow:0 0 8px rgba(255,255,255,.48)!important;
+    pointer-events:none!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-playhead-marker{
+    visibility:hidden!important;
+    pointer-events:none!important;
+  }
+}
