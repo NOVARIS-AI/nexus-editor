@@ -170,7 +170,8 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const clipStart = Math.max(0, Math.min(sourceIn, Math.max(0, mediaEnd - 0.05)));
         const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
-        const positions = [0.04, 0.17, 0.30, 0.43, 0.56, 0.69, 0.82, 0.96];
+        const frameCount = Math.max(8, Math.min(48, Math.ceil((clipEnd - clipStart) * 0.75)));
+        const positions = Array.from({ length: frameCount }, (_, index) => (index + 0.5) / frameCount);
         const output: string[] = [];
         for (const fraction of positions) {
           if (cancelled) return;
