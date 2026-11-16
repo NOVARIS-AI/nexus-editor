@@ -2882,6 +2882,7 @@ export default function App() {
               <div><b>TIMELINE</b><small>{clips.length} clips · {activeTrackStates.length} tracks</small></div>
               <div className="editor-timeline-actions">
                 <span className="editor-timeline-clock">{clock(playhead)}</span>
+                <button type="button" title="Split selected clip at playhead" aria-label="Split selected clip at playhead" disabled={!selectedClip || playhead <= selectedClip.start + 0.04 || playhead >= selectedClip.start + clipDuration(selectedClip) - 0.04} onClick={split}><Scissors size={13}/></button>
                 <button type="button" title="Zoom out" aria-label="Zoom out timeline" onClick={()=>changeTimelineZoom(Math.max(24,timelineZoom-8))}>−</button>
                 <button type="button" title="Zoom in" aria-label="Zoom in timeline" onClick={()=>changeTimelineZoom(Math.min(180,timelineZoom+8))}>＋</button>
               </div>
