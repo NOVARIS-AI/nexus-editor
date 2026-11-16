@@ -620,8 +620,16 @@ export default function App() {
   useEffect(() => {
     const viewport = timelineScrollRef.current;
     if (!viewport) return;
+    // Keep the playhead near the left edge of the clip area, like a real
+    // editing timeline, instead of repeatedly pulling it into the centre.
     const marker = playhead * timelineZoom;
-    const target = Math.max(0, Math.min(viewport.scrollWidth - viewport.clientWidth, marker - viewport.clientWidth / 2));
+    const leftGuard = 26;
+    const rightGuard = Math.max(leftGuard + 24, viewport.clientWidth - 42);
+    const visibleMarker = marker - viewport.scrollLeft;
+    let target = viewport.scrollLeft;
+    if (visibleMarker < leftGuard) target = marker - leftGuard;
+    else if (visibleMarker > rightGuard) target = marker - leftGuard;
+    target = Math.max(0, Math.min(viewport.scrollWidth - viewport.clientWidth, target));
     if (Math.abs(viewport.scrollLeft - target) > 1) viewport.scrollTo({ left: target, behavior: "auto" });
   }, [playhead, timelineZoom]);
   useEffect(() => {
