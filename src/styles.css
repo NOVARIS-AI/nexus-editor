@@ -7881,7 +7881,6 @@ body > nav.nexus-mobile-tool-dock > button {
   display:flex!important;
   align-items:flex-end!important;
   box-sizing:content-box!important;
-  width:max-content!important;
   min-width:0!important;
   min-height:28px!important;
   height:28px!important;
@@ -8027,7 +8026,6 @@ body > nav.nexus-mobile-tool-dock > button {
   display:flex!important;
   flex-direction:column!important;
   flex:0 0 auto!important;
-  width:max-content!important;
   min-width:0!important;
   height:max-content!important;
   min-height:0!important;
