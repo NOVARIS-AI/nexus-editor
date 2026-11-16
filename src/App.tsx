@@ -305,12 +305,13 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
 }
 
 export default function App() {
+  const [recoveryDraft] = useState<LocalDraft | null>(() => readLocalDraft());
   const hasRecoverableProject = !!recoveryDraft && ((recoveryDraft.clips?.length || 0) + (recoveryDraft.imageLayers?.length || 0) + (recoveryDraft.textLayers?.length || 0) + (recoveryDraft.assetIds?.length || 0) > 0);
   const [page, setPage] = useState<Page>(() => hasRecoverableProject ? "editor" : "home");
   const [workspaceSetupVisible, setWorkspaceSetupVisible] = useState(() => !["complete","skipped"].includes(localStorage.getItem("nexus-workspace-setup") || ""));
   const finishWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "complete"); setWorkspaceSetupVisible(false); };
   const skipWorkspaceSetup = () => { localStorage.setItem("nexus-workspace-setup", "skipped"); setWorkspaceSetupVisible(false); };
-  const [recoveryDraft] = useState<LocalDraft | null>(() => readLocalDraft());
+
   const [draftSaveStatus, setDraftSaveStatus] = useState(recoveryDraft ? "Recovered draft · re-import media" : "Autosave ready");
   const [projectName, setProjectName] = useState(() => recoveryDraft?.projectName || "Untitled Project");
   const [assets, setAssets] = useState<MediaAsset[]>([]);
