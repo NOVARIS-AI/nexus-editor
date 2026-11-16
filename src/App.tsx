@@ -73,6 +73,7 @@ import { VideoObjectEraserStudio } from "./editor/VideoObjectEraserStudio";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS, NEXUS_VIDEO_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
+import { extractVideoFilmstripFrames, extractAudioWaveformPeaks } from "./editor/media-engine";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext, buildReferenceFusion } from "./editor/reference-workflow";
 import { understandDirectorPrompt } from "./editor/prompt-understander";
@@ -177,6 +178,20 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
     };
     const capture = async () => {
       try {
+        // Prefer Mediabunny's timestamp-aware decoder for a real filmstrip.
+        // Keep the HTMLVideoElement route as a compatibility fallback for older WebViews/codecs.
+        if (file) {
+          try {
+            const extracted = await extractVideoFilmstripFrames(
+              file,
+              duration,
+              sourceIn,
+              sourceOut,
+              partial => { if (!cancelled) setFrames(partial); },
+            );
+            if (!cancelled && extracted.length) { setFrames(extracted); return; }
+          } catch { /* Fall through to the browser video-element decoder. */ }
+        }
         const metadataReady = waitFor("loadedmetadata");
         video.src = source;
         video.load();
@@ -238,11 +253,19 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
     if (fallback?.length) { setWaveform(fallback); return; }
     setWaveform([]);
     setFailed(false);
-    if (!asset.file || asset.file.size > 96 * 1024 * 1024) return;
+    if (!asset.file) return;
     const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextCtor) { setFailed(true); return; }
     const build = async () => {
       try {
+        // Mediabunny decodes short chunks incrementally, avoiding a full-file
+        // AudioBuffer allocation for long recordings on memory-constrained phones.
+        try {
+          const peaks = await extractAudioWaveformPeaks(asset.file!, 144);
+          if (cancelled) return;
+          if (peaks.length) { setWaveform(peaks); return; }
+        } catch { /* Use Web Audio fallback for older or unsupported codecs. */ }
+        if (asset.file!.size > 96 * 1024 * 1024) throw new Error("Audio is too large for the legacy decoder");
+        if (!AudioContextCtor) throw new Error("Web Audio is unavailable");
         context = new AudioContextCtor();
         const decoded = await context.decodeAudioData(await asset.file!.arrayBuffer());
         if (cancelled) return;
