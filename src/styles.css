@@ -8731,3 +8731,188 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     max-height: 84px !important;
   }
 }
+
+/* NEXUS CapCut timeline stage: unified scrolling origin, controls travel with media. */
+/* Remove the separate timeline title/action shelf; the ruler is the first timeline row. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-head{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{padding:0!important;background:#0b0c0e!important;border:0!important;border-radius:0!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{position:relative!important;overflow-x:auto!important;overflow-y:auto!important;background:#0b0c0e!important;scrollbar-width:thin!important;overscroll-behavior-x:contain!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  box-sizing:border-box!important;
+  width:max-content!important;
+  min-width:calc(100% + 1px)!important;
+  margin:0!important;
+  padding-left:50vw!important;
+  padding-right:50vw!important;
+  height:30px!important;
+  background:#0b0c0e!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows{
+  display:flex!important;
+  width:max-content!important;
+  min-width:calc(100% + 1px)!important;
+  margin:0!important;
+  padding:0 50vw 12px 0!important;
+  align-items:flex-start!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels{
+  position:relative!important;
+  left:auto!important;
+  z-index:2!important;
+  flex:0 0 50vw!important;
+  width:50vw!important;
+  min-width:50vw!important;
+  max-width:50vw!important;
+  background:transparent!important;
+  border:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  box-sizing:border-box!important;
+  display:flex!important;
+  width:100%!important;
+  min-width:100%!important;
+  max-width:100%!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  padding:0 10px 0 0!important;
+  background:transparent!important;
+  border:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-name,
+.editor-fullscreen.nexus-studio-page .editor-track-lock{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-track-cover{
+  display:grid!important;
+  flex:0 0 34px!important;
+  width:34px!important;
+  height:34px!important;
+  margin-right:8px!important;
+  border:0!important;
+  border-radius:5px!important;
+  background:#1c1e24!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button{
+  display:flex!important;
+  flex:0 0 34px!important;
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  border:0!important;
+  border-radius:6px!important;
+  background:transparent!important;
+  color:#e8e8eb!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button small{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-lanes{
+  flex:0 0 auto!important;
+  width:max-content!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner{
+  margin:0!important;
+  padding:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll:after{
+  left:50%!important;
+  top:0!important;
+  bottom:0!important;
+  width:2px!important;
+  background:#fff!important;
+  box-shadow:0 0 2px #000!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll:before{
+  content:""!important;
+  position:absolute!important;
+  z-index:41!important;
+  top:0!important;
+  left:calc(50% - 5px)!important;
+  width:10px!important;
+  height:10px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  pointer-events:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:4px!important;
+  background:#732644!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:not(.active) .editor-trim-handle{opacity:0!important;pointer-events:none!important}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual{
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  overflow:hidden!important;
+  padding:0!important;
+  margin:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip,
+.editor-fullscreen.nexus-studio-page .timeline-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual>*{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  gap:0!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip img,
+.editor-fullscreen.nexus-studio-page .timeline-video-filmstrip img,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual img{
+  flex:1 1 0!important;
+  min-width:0!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border:0!important;
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-title{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-clip-contextbar{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-transport.nexus-pro-transport{
+  flex:0 0 42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  grid-template-columns:34px minmax(0,1fr) 72px!important;
+  padding:0 12px!important;
+  background:#050506!important;
+  border:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport .editor-time-readout{display:none!important}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport .editor-play{
+  width:30px!important;height:30px!important;min-width:30px!important;
+  border:0!important;border-radius:0!important;background:transparent!important;
+  color:#fff!important;grid-column:2!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport .nexus-transport-actions{
+  grid-column:3!important;gap:6px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-pro-transport .nexus-transport-actions button{
+  width:28px!important;height:28px!important;min-width:28px!important;
+  border:0!important;border-radius:0!important;background:transparent!important;color:#fff!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler:before{
+  content:attr(data-time-readout)!important;
+  position:sticky!important;
+  left:0!important;
+  z-index:5!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  height:28px!important;
+  min-width:82px!important;
+  padding:0 8px!important;
+  margin-left:-50vw!important;
+  background:#0b0c0e!important;
+  color:#f5f5f5!important;
+  font-size:10px!important;
+  font-variant-numeric:tabular-nums!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-lane-labels{flex-basis:50vw!important;width:50vw!important;min-width:50vw!important}
+  .editor-fullscreen.nexus-studio-page .editor-timeline-ruler{padding-left:50vw!important;padding-right:50vw!important}
+}
