@@ -1107,6 +1107,25 @@ export default function App() {
     if (!trimmed) { setStatus("Move the playhead inside the selected clip before trimming its end."); return; }
     applyClipChange(clips.map(c => c.id === selectedClip.id ? trimmed : c), "Trim applied to selected clip. Undo is available.");
   }
+  function trimSelectedStartAtPlayhead() {
+    if (!selectedClip) return;
+    const fps = Math.max(1, Number.parseInt(exportFps, 10) || 30);
+    const frame = 1 / fps;
+    const offset = playhead - selectedClip.start;
+    const length = clipDuration(selectedClip);
+    if (offset < frame || offset >= length - frame) {
+      setStatus("Place the playhead at least one frame inside the selected clip to trim its start.");
+      return;
+    }
+    const sourceIn = clipSourceAtTimeline(selectedClip, offset);
+    if (sourceIn >= selectedClip.sourceOut - 0.001) {
+      setStatus("The start trim must leave at least one frame of media.");
+      return;
+    }
+    const trimmed = { ...selectedClip, start: playhead, sourceIn };
+    applyClipChange(clips.map(item => item.id === selectedClip.id ? trimmed : item), "Clip start trimmed to the playhead. Undo is available.");
+    setPlayhead(trimmed.start);
+  }
   function applyPrecisionTrim() {
     if (!selectedClip || !precisionTrim || precisionTrim.clipId !== selectedClip.id) return;
     const fps = Math.max(1, Number.parseInt(exportFps, 10) || 30);
@@ -2914,6 +2933,8 @@ export default function App() {
             </div>
             {selectedClip && <div className="editor-clip-contextbar" role="toolbar" aria-label="Selected clip actions">
               <span className="editor-clip-context-title" title={selectedClip.label}>{selectedClip.label}</span>
+              <button type="button" title="Trim the selected clip's beginning to the playhead" disabled={playhead <= selectedClip.start + 1 / Math.max(1,Number.parseInt(exportFps,10)||30) || playhead >= selectedClip.start + clipDuration(selectedClip) - 1 / Math.max(1,Number.parseInt(exportFps,10)||30)} onClick={trimSelectedStartAtPlayhead}><ArrowLeft size={14}/>Start here</button>
+              <button type="button" title="Trim the selected clip's ending to the playhead" disabled={playhead <= selectedClip.start + 1 / Math.max(1,Number.parseInt(exportFps,10)||30) || playhead >= selectedClip.start + clipDuration(selectedClip) - 1 / Math.max(1,Number.parseInt(exportFps,10)||30)} onClick={trimSelectedAtPlayhead}><ArrowRight size={14}/>End here</button>
               <button type="button" disabled={playhead <= selectedClip.start + 0.04 || playhead >= selectedClip.start + clipDuration(selectedClip) - 0.04} onClick={split}><Scissors size={14}/>Split</button>
               <button type="button" onClick={()=>{const copy={...selectedClip,id:uid(),start:selectedClip.start+clipDuration(selectedClip),label:selectedClip.label+" copy"};applyClipChange([...clips,copy],"Selected clip duplicated after the original.");setSelected(copy.id);setPlayhead(copy.start);}}><Copy size={14}/>Duplicate</button>
               <button type="button" onClick={()=>setPrecisionTrim({clipId:selectedClip.id,startOffset:0,endOffset:clipDuration(selectedClip)})}><SlidersHorizontal size={14}/>Precision trim</button>
