@@ -9,6 +9,7 @@ export async function extractVideoFilmstripFrames(
   sourceIn = 0,
   sourceOut?: number,
   onProgress?: (frames: string[]) => void,
+  performanceTier: "compact" | "balanced" | "power" = "balanced",
 ): Promise<string[]> {
   const { Input, ALL_FORMATS, BlobSource, CanvasSink } = await import("mediabunny");
   const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
@@ -27,7 +28,8 @@ export async function extractVideoFilmstripFrames(
   // Sparse timestamp decoding avoids repeatedly seeking a DOM video element.
   // A one-canvas pool bounds GPU memory on lower-end Android devices.
   const sink = new CanvasSink(track, { width: 112, poolSize: 1 });
-  const count = Math.max(8, Math.min(72, Math.ceil((end - start) * 0.65)));
+  const frameLimit = performanceTier === "compact" ? 28 : performanceTier === "power" ? 72 : 48;
+  const count = Math.max(8, Math.min(frameLimit, Math.ceil((end - start) * 0.65)));
   const timestamps = Array.from({ length: count }, (_, index) =>
     start + (end - start) * ((index + 0.5) / count)
   );
@@ -62,7 +64,8 @@ export async function extractAudioWaveformPeaks(file: File, requestedBars = 144)
   const firstTimestamp = await track.getFirstTimestamp();
   if (!sampleRate || !duration) throw new Error("Audio track has no duration");
 
-  const count = Math.max(48, Math.min(240, requestedBars));
+  const tierLimit = requestedBars <= 96 ? 96 : requestedBars <= 144 ? 144 : 240;
+  const count = Math.max(48, Math.min(tierLimit, requestedBars));
   const peaks = new Float32Array(count);
   const sink = new AudioSampleSink(track);
 
