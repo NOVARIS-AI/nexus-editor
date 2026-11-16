@@ -7743,3 +7743,22 @@ body > nav.nexus-mobile-tool-dock > button {
  display:flex!important;align-items:center!important;justify-content:center!important;
  width:100%!important;height:100%!important;color:#d6dbe4!important;background:#303744!important;font-size:9px!important;
 }
+
+
+/* NEXUS editor recovery: keep preview media visible and timeline controls usable. */
+.editor-fullscreen.nexus-studio-page .editor-preview-frame>video,
+.editor-fullscreen.nexus-studio-page .editor-preview-frame>img{
+  position:relative!important;z-index:2!important;display:block!important;
+  visibility:visible!important;opacity:1;max-width:100%!important;max-height:100%!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover,
+.editor-fullscreen.nexus-studio-page .editor-track-lock,
+.editor-fullscreen.nexus-studio-page .editor-track-mute>button{
+  visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip .editor-filmstrip-loading{
+  position:relative!important;z-index:3!important;min-width:100%!important;
+}
