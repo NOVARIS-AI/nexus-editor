@@ -7762,3 +7762,13 @@ body > nav.nexus-mobile-tool-dock > button {
 .editor-fullscreen.nexus-studio-page .editor-video-filmstrip .editor-filmstrip-loading{
   position:relative!important;z-index:3!important;min-width:100%!important;
 }
+
+
+/* Timeline origin: first frame begins beside the track labels, not mid-screen. */
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner{
+  margin-left:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  padding-left:0!important;
+  margin-left:94px!important;
+}
