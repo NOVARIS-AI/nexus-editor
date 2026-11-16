@@ -7363,16 +7363,12 @@ body > nav.nexus-mobile-tool-dock > button {
 .editor-fullscreen.nexus-studio-page .editor-timeline-scroll::-webkit-scrollbar{display:none!important}
 .editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
   box-sizing:border-box!important;
-  width:max-content!important;
-  min-width:calc(100vw + 100%)!important;
   padding-left:50vw!important;
   padding-right:50vw!important;
   justify-content:flex-start!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-timeline-rows{
   box-sizing:border-box!important;
-  width:max-content!important;
-  min-width:calc(100vw + 100%)!important;
   height:max-content!important;
   min-height:0!important;
   align-items:stretch!important;
@@ -7385,16 +7381,12 @@ body > nav.nexus-mobile-tool-dock > button {
 }
 .editor-fullscreen.nexus-studio-page .editor-lanes-inner{
   margin-left:calc(50vw - 126px)!important;
-  width:max-content!important;
-  min-width:calc(100vw + 100%)!important;
   height:max-content!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-lane{
   box-sizing:border-box!important;
   height:50px!important;
   min-height:50px!important;
-  width:max-content!important;
-  min-width:calc(100vw + 100%)!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-track-mute{
   flex:0 0 50px!important;
