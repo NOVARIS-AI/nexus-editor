@@ -194,7 +194,9 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
             if (!cancelled && extracted.length) { setFrames(extracted); return; }
           } catch { /* Fall through to the browser video-element decoder. */ }
         }
-        // Canvas extraction is optional. Skip remote URLs that cannot safely be sampled without CORS headers; the main preview uses its own media element and is never touched here.\n        const localOrSafeSource = source.startsWith("blob:") || source.startsWith("data:") || (() => { try { return new URL(source, window.location.href).origin === window.location.origin; } catch { return false; } })();\n        if (!localOrSafeSource) { if (!cancelled) setFailed(true); return; }\n        const metadataReady = waitFor("loadedmetadata");
+        // Canvas extraction is optional. Skip remote URLs that cannot safely be sampled without CORS headers; the main preview uses its own media element and is never touched here.
+        const localOrSafeSource = source.startsWith("blob:") || source.startsWith("data:") || (() => { try { return new URL(source, window.location.href).origin === window.location.origin; } catch { return false; } })();
+        if (!localOrSafeSource) { if (!cancelled) setFailed(true); return; }\n        const metadataReady = waitFor("loadedmetadata");
         video.src = source;
         video.load();
         if (video.readyState < HTMLMediaElement.HAVE_METADATA) await metadataReady;
@@ -243,8 +245,8 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     };
   }, [src, file, duration, sourceIn, sourceOut]);
-  return <span className="editor-video-filmstrip" data-frame-count={frames.length} aria-label="Extracted video frame thumbnails">
-    {frames.length ? frames.map((frame, index) => <img key={index} src={frame} alt="" />) : <span className="editor-filmstrip-loading">{failed ? "Frame extraction unavailable · re-import video" : "Extracting video frames…"}</span>}
+  return <span className="editor-video-filmstrip" data-frame-count={frames.length} data-extraction-state={failed ? "fallback" : frames.length ? "ready" : "loading"} aria-label="Video timeline thumbnails">
+    {frames.length ? frames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:8},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:3}} />)}
   </span>;
 }
 function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallback?: number[] }) {
