@@ -29,10 +29,13 @@ export async function extractVideoFilmstripFrames(
   // A one-canvas pool bounds GPU memory on lower-end Android devices.
   const sink = new CanvasSink(track, { width: 112, poolSize: 1 });
   const frameLimit = performanceTier === "compact" ? 360 : performanceTier === "power" ? 900 : 600;
-  // One timestamp-centred thumbnail per source second gives each second a real, inspectable film cell.
-  const count = Math.max(1, Math.min(frameLimit, Math.ceil(clipDuration)));
+  // Sample multiple real source frames across the selected range. The timeline can
+  // choose representative cells for its one-second dividers, while the cache keeps
+  // enough chronological detail for accurate trimming and zoomed filmstrips.
+  const sampleSpan = Math.max(0.04, end - start);
+  const count = Math.max(8, Math.min(frameLimit, Math.ceil(sampleSpan * 4)));
   const timestamps = Array.from({ length: count }, (_, index) =>
-    start + (end - start) * ((index + 0.5) / count)
+    start + sampleSpan * ((index + 0.5) / count)
   );
   const outputCanvas = document.createElement("canvas");
   const outputContext = outputCanvas.getContext("2d");
