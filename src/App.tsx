@@ -220,7 +220,6 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const clipStart = Math.max(0, Math.min(sourceIn, Math.max(0, mediaEnd - 0.05)));
         const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
-        const fallbackFrameLimit = deviceProfile.tier === "compact" ? 360 : deviceProfile.tier === "power" ? 900 : 600;
         // Five evenly spaced frames fill one visible filmstrip row.
         // Keep the fallback light on compact Android devices and long clips.
         const frameCount = Math.max(1, Math.min(5, Math.ceil(duration)));
