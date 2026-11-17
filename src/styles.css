@@ -9307,3 +9307,72 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   .editor-fullscreen.nexus-studio-page .editor-preview-frame,
   .editor-fullscreen.nexus-studio-page .editor-preview-empty{min-height:150px!important}
 }
+
+
+/* Precision filmstrip rendering and crisp mobile trim boundaries. */
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  grid-auto-flow:column!important;
+  grid-auto-columns:20%!important;
+  gap:0!important;
+  overflow:hidden!important;
+  contain:paint;
+}
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip img,
+.editor-fullscreen.nexus-studio-page .editor-image-filmstrip img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  border:0!important;
+  border-right:1px solid rgba(255,255,255,.28)!important;
+  border-radius:0!important;
+  image-rendering:auto;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  border-radius:3px!important;
+  overflow:hidden!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle{
+  position:absolute!important;
+  top:0!important;
+  bottom:0!important;
+  width:4px!important;
+  min-height:100%!important;
+  flex:0 0 4px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  opacity:1!important;
+  box-shadow:0 0 0 1px rgba(12,8,16,.55)!important;
+  touch-action:none!important;
+  z-index:8!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-trim-start{left:0!important;right:auto!important}
+.editor-fullscreen.nexus-studio-page .editor-trim-end{right:0!important;left:auto!important}
+.editor-fullscreen.nexus-studio-page .editor-trim-handle:after{
+  content:""!important;
+  position:absolute!important;
+  left:1px!important;
+  right:1px!important;
+  top:0!important;
+  bottom:0!important;
+  width:auto!important;
+  border-radius:0!important;
+  background:#f5c95c!important;
+  opacity:1!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-trim-handle{
+    width:4px!important;
+    min-height:100%!important;
+  }
+}
