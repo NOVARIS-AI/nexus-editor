@@ -706,18 +706,22 @@ export default function App() {
     if (!viewport) return;
     const marker = viewport.querySelector<HTMLElement>(".editor-playhead-marker");
     if (!marker) return;
+    // Let the playhead travel freely across the visible timeline first.
+    // Only once it reaches the phone/viewport's right edge do we move the
+    // timeline content backwards underneath it, keeping the playhead visible.
     const viewportRect = viewport.getBoundingClientRect();
     const markerRect = marker.getBoundingClientRect();
-    const rightLimit = viewportRect.right - Math.min(72, viewport.clientWidth * 0.14);
-    const leftLimit = viewportRect.left + 48;
-    let delta = 0;
-    if (markerRect.right > rightLimit) delta = markerRect.right - rightLimit;
-    else if (markerRect.left < leftLimit && playhead > 0.02) delta = markerRect.left - leftLimit;
-    if (Math.abs(delta) > 1) {
-      timelineAutoScroll.current = true;
-      viewport.scrollLeft = Math.max(0, Math.min(viewport.scrollWidth - viewport.clientWidth, viewport.scrollLeft + delta));
+    const rightLimit = viewportRect.right - 22;
+    if (markerRect.right <= rightLimit) return;
+    const delta = markerRect.right - rightLimit;
+    const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+    const nextScroll = Math.min(maxScroll, viewport.scrollLeft + delta);
+    if (nextScroll <= viewport.scrollLeft + 0.5) return;
+    timelineAutoScroll.current = true;
+    viewport.scrollLeft = nextScroll;
+    window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => { timelineAutoScroll.current = false; });
-    }
+    });
   }, [playhead, timelineZoom]);
   useEffect(() => {
     const element = video.current;
