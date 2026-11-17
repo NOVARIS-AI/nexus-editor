@@ -9441,3 +9441,114 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     left:calc(50% + 66px)!important;
   }
 }
+
+
+/* NEXUS responsive timeline controls + moving playhead. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll:after{content:none!important;display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-playhead-marker{
+  display:block!important;visibility:visible!important;opacity:1!important;
+  position:absolute!important;z-index:95!important;top:0!important;bottom:0!important;
+  width:16px!important;height:auto!important;margin:0 0 0 -8px!important;
+  pointer-events:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-playhead-marker:before{
+  content:""!important;position:absolute!important;top:0!important;left:3px!important;
+  width:10px!important;height:11px!important;border-radius:3px 3px 6px 6px!important;
+  background:#fff!important;box-shadow:0 0 0 1px #0008,0 0 9px #fff9!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-playhead-marker i{
+  position:absolute!important;top:10px!important;bottom:0!important;left:7px!important;
+  width:2px!important;background:#fff!important;border-radius:2px!important;
+  box-shadow:0 0 9px #fff9!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{scroll-behavior:auto!important}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels{
+  flex:0 0 116px!important;width:116px!important;min-width:116px!important;
+  max-width:116px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  display:grid!important;grid-template-columns:36px minmax(0,1fr) 28px;
+  grid-template-rows:27px 22px;align-items:center!important;justify-items:center!important;
+  width:116px!important;min-width:116px!important;max-width:116px!important;
+  min-height:52px!important;height:52px!important;padding:2px 5px!important;
+  box-sizing:border-box!important;gap:1px 5px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover{
+  grid-column:1!important;grid-row:1 / span 2!important;
+  display:grid!important;position:relative!important;overflow:hidden!important;
+  flex:none!important;width:34px!important;min-width:34px!important;height:34px!important;
+  margin:0!important;align-self:center!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-name{
+  display:block!important;grid-column:2!important;grid-row:1!important;
+  min-width:0!important;max-width:100%!important;overflow:hidden!important;
+  text-overflow:ellipsis!important;white-space:nowrap!important;font-size:9px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-lock{
+  display:grid!important;grid-column:3!important;grid-row:1!important;
+  width:25px!important;min-width:25px!important;height:24px!important;
+  flex:none!important;margin:0!important;padding:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button{
+  display:grid!important;grid-column:2 / span 2!important;grid-row:2!important;
+  justify-self:end!important;width:48px!important;min-width:48px!important;height:21px!important;
+  flex:none!important;margin:0!important;padding:0 4px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button small{display:inline!important;font-size:8px!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  padding-left:116px!important;padding-right:24px!important;margin:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows{
+  padding-left:0!important;padding-right:24px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lanes{
+  margin:0!important;padding:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute>*{box-sizing:border-box!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll,
+.editor-fullscreen.nexus-studio-page .editor-screen,
+.editor-fullscreen.nexus-studio-page .editor-preview-zone,
+.editor-fullscreen.nexus-studio-page .editor-bottom-tools{min-width:0!important;max-width:100%!important}
+@media(min-width:761px){
+  .editor-fullscreen.nexus-studio-page{
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;max-width:100vw!important;height:100dvh!important;
+    min-height:0!important;overflow:hidden!important;box-sizing:border-box!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-topbar{flex:0 0 auto!important;min-width:0!important;width:100%!important}
+  .editor-fullscreen.nexus-studio-page .editor-screen{
+    flex:1 1 0!important;display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(180px,1fr) clamp(190px,29dvh,330px) clamp(92px,13dvh,138px) 14px!important;
+    width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+    overflow:hidden!important;box-sizing:border-box!important;
+    padding:clamp(8px,1.2vw,18px)!important;gap:clamp(6px,.8vw,12px)!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"]{
+    grid-template-rows:minmax(0,1fr) 0 clamp(92px,13dvh,138px) 14px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone,
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame{
+    width:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+    min-width:0!important;width:100%!important;min-height:190px!important;
+    max-height:34dvh!important;overflow:hidden!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    height:100%!important;max-height:100%!important;overflow:auto!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools{
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    min-height:0!important;height:100%!important;max-height:100%!important;overflow:auto!important;
+  }
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-lane-labels{flex-basis:104px!important;width:104px!important;min-width:104px!important;max-width:104px!important}
+  .editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{width:104px!important;min-width:104px!important;max-width:104px!important;grid-template-columns:32px minmax(0,1fr) 24px!important;gap:1px 3px!important}
+  .editor-fullscreen.nexus-studio-page .editor-timeline-ruler{padding-left:104px!important}
+  .editor-fullscreen.nexus-studio-page .editor-track-cover{width:30px!important;min-width:30px!important;height:30px!important}
+  .editor-fullscreen.nexus-studio-page .editor-track-lock{width:22px!important;min-width:22px!important}
+}
