@@ -502,7 +502,7 @@ export default function App() {
     }
     window.addEventListener("resize", updateWidth);
     return () => window.removeEventListener("resize", updateWidth);
-  }, []);
+  }, [page, editorView, timelineCollapsed]);
   const timelineScrubPointer = useRef<number | null>(null);
   const timelinePinch = useRef<{distance:number;zoom:number;scrollLeft:number;midpoint:number}|null>(null);
   const timelinePanDrag = useRef<{pointerId:number;startX:number;scrollLeft:number}|null>(null);
@@ -737,6 +737,22 @@ export default function App() {
   useEffect(() => {
     const element = video.current;
     if (!element || previewAsset?.kind !== "video" || !previewClip) return;
+    if (playheadFromPlayback.current) { playheadFromPlayback.current = false; return; }
+    const seekToPlayhead = () => {
+      if (!Number.isFinite(element.duration) || element.readyState < HTMLMediaElement.HAVE_METADATA) return;
+      const local = Math.max(0, playhead - previewClip.start);
+      const target = Math.min(clipSourceAtTimeline(previewClip, local), Math.max(0, element.duration - 0.04));
+      const playbackRate = speedAtSourceProgress(previewClip, (target - previewClip.sourceIn) / Math.max(.001, previewClip.sourceOut - previewClip.sourceIn));
+      if (Math.abs(element.playbackRate - playbackRate) > .01) element.playbackRate = playbackRate;
+      if (Math.abs(element.currentTime - target) > .12) { try { element.currentTime = target; } catch {} }
+    };
+    if (element.readyState >= HTMLMediaElement.HAVE_METADATA) seekToPlayhead();
+    else element.addEventListener("loadedmetadata", seekToPlayhead, { once: true });
+    return () => element.removeEventListener("loadedmetadata", seekToPlayhead);
+  }, [playhead, previewClip?.id, previewClip?.sourceIn, previewClip?.sourceOut, previewClip?.speed, previewAsset?.kind, previewAsset?.id, previewAsset?.objectUrl]);
+  useEffect(() => {
+    const element = audioPreview.current;
+    if (!element || previewAsset?.kind !== "audio" || !previewClip) return;
     if (playheadFromPlayback.current) { playheadFromPlayback.current = false; return; }
     const seekToPlayhead = () => {
       if (!Number.isFinite(element.duration) || element.readyState < HTMLMediaElement.HAVE_METADATA) return;
@@ -3049,7 +3065,7 @@ export default function App() {
               <div className="nexus-transport-pills"><i/><i/></div>
               <div className="nexus-transport-main">
                 <span className="nexus-transport-time">{clock(playhead)} / {clock(duration)}</span>
-                <button type="button" className="nexus-transport-play" aria-label={previewPlaying?"Pause preview":"Play preview"} title={previewPlaying?"Pause preview":"Play preview"} onClick={()=>{const element=video.current||audioPreview.current;if(!element)return;if(element.paused){const lastClipEndsAtTimelineEnd=!!previewClip&&previewClip.start+clipDuration(previewClip)>=duration-0.1;if(playhead>=duration-0.1||(element.duration>0&&element.currentTime>=element.duration-0.1&&lastClipEndsAtTimelineEnd)){setPlayhead(0);const viewport=timelineScrollRef.current;if(viewport){timelineAutoScrollTarget.current=0;viewport.scrollLeft=0;}try{element.currentTime=0;}catch{}window.requestAnimationFrame(()=>{const restarted=video.current||audioPreview.current;if(restarted){try{restarted.currentTime=0;}catch{}void restarted.play();}});return;}void element.play();}else element.pause();}}>{previewPlaying?<Pause size={18} fill="currentColor"/>:<Play size={19} fill="currentColor"/>}</button>
+                <button type="button" className="nexus-transport-play" aria-label={previewPlaying?"Pause preview":"Play preview"} title={previewPlaying?"Pause preview":"Play preview"} onClick={()=>{const element=previewAsset?.kind==="audio"?audioPreview.current:video.current;if(!element)return;if(element.paused){const lastClipEndsAtTimelineEnd=!!previewClip&&previewClip.start+clipDuration(previewClip)>=duration-0.1;if(playhead>=duration-0.1||(element.duration>0&&element.currentTime>=element.duration-0.1&&lastClipEndsAtTimelineEnd)){setPlayhead(0);const viewport=timelineScrollRef.current;if(viewport){timelineAutoScrollTarget.current=0;viewport.scrollLeft=0;}try{element.currentTime=0;}catch{}window.requestAnimationFrame(()=>{const restarted=previewAsset?.kind==="audio"?audioPreview.current:video.current;if(restarted){try{restarted.currentTime=0;}catch{}void restarted.play();}});return;}void element.play();}else element.pause();}}>{previewPlaying?<Pause size={18} fill="currentColor"/>:<Play size={19} fill="currentColor"/>}</button>
                 <div className="nexus-transport-right">
                   <button type="button" onClick={undoEdit} disabled={!undoStack.length} title="Undo" aria-label="Undo"><Undo2 size={17}/></button>
                   <button type="button" onClick={redoEdit} disabled={!redoStack.length} title="Redo" aria-label="Redo"><Redo2 size={17}/></button>
