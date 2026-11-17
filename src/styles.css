@@ -10347,3 +10347,23 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 @media(max-width:760px){
   .editor-fullscreen.nexus-studio-page .nexus-editor-brand-mark{width:26px!important;height:26px!important;flex-basis:26px!important;margin-right:6px!important}
 }
+
+
+/* CapCut timeline cleanup: audio stays under the custom transport, with a clear footer gap. */
+.editor-fullscreen.nexus-studio-page audio,
+.nexus-fullscreen audio,
+.nexus-precision-preview audio,
+.media-library-preview-stage audio {
+  display:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+  padding-bottom:24px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span:last-child,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner>.editor-lane:last-of-type{
+  border-bottom:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-lock,
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button{
+  flex:0 0 auto!important;
+}
