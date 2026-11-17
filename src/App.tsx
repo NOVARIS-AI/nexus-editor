@@ -221,7 +221,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
         const fallbackFrameLimit = deviceProfile.tier === "compact" ? 360 : deviceProfile.tier === "power" ? 900 : 600;
-        const frameCount = Math.max(1, Math.min(fallbackFrameLimit, Math.ceil(clipEnd - clipStart)));
+        const frameCount = Math.max(1, Math.min(fallbackFrameLimit, Math.ceil(duration)));
         const output: string[] = [];
         for (let index = 0; index < frameCount; index++) {
           if (cancelled) return;
