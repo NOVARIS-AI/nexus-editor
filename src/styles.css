@@ -10252,3 +10252,98 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     color:#eaf0f4!important;
   }
 }
+
+
+/* NEXUS final timeline correction: real filmstrips stay visible and the playhead is the fixed reference. */
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  background:transparent!important;
+  isolation:isolate!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual{
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  opacity:1!important;
+  visibility:visible!important;
+  pointer-events:none!important;
+  background:#20242c!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-image-filmstrip{
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  visibility:visible!important;
+  opacity:1!important;
+  background:#20242c!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip>img,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-image-filmstrip>img{
+  display:block!important;
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  object-fit:cover!important;
+  visibility:visible!important;
+  opacity:1!important;
+  border:0!important;
+  border-right:1px solid rgba(255,255,255,.55)!important;
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip>.editor-filmstrip-placeholder{
+  display:block!important;
+  flex:1 1 0!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  visibility:visible!important;
+  opacity:1!important;
+  background:linear-gradient(135deg,#303744,#1b222d)!important;
+  border-right:1px solid rgba(255,255,255,.35)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-title{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-clip.active .editor-clip-visual{opacity:1!important}
+.editor-fullscreen.nexus-studio-page .editor-playhead-marker{
+  z-index:30!important;
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{scroll-behavior:auto!important}
+.editor-fullscreen.nexus-studio-page .nexus-editor-brand-mark{
+  display:block!important;
+  flex:0 0 30px!important;
+  width:30px!important;
+  height:30px!important;
+  object-fit:contain!important;
+  margin-right:8px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-project-title{
+  display:flex!important;
+  align-items:center!important;
+  min-width:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-project-title>span{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .nexus-editor-brand-mark{width:26px!important;height:26px!important;flex-basis:26px!important;margin-right:6px!important}
+}
