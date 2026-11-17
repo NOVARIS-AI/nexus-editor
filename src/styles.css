@@ -8853,7 +8853,7 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   margin:0!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-image-filmstrip,
-.editor-fullscreen.nexus-studio-page .timeline-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip,
 .editor-fullscreen.nexus-studio-page .editor-clip-visual>*{
   display:flex!important;
   flex-wrap:nowrap!important;
@@ -8863,7 +8863,7 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   overflow:hidden!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-image-filmstrip img,
-.editor-fullscreen.nexus-studio-page .timeline-video-filmstrip img,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip img,
 .editor-fullscreen.nexus-studio-page .editor-clip-visual img{
   flex:1 1 0!important;
   min-width:0!important;
@@ -8872,6 +8872,21 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   border:0!important;
   border-radius:0!important;
 }
+/* One real, timestamped thumbnail per source second; separators make each second legible. */
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip{
+  display:flex!important;flex-flow:row nowrap!important;align-items:stretch!important;
+  gap:0!important;width:100%!important;height:100%!important;overflow:hidden!important;
+  background:#17151c!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip>img,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip>.editor-filmstrip-placeholder{
+  display:block!important;flex:1 1 0!important;min-width:0!important;max-width:none!important;
+  height:100%!important;object-fit:cover!important;border:0!important;border-right:1px solid rgba(255,255,255,.82)!important;
+  border-radius:0!important;box-sizing:border-box!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip>img:last-child,
+.editor-fullscreen.nexus-studio-page .editor-video-filmstrip>.editor-filmstrip-placeholder:last-child{border-right:0!important}
+.editor-fullscreen.nexus-studio-page .editor-clip{outline:1px solid rgba(255,255,255,.48)!important;outline-offset:-1px!important}
 .editor-fullscreen.nexus-studio-page .editor-clip-title{display:none!important}
 .editor-fullscreen.nexus-studio-page .editor-clip-contextbar{display:none!important}
 .editor-fullscreen.nexus-studio-page .editor-transport.nexus-pro-transport{
