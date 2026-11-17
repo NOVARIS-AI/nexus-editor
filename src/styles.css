@@ -8984,3 +8984,81 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   content:"·"!important;color:#777b84!important;margin-right:5px!important;
 }
 .editor-fullscreen.nexus-studio-page .editor-timeline-ruler>span:first-of-type:before{content:""!important;margin:0!important}
+
+
+/* NEXUS filmstrip + add-media finish: target the actual decoder component class. */
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip {
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:stretch!important;
+  gap:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip img {
+  display:block!important;
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  object-fit:cover!important;
+  border:0!important;
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip .editor-filmstrip-placeholder {
+  flex:1 1 0!important;
+  min-width:0!important;
+  height:100%!important;
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover {
+  position:relative!important;
+  overflow:hidden!important;
+  padding:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover .editor-video-filmstrip {
+  position:absolute!important;
+  inset:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover .editor-video-filmstrip img {
+  display:none!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover .editor-video-filmstrip img:first-of-type {
+  display:block!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover .editor-filmstrip-placeholder {
+  display:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-add-clip {
+  position:absolute!important;
+  top:9px!important;
+  z-index:15!important;
+  display:grid!important;
+  place-items:center!important;
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:5px!important;
+  background:#f4f4f5!important;
+  color:#151518!important;
+  font-size:22px!important;
+  line-height:1!important;
+  font-weight:500!important;
+  box-shadow:0 1px 5px rgba(0,0,0,.25)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-add-clip:active {
+  transform:scale(.96)!important;
+}
