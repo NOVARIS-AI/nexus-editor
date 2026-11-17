@@ -1134,9 +1134,7 @@ export default function App() {
       const created: MediaAsset = { id: uid(), name: asset.name.replace(/\\.[^.]+$/, "") + (extracted.type === "audio/mp4" ? "-audio-extract.m4a" : "-audio-extract.webm"), kind: "audio", duration: sourceEnd - sourceStart, mimeType: extracted.type || "audio/webm", file: extracted, objectUrl, source: { type: "personal", attribution: "Audio extracted from " + asset.name } };
       setAssets(old => [...old, created]);
       void saveMediaAsset(created).catch(() => setDraftSaveStatus("Extracted audio is available in this session but could not be backed up on this device."));
-      const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
-      const used = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
-      const trackId = audioTrackIds.find(id => !used.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+      const trackId = "audio-1";
       const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: selectedClip.start, sourceIn: 0, sourceOut: created.duration, label: created.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
       applyClipChange([...clips, clip], "Audio extracted and added beneath the selected video clip.");
       setSelected(clip.id); setPlayhead(clip.start); setActiveTool("audio"); setActiveSubtool("mixer");
@@ -1159,9 +1157,7 @@ export default function App() {
     const finalAsset = { ...created, duration: mediaDuration || 5 };
     setAssets(old => old.map(item => item.id === created.id ? finalAsset : item));
     void saveMediaAsset(finalAsset).catch(() => setDraftSaveStatus("Downloaded audio is available in this session but could not be backed up on this device."));
-    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
-    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
-    const trackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+    const trackId = "audio-1";
     const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: finalAsset.duration, label: created.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, clip], "Licensed audio downloaded and added to your timeline.");
     setSelected(clip.id); setPlayhead(clip.start); setPage("editor"); setEditorView("workspace"); setActiveTool("audio"); setActiveSubtool("sounds");
@@ -1188,9 +1184,7 @@ export default function App() {
       const file = new File([blob], "nexus-" + safeName + ".wav", { type: "audio/wav" });
       const objectUrl = URL.createObjectURL(file);
       const created: MediaAsset = { id: uid(), name: file.name, kind: "audio", duration: preset.duration, mimeType: "audio/wav", file, objectUrl, source: { type: "generated", attribution: "Original audio synthesised by NEXUS Studio" } };
-      const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
-      const used = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
-      const trackId = audioTrackIds.find(id => !used.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+      const trackId = "audio-1";
       const clip: TimelineClip = { id: uid(), assetId: created.id, trackId, start: Math.max(0, playhead), sourceIn: 0, sourceOut: preset.duration, label: preset.name, gain: 1, muted: false, fadeIn: .08, fadeOut: .2, speed: 1 };
       setAssets(old => [...old, created]); applyClipChange([...clips, clip], "Original NEXUS audio added to the timeline: " + preset.name);
       setSelected(clip.id); setPlayhead(clip.start); setPage("editor"); setEditorView("workspace"); setActiveTool("audio"); setActiveSubtool("mixer");
@@ -1199,9 +1193,7 @@ export default function App() {
     finally { setAudioGenerating(null); }
   }
   function add(a: MediaAsset) {
-    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
-    const usedAudioTracks = new Set(clips.filter(item => assets.find(media => media.id === item.assetId)?.kind === "audio").map(item => item.trackId));
-    const audioTrackId = audioTrackIds.find(id => !usedAudioTracks.has(id)) || audioTrackIds[clips.filter(item => item.trackId.startsWith("audio-")).length % audioTrackIds.length];
+    const audioTrackId = "audio-1";
     const c: TimelineClip = { id: uid(), assetId: a.id, trackId: a.kind === "audio" ? audioTrackId : "video-1", start: a.kind === "audio" ? playhead : timelineDuration(clips), sourceIn: 0, sourceOut: a.duration || 5, label: a.name, gain: 1, muted: false, fadeIn: 0, fadeOut: 0, speed: 1 };
     applyClipChange([...clips, c], "Added to timeline"); setSelected(c.id); setPlayhead(c.start);
     if (a.kind === "video" && video.current) video.current.src = a.objectUrl!;
@@ -2407,8 +2399,8 @@ export default function App() {
     let cursor = base;
     const additions: TimelineClip[] = [];
     const textAdditions: TimelineTextLayer[] = [];
-    const audioTrackIds = ["audio-1", "audio-2", "audio-3", "audio-4"];
-    const usedAudioTracks = new Set(clips.filter(clip => clip.trackId.startsWith("audio-")).map(clip => clip.trackId));
+    const audioTrackIds = ["audio-1"];
+    const usedAudioTracks = new Set(clips.filter(clip => clip.trackId === "audio-1").map(clip => clip.trackId));
     let sceneCount = 0;
     const sceneAssetUse = new Map<string, number>();
     const matchNotes: string[] = [];
