@@ -375,7 +375,7 @@ export default function App() {
   const [touchDragPreview, setTouchDragPreview] = useState<{id:string;start:number}|null>(null);
   const touchClipDragMoved = useRef(false);
   const [playhead, setPlayhead] = useState(() => recoveryDraft?.playhead || 0);
-  const [timelineZoom, setTimelineZoom] = useState(() => Math.max(18, Math.min(120, recoveryDraft?.timelineZoom || 36)));
+  const [timelineZoom, setTimelineZoom] = useState(() => Math.max(18, Math.min(42, recoveryDraft?.timelineZoom || 36)));
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
   const [precisionTrim, setPrecisionTrim] = useState<{clipId:string;startOffset:number;endOffset:number}|null>(null);
   // Always reopen the editor with its timeline visible; collapsing is a temporary view choice.
