@@ -198,7 +198,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         if (file) {
           try {
             const extracted = await getCachedVideoFilmstripFrames(file, duration, sourceIn, sourceOut, deviceProfile.tier);
-            if (!cancelled && extracted.length) { setFrames(extracted); return; }
+            if (!cancelled && extracted.length) { setFrames(extracted.slice(0, 5)); return; }
           } catch { /* Fall through to the browser video-element decoder. */ }
         }
         // Canvas extraction is optional. Skip remote URLs that cannot safely be sampled without CORS headers; the main preview uses its own media element and is never touched here.
@@ -221,7 +221,9 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const requestedEnd = Number.isFinite(sourceOut) && (sourceOut as number) > clipStart ? sourceOut as number : clipStart + Math.max(0.5, duration);
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
         const fallbackFrameLimit = deviceProfile.tier === "compact" ? 360 : deviceProfile.tier === "power" ? 900 : 600;
-        const frameCount = Math.max(1, Math.min(fallbackFrameLimit, Math.ceil(duration)));
+        // Five evenly spaced frames fill one visible filmstrip row.
+        // Keep the fallback light on compact Android devices and long clips.
+        const frameCount = Math.max(1, Math.min(5, Math.ceil(duration)));
         const output: string[] = [];
         for (let index = 0; index < frameCount; index++) {
           if (cancelled) return;
@@ -253,9 +255,10 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     };
   }, [src, file, duration, sourceIn, sourceOut]);
-  const displayFrames = frames;
-  return <span className="editor-video-filmstrip" data-frame-count={frames.length} data-extraction-state={failed ? "fallback" : frames.length ? "ready" : "loading"} aria-label="Video timeline thumbnails">
-    {displayFrames.length ? displayFrames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:Math.max(1,Math.min(600,Math.ceil(duration)))},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:0}} />)}
+  const displayFrames = frames.slice(0, 5);
+  const filmstripCount = displayFrames.length || Math.max(1, Math.min(5, Math.ceil(duration)));
+  return <span className="editor-video-filmstrip" data-frame-count={displayFrames.length} data-extraction-state={failed ? "fallback" : displayFrames.length ? "ready" : "loading"} aria-label="Video timeline thumbnails">
+    {displayFrames.length ? displayFrames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:filmstripCount},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:0}} />)}
   </span>;
 }
 function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallback?: number[] }) {
@@ -727,7 +730,16 @@ export default function App() {
     const labels = viewport.querySelector<HTMLElement>(".editor-lane-labels");
     const labelWidth = labels?.getBoundingClientRect().width || timelineLabelWidth;
     // Edge spacers let both project boundaries sit beneath the centred playhead.
-    const desired = Math.max(0, labelWidth + timelineLeftPadding + playhead * PIXELS_PER_SECOND - viewport.clientWidth / 2);
+    // During playback, let the playhead travel across the viewport first.
+    // Once it reaches the right-side follow zone, scroll the timeline underneath it.
+    const absolutePlayheadX = labelWidth + timelineLeftPadding + playhead * PIXELS_PER_SECOND;
+    const playbackDriven = playheadFromPlayback.current;
+    const followX = Math.max(viewport.clientWidth * 0.78, viewport.clientWidth - 56);
+    const screenPlayheadX = absolutePlayheadX - viewport.scrollLeft;
+    if (playbackDriven && screenPlayheadX <= followX) return;
+    const desired = playbackDriven
+      ? Math.max(0, absolutePlayheadX - followX)
+      : Math.max(0, absolutePlayheadX - viewport.clientWidth / 2);
     const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
     const nextScroll = Math.min(maxScroll, desired);
     if (Math.abs(nextScroll - viewport.scrollLeft) < 0.75) return;
