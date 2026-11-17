@@ -705,21 +705,15 @@ export default function App() {
   useEffect(() => {
     const viewport = timelineScrollRef.current;
     if (!viewport || timelinePanDrag.current || timelineScrubPointer.current !== null || trimClipDrag.current || touchClipDrag.current) return;
-    const marker = viewport.querySelector<HTMLElement>(".editor-playhead-marker");
-    if (!marker) return;
-    // Let the playhead travel freely across the visible timeline first.
-    // Only once it reaches the phone/viewport's right edge do we move the
-    // timeline content backwards underneath it, keeping the playhead visible.
-    const viewportRect = viewport.getBoundingClientRect();
-    const markerRect = marker.getBoundingClientRect();
-    const rightLimit = viewportRect.right - 22;
-    if (markerRect.right <= rightLimit) return;
-    const delta = markerRect.right - rightLimit;
+    const labels = viewport.querySelector<HTMLElement>(".editor-lane-labels");
+    const labelWidth = labels?.getBoundingClientRect().width || 116;
+    // Keep the white playhead fixed at the viewport centre. As time advances,
+    // the timeline content travels left underneath it; moving the playhead back
+    // reverses that motion and seeks the preview to the earlier frame.
+    const desired = Math.max(0, playhead * timelineZoom - (viewport.clientWidth / 2 - labelWidth));
     const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-    const nextScroll = Math.min(maxScroll, viewport.scrollLeft + delta);
-    if (nextScroll <= viewport.scrollLeft + 0.5) return;
-    // Remember the exact programmatic position so its scroll event does not
-    // get mistaken for a user's hand-pan and seek the playhead backwards.
+    const nextScroll = Math.min(maxScroll, desired);
+    if (Math.abs(nextScroll - viewport.scrollLeft) < 0.75) return;
     timelineAutoScrollTarget.current = nextScroll;
     viewport.scrollLeft = nextScroll;
   }, [playhead, timelineZoom]);
@@ -2957,7 +2951,7 @@ export default function App() {
       {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
         <header className="editor-topbar">
           <button className="editor-back" onClick={()=>{if(editorView==="dashboard"){setPage("home");}else if(editorView==="workspace"){setEditorView("dashboard");}else{setEditorView("workspace");}}}><ArrowLeft size={18}/><span>{editorView==="dashboard"?"HOME":editorView==="workspace"?"STUDIO":"BACK"}</span></button>
-          <div className="editor-project-title"><b>{projectName}</b><small>{editorView==="dashboard"?"Project dashboard":editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></div>
+          <div className="editor-project-title"><img className="nexus-editor-brand-mark" src="/nexus-mark.svg" alt="NEXUS logo"/><span><b>{projectName}</b><small>{editorView==="dashboard"?"Project dashboard":editorView==="workspace"?"Editing workspace":editorView==="import"?"Media library":"Export project"} · {draftSaveStatus}</small></span></div>
           <button className={"editor-top-icon nexus-fabric-trigger"+(creativeFabricOpen?" active":"")} onClick={()=>setCreativeFabricOpen(v=>!v)} title="Open creative tools"><GitBranch size={17}/><span>Creative</span></button><button className={"editor-top-icon"+(aiWorkspaceOpen?" active":"")} onClick={()=>setAiWorkspaceOpen(v=>!v)} title="Open NEXUS AI Studio"><Sparkles size={17}/><span>AI Studio</span></button><button className="editor-top-icon" onClick={()=>void saveCurrentProject()} title="Save project"><Check size={18}/></button>
           <button className="editor-top-icon" onClick={()=>setPublishFlowOpen(true)} title="Prepare a community post"><Share2 size={16}/><span>Publish</span></button>
           <button className="editor-export-entry" onClick={()=>setEditorView("export")}><ArrowDownToLine size={16}/><span>Export</span></button>
