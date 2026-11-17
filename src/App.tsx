@@ -1193,17 +1193,6 @@ export default function App() {
   function trimSelectedStartAtPlayhead() {
     if (!selectedClip) return;
     const fps = Math.max(1, Number.parseInt(exportFps, 10) || 30);
-    const splitTime = Math.round(playhead * fps) / fps;
-    try {
-      const [, trimmedRight] = splitTimelineClipAtTime(selectedClip, splitTime, selectedClip.id);
-      if (trimmedRight.sourceIn <= selectedClip.sourceIn + .04) { setStatus("Move the playhead inside the selected clip to set a new start."); return; }
-      applyClipChange(clips.map(item => item.id === selectedClip.id ? trimmedRight : item), "Clip start set to the playhead. Undo is available.");
-      setSelected(trimmedRight.id);
-    } catch (error) { setStatus(error instanceof Error ? error.message : "The clip start could not be changed."); }
-  }
-  function trimSelectedStartAtPlayhead() {
-    if (!selectedClip) return;
-    const fps = Math.max(1, Number.parseInt(exportFps, 10) || 30);
     const frame = 1 / fps;
     const offset = playhead - selectedClip.start;
     const length = clipDuration(selectedClip);
