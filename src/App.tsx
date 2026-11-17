@@ -253,8 +253,9 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     };
   }, [src, file, duration, sourceIn, sourceOut]);
+  const displayFrames = frames.length > 5 ? Array.from({length:5},(_,index)=>frames[Math.round(index*(frames.length-1)/4)]) : frames;
   return <span className="editor-video-filmstrip" data-frame-count={frames.length} data-extraction-state={failed ? "fallback" : frames.length ? "ready" : "loading"} aria-label="Video timeline thumbnails">
-    {frames.length ? frames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:8},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:3}} />)}
+    {displayFrames.length ? displayFrames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:5},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:0}} />)}
   </span>;
 }
 function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallback?: number[] }) {
@@ -374,7 +375,7 @@ export default function App() {
   const [touchDragPreview, setTouchDragPreview] = useState<{id:string;start:number}|null>(null);
   const touchClipDragMoved = useRef(false);
   const [playhead, setPlayhead] = useState(() => recoveryDraft?.playhead || 0);
-  const [timelineZoom, setTimelineZoom] = useState(() => recoveryDraft?.timelineZoom || 60);
+  const [timelineZoom, setTimelineZoom] = useState(() => Math.max(18, Math.min(120, recoveryDraft?.timelineZoom || 36)));
   const [timelineSnapEnabled, setTimelineSnapEnabled] = useState(true);
   const [precisionTrim, setPrecisionTrim] = useState<{clipId:string;startOffset:number;endOffset:number}|null>(null);
   // Always reopen the editor with its timeline visible; collapsing is a temporary view choice.
@@ -625,7 +626,7 @@ export default function App() {
       if(anchor) timelineZoomAnchor.current=anchor;
       else { const rect=viewport.getBoundingClientRect(); const centreOffset=viewport.clientWidth<=380?66:71; const clientX=rect.left+viewport.clientWidth/2+centreOffset; timelineZoomAnchor.current={time:viewport.scrollLeft/timelineZoom,clientX}; }
     }
-    setTimelineZoom(nextZoom);
+    setTimelineZoom(Math.max(18, Math.min(120, nextZoom)));
   };
   useEffect(()=>{
     const viewport=timelineScrollRef.current;
@@ -2807,7 +2808,7 @@ export default function App() {
     setClips([]); setTextLayers(layers); setImageLayers([]); setSelected(null);
     setSelectedTextLayer(layers[0].id); setSelectedImageLayer(null); setSelectedImageAssetId(""); setSelectedOverlayIds([]);
     setUndoStack([]); setRedoStack([]); setTrackStates(defaultTracks.map(track => ({ ...track, locked: false })));
-    setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setTimelineZoom(60);
+    setTrackMix({}); setBeatMarkers([]); setPlayhead(0); setTimelineZoom(36);
     setOverlayText(template.title); setTextColor("#ffffff"); setTextSize(58); setTextFont("Arial");
     setPage("editor"); setEditorView("workspace"); setActiveTool("text"); setActiveSubtool("template");
     setStatus("New “" + template.name + "” project created. Your imported media remains available in the media library; add it to the new timeline when ready.");
@@ -3026,7 +3027,7 @@ export default function App() {
                 <span className="nexus-timeline-timecode">{clock(playhead)}</span>
                 <button type="button" className={timelineSnapEnabled?"active":""} title={timelineSnapEnabled?"Magnetic snapping on":"Magnetic snapping off"} aria-label="Toggle magnetic snapping" aria-pressed={timelineSnapEnabled} onClick={()=>setTimelineSnapEnabled(value=>!value)}><Magnet size={14}/></button>
                 <button type="button" className="nexus-timeline-split" disabled={!selectedClip} title="Split selected clip at playhead" aria-label="Split selected clip" onClick={split}><Scissors size={14}/></button>
-                <div className="nexus-timeline-zoom"><button type="button" title="Zoom out" aria-label="Zoom out timeline" onClick={()=>changeTimelineZoom(Math.max(24,timelineZoom-8))}>−</button><button type="button" title="Zoom in" aria-label="Zoom in timeline" onClick={()=>changeTimelineZoom(Math.min(180,timelineZoom+8))}>＋</button></div>
+                <div className="nexus-timeline-zoom"><button type="button" title="Zoom out" aria-label="Zoom out timeline" onClick={()=>changeTimelineZoom(Math.max(18,timelineZoom-8))}>−</button><button type="button" title="Zoom in" aria-label="Zoom in timeline" onClick={()=>changeTimelineZoom(Math.min(120,timelineZoom+8))}>＋</button></div>
               </div>
             </div>
             <div className="nexus-clip-action-strip" aria-label="Selected clip actions">
