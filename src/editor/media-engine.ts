@@ -30,7 +30,7 @@ export async function extractVideoFilmstripFrames(
   const sink = new CanvasSink(track, { width: 112, poolSize: 1 });
   const frameLimit = performanceTier === "compact" ? 360 : performanceTier === "power" ? 900 : 600;
   // One timestamp-centred thumbnail per source second gives each second a real, inspectable film cell.
-  const count = Math.max(1, Math.min(frameLimit, Math.ceil(end - start)));
+  const count = Math.max(1, Math.min(frameLimit, Math.ceil(clipDuration)));
   const timestamps = Array.from({ length: count }, (_, index) =>
     start + (end - start) * ((index + 0.5) / count)
   );
