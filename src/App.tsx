@@ -3035,7 +3035,7 @@ export default function App() {
                 <div className="nexus-transport-right">
                   <button type="button" onClick={undoEdit} disabled={!undoStack.length} title="Undo" aria-label="Undo"><Undo2 size={17}/></button>
                   <button type="button" onClick={redoEdit} disabled={!redoStack.length} title="Redo" aria-label="Redo"><Redo2 size={17}/></button>
-                  <button type="button" onClick={()=>{const target=previewFrameRef.current;if(!target)return;if(!document.fullscreenElement)void target.requestFullscreen?.();else void document.exitFullscreen?.();}} title="Fullscreen preview" aria-label="Fullscreen preview"><Maximize2 size={17}/></button>
+                  <button type="button" onClick={()=>{const target=previewFrameRef.current;if(!target)return;if(!document.fullscreenElement)void target.requestFullscreen?.();else void document.exitFullscreen?.();}} title="Fullscreen preview" aria-label="Fullscreen preview"><Maximize2 size={17}/></button><small className="nexus-transport-summary">{clips.length} clips · {activeTrackStates.length} tracks</small><button type="button" className={timelineSnapEnabled?"active":""} title="Toggle magnetic snapping" aria-label="Toggle magnetic snapping" aria-pressed={timelineSnapEnabled} onClick={()=>setTimelineSnapEnabled(value=>!value)}><Magnet size={14}/></button><div className="nexus-timeline-zoom"><button type="button" title="Zoom out" aria-label="Zoom out timeline" onClick={()=>changeTimelineZoom(Math.max(18,timelineZoom-8))}>−</button><button type="button" title="Zoom in" aria-label="Zoom in timeline" onClick={()=>changeTimelineZoom(Math.min(120,timelineZoom+8))}>＋</button></div>
                 </div>
               </div>
             </div>
