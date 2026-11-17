@@ -1792,8 +1792,7 @@ export default function App() {
     recordProjectHistory();
     if (clipTargets.length) setClips(nextClips);
     if (textTargets.length) setTextLayers(nextTexts);
-    const rightmost = clipTargets.length ? nextClips.find(clip => clip.id !== "" && clip.start === splitTime && splitIds.has(clips.find(old => old.id === clip.id)?.id || "")) : undefined;
-    if (rightmost) setSelected(rightmost.id);
+    setSelected(null);
     setSelectedTextLayer(null);
     setPlayhead(splitTime);
     setStatus("Split " + clipTargets.length + " video/audio clip(s) and " + textTargets.length + " text layer(s) at the playhead. Locked tracks and layers were left unchanged. Undo is available.");
