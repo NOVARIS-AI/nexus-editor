@@ -9062,3 +9062,34 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 .editor-fullscreen.nexus-studio-page .editor-add-clip:active {
   transform:scale(.96)!important;
 }
+
+
+/* Keep the cover tile visible on compact layouts and show its edit affordance. */
+.editor-fullscreen.nexus-studio-page .editor-track-cover {
+  display:flex!important;
+  flex:0 0 38px!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:30px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#202127!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover-edit {
+  position:absolute!important;
+  right:2px!important;
+  bottom:2px!important;
+  z-index:3!important;
+  display:grid!important;
+  place-items:center!important;
+  width:15px!important;
+  height:15px!important;
+  border-radius:4px!important;
+  background:rgba(12,12,14,.88)!important;
+  color:#fff!important;
+  box-shadow:0 1px 4px rgba(0,0,0,.35)!important;
+  pointer-events:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane:has(.editor-add-clip) {
+  overflow:visible!important;
+}
