@@ -9376,3 +9376,21 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     min-height:100%!important;
   }
 }
+
+
+/* Timeline navigation: drag the timeline beneath a fixed playhead. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+  cursor:grab;
+  touch-action:pan-x;
+  overscroll-behavior-x:contain;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll.nexus-timeline-panning{
+  cursor:grabbing;
+  scroll-behavior:auto!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-playhead-marker{
+  pointer-events:none!important;
+  z-index:20!important;
+}
