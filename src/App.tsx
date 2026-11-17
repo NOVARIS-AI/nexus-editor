@@ -1735,36 +1735,68 @@ export default function App() {
     const splitTime = playhead;
     const epsilon = 0.0001;
     const intersects = (clip: TimelineClip) => splitTime > clip.start + epsilon && splitTime < clip.start + clipDuration(clip) - epsilon;
+    const textIntersects = (layer: TimelineTextLayer) => splitTime > layer.start + epsilon && splitTime < layer.start + layer.duration - epsilon;
     const textTarget = selectedTextLayer ? textLayers.find(layer => layer.id === selectedTextLayer) : undefined;
+
+    // An explicit selection stays targeted: never split neighbouring clips by surprise.
     if (textTarget) {
       const textTrack = trackStates.find(track => track.id === textTarget.trackId);
-      if (textTarget.locked || textTrack?.locked) { setStatus("Unlock the selected text layer's track before splitting it."); return; }
-      if (splitTime <= textTarget.start + epsilon || splitTime >= textTarget.start + textTarget.duration - epsilon) { setStatus("Move the playhead inside the selected text layer before splitting."); return; }
+      if (textTarget.locked || textTrack?.locked) { setStatus("Unlock the selected text layer and its track before splitting it."); return; }
+      if (!textIntersects(textTarget)) { setStatus("Move the playhead inside the selected text layer before splitting."); return; }
       const left: TimelineTextLayer = { ...textTarget, duration: splitTime - textTarget.start };
       const right: TimelineTextLayer = { ...textTarget, id: uid(), start: splitTime, duration: textTarget.start + textTarget.duration - splitTime };
       recordProjectHistory();
       setTextLayers(old => old.flatMap(layer => layer.id === textTarget.id ? [left, right] : [layer]));
       setSelectedTextLayer(right.id); setSelected(null);
-      setStatus("Text layer split into two independent editable segments. Undo is available."); return;
+      setStatus("Text layer split into two independent editable segments. Undo is available.");
+      return;
     }
-    let targetClip: TimelineClip | undefined;
+
     if (selectedClip) {
       if (!intersects(selectedClip)) { setStatus("Move the playhead inside the selected clip before splitting. No other clip was changed."); return; }
-      targetClip = selectedClip;
-    } else {
-      const mainVideoTrack = trackStates.find(track => track.id === "video-1" && track.kind === "video");
-      if (!mainVideoTrack) { setStatus("The Main Video track is unavailable."); return; }
-      if (mainVideoTrack.locked) { setStatus("The Main Video track is locked. Unlock it before splitting."); return; }
-      targetClip = clips.find(clip => clip.trackId === mainVideoTrack.id && intersects(clip));
+      if (trackStates.find(track => track.id === selectedClip.trackId)?.locked) { setStatus("This track is locked. Unlock it before splitting the selected clip."); return; }
+      try {
+        const [left, right] = splitTimelineClipAtTime(selectedClip, splitTime, uid());
+        applyClipChange(clips.flatMap(item => item.id === selectedClip.id ? [left, right] : [item]), "Clip split exactly at the playhead. Both segments remain independently editable. Undo is available.");
+        setSelected(right.id); setSelectedTextLayer(null); setPlayhead(splitTime);
+      } catch (error) { setStatus(error instanceof Error ? error.message : "Move the playhead strictly inside the selected clip before splitting."); }
+      return;
     }
-    if (!targetClip) { setStatus("Place the playhead inside a clip on the selected track, or leave no clip selected to split Main Video."); return; }
-    if (trackStates.find(track => track.id === targetClip!.trackId)?.locked) { setStatus("This track is locked. Unlock it before splitting the selected clip."); return; }
-    try {
-      const [left, right] = splitTimelineClipAtTime(targetClip, splitTime, uid());
-      const next = clips.flatMap(item => item.id === targetClip!.id ? [left, right] : [item]);
-      applyClipChange(next, "Clip split exactly at the playhead into two independent segments. Each segment can be selected, trimmed, moved or split again. Undo is available.");
-      setSelected(right.id); setSelectedTextLayer(null); setPlayhead(splitTime);
-    } catch (error) { setStatus(error instanceof Error ? error.message : "Move the playhead strictly inside the selected clip before splitting."); }
+
+    // With no clip selected, split every intersecting video/audio clip and text layer
+    // on unlocked tracks at the playhead. Locked tracks/layers are deliberately untouched.
+    const clipTargets = clips.filter(clip => {
+      const track = trackStates.find(item => item.id === clip.trackId);
+      return (track?.kind === "video" || track?.kind === "audio") && !track.locked && intersects(clip);
+    });
+    const textTargets = textLayers.filter(layer => !layer.locked && !trackStates.find(track => track.id === layer.trackId)?.locked && textIntersects(layer));
+    if (!clipTargets.length && !textTargets.length) {
+      const lockedAtPlayhead = clips.some(clip => intersects(clip) && trackStates.find(track => track.id === clip.trackId)?.locked) || textLayers.some(layer => textIntersects(layer) && (layer.locked || trackStates.find(track => track.id === layer.trackId)?.locked));
+      setStatus(lockedAtPlayhead ? "Nothing was split on locked tracks. Unlock the tracks or layers you want to edit." : "Move the playhead inside an unlocked video, audio or text layer before splitting.");
+      return;
+    }
+
+    const splitIds = new Set(clipTargets.map(clip => clip.id));
+    const nextClips = clips.flatMap(clip => {
+      if (!splitIds.has(clip.id)) return [clip];
+      const [left, right] = splitTimelineClipAtTime(clip, splitTime, uid());
+      return [left, right];
+    });
+    const textIds = new Set(textTargets.map(layer => layer.id));
+    const nextTexts = textLayers.flatMap(layer => {
+      if (!textIds.has(layer.id)) return [layer];
+      const left: TimelineTextLayer = { ...layer, duration: splitTime - layer.start };
+      const right: TimelineTextLayer = { ...layer, id: uid(), start: splitTime, duration: layer.start + layer.duration - splitTime };
+      return [left, right];
+    });
+    recordProjectHistory();
+    if (clipTargets.length) setClips(nextClips);
+    if (textTargets.length) setTextLayers(nextTexts);
+    const rightmost = clipTargets.length ? nextClips.find(clip => clip.id !== "" && clip.start === splitTime && splitIds.has(clips.find(old => old.id === clip.id)?.id || "")) : undefined;
+    if (rightmost) setSelected(rightmost.id);
+    setSelectedTextLayer(null);
+    setPlayhead(splitTime);
+    setStatus("Split " + clipTargets.length + " video/audio clip(s) and " + textTargets.length + " text layer(s) at the playhead. Locked tracks and layers were left unchanged. Undo is available.");
   }
   async function findOnlineMedia(query = mediaSearchQuery) {
     const term = query.trim();
