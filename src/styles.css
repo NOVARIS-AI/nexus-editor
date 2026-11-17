@@ -9093,3 +9093,133 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 .editor-fullscreen.nexus-studio-page .editor-lane:has(.editor-add-clip) {
   overflow:visible!important;
 }
+
+
+/* NEXUS timeline control bar: isolated addition; preserve the surrounding editor layout. */
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  width:100%!important;min-width:0!important;box-sizing:border-box!important;
+  color:#e2e8f0!important;background:#0D0D12!important;
+  border-top:1px solid #22222C!important;border-bottom:1px solid #22222C!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-transport{
+  flex:0 0 auto!important;padding:5px 16px 9px!important;
+  background:#0D0D12!important;border-bottom:1px solid #22222C!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-pills{
+  display:flex!important;justify-content:center!important;gap:6px!important;
+  height:7px!important;margin:0 0 3px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-pills i{
+  display:block!important;width:24px!important;height:3px!important;
+  border-radius:999px!important;background:#3B4254!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-main{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 44px auto!important;
+  align-items:center!important;gap:10px!important;min-height:44px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-time,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-timecode{
+  color:#94A3B8!important;font-family:ui-monospace,SFMono-Regular,Menlo,monospace!important;
+  font-size:12px!important;font-variant-numeric:tabular-nums!important;white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-play{
+  display:grid!important;place-items:center!important;width:44px!important;height:44px!important;
+  min-width:44px!important;padding:0!important;border:0!important;border-radius:50%!important;
+  background:#B4A7D6!important;color:#17151e!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:6px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right button,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions>button{
+  display:grid!important;place-items:center!important;width:36px!important;height:36px!important;
+  min-width:36px!important;padding:0!important;border:1px solid #282834!important;
+  border-radius:8px!important;background:#181822!important;color:#f8fafc!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right button:disabled{opacity:.35!important}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:8px!important;min-height:49px!important;padding:7px 12px 7px 16px!important;
+  border-bottom:1px solid #22222C!important;background:#0D0D12!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-heading{
+  display:flex!important;align-items:baseline!important;gap:7px!important;min-width:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-heading b{
+  color:#E2E8F0!important;font-size:11px!important;letter-spacing:1px!important;
+  font-weight:800!important;white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-heading small{
+  color:#64748B!important;font-size:10px!important;white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions{
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  gap:5px!important;min-width:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-timecode{font-size:11px!important;margin-right:2px!important}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions>button{
+  width:32px!important;height:32px!important;min-width:32px!important;border-radius:7px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions>button.active{
+  border-color:#EAB308!important;color:#EAB308!important;box-shadow:inset 0 0 0 1px #EAB30833!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions>button:disabled{opacity:.35!important}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-zoom{
+  display:flex!important;align-items:center!important;overflow:hidden!important;
+  border:1px solid #2A2A35!important;border-radius:8px!important;background:#181822!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-zoom button{
+  display:grid!important;place-items:center!important;width:30px!important;height:30px!important;
+  min-width:30px!important;padding:0!important;border:0!important;background:transparent!important;
+  color:#e2e8f0!important;font-size:17px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-zoom button+button{border-left:1px solid #2A2A35!important}
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip{
+  display:flex!important;align-items:center!important;gap:8px!important;
+  min-width:0!important;overflow-x:auto!important;overflow-y:hidden!important;
+  padding:8px 16px!important;background:#0D0D12!important;
+  scrollbar-width:none!important;-webkit-overflow-scrolling:touch!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip::-webkit-scrollbar{display:none!important}
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip button{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 auto!important;gap:6px!important;min-height:32px!important;padding:6px 12px!important;
+  border:1px solid #272732!important;border-radius:8px!important;background:#16161E!important;
+  color:#f8fafc!important;font-size:12px!important;font-weight:500!important;white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip button:disabled{opacity:.38!important}
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip button:active{background:#252532!important}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+  margin-left:-3px!important;width:calc(100% + 3px)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  justify-content:flex-end!important;gap:3px!important;padding-right:5px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-cover{
+  flex:0 0 32px!important;width:32px!important;min-width:32px!important;
+  height:32px!important;margin:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-lock{
+  display:grid!important;place-items:center!important;flex:0 0 30px!important;
+  width:30px!important;min-width:30px!important;height:32px!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:6px!important;
+  background:#1c1e24!important;color:#d9dbe0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-track-mute-button{
+  flex:0 0 28px!important;width:28px!important;min-width:28px!important;height:32px!important;
+  margin:0!important;padding:0!important;
+}
+@media(max-width:390px){
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-header{padding-left:10px!important;padding-right:8px!important;gap:5px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-heading{gap:5px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-heading small{font-size:9px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions{gap:3px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-timecode{font-size:10px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-header-actions>button{width:29px!important;height:30px!important;min-width:29px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-zoom button{width:26px!important;min-width:26px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-transport-main{gap:7px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-transport-time{font-size:11px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-transport-right{gap:4px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-transport-right button{width:33px!important;height:33px!important;min-width:33px!important}
+}
