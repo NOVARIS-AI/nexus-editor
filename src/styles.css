@@ -10367,3 +10367,93 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
 .editor-fullscreen.nexus-studio-page .editor-track-mute-button{
   flex:0 0 auto!important;
 }
+
+
+/* NEXUS finishing pass: keep the three timeline control rows distinct,
+   preserve visible clip thumbnails, and give the status footer a clear 24px lane. */
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  flex:0 0 auto!important;
+  min-width:0!important;
+  overflow:visible!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-transport,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header,
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip{
+  position:relative!important;
+  flex:0 0 auto!important;
+  min-width:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  overflow:hidden!important;
+  isolation:isolate!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual{
+  position:absolute!important;
+  inset:0!important;
+  z-index:0!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  visibility:visible!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-image-filmstrip{
+  position:absolute!important;
+  inset:0!important;
+  display:flex!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-video-filmstrip img,
+.editor-fullscreen.nexus-studio-page .editor-clip-visual .editor-image-filmstrip img{
+  display:block!important;
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  height:100%!important;
+  object-fit:cover!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip-audio-icon{
+  position:absolute!important;
+  inset:0!important;
+  z-index:1!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  pointer-events:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-screen{
+  grid-template-rows:minmax(0,1fr) minmax(190px,29dvh) minmax(0,100px) 24px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"]{
+  grid-template-rows:minmax(0,1fr) 0 minmax(0,138px) 24px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-status-line{
+  grid-row:4!important;
+  min-height:24px!important;
+  height:24px!important;
+  box-sizing:border-box!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-screen{
+    grid-template-rows:minmax(0,1fr) minmax(180px,29dvh) minmax(0,100px) 24px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"]{
+    grid-template-rows:minmax(0,1fr) 0 minmax(0,138px) 24px!important;
+  }
+}
