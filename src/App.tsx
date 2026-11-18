@@ -967,6 +967,31 @@ export default function App() {
       const target = event.target as HTMLElement | null;
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       const command = event.ctrlKey || event.metaKey;
+      if (!command && page === "editor" && editorView === "workspace") {
+        const key = event.key.toLowerCase();
+        if (key === " " || key === "spacebar") {
+          event.preventDefault();
+          document.querySelector<HTMLButtonElement>(".nexus-transport-play")?.click();
+          return;
+        }
+        if (key === "home") {
+          event.preventDefault();
+          document.querySelector<HTMLButtonElement>(".nexus-transport-rewind")?.click();
+          return;
+        }
+        if (key === "s" && !event.altKey) {
+          event.preventDefault();
+          document.querySelector<HTMLButtonElement>(".nexus-timeline-split")?.click();
+          return;
+        }
+        if ((key === "arrowleft" || key === "arrowright") && !previewPlaying) {
+          event.preventDefault();
+          const frameRate = Math.max(1, Number.parseInt(exportFps, 10) || 30);
+          const direction = key === "arrowright" ? 1 : -1;
+          setPlayhead(value => Math.max(0, Math.min(duration, value + direction / frameRate)));
+          return;
+        }
+      }
       if (command && event.key.toLowerCase() === "z") {
         event.preventDefault();
         if (event.shiftKey) redoEdit(); else undoEdit();
@@ -1001,7 +1026,7 @@ export default function App() {
     };
     window.addEventListener("keydown", onEditorShortcut);
     return () => window.removeEventListener("keydown", onEditorShortcut);
-  }, [page, selected, selectedImageLayer, selectedTextLayer, clips, imageLayers, textLayers, undoStack, redoStack]);
+  }, [page, editorView, selected, selectedImageLayer, selectedTextLayer, clips, imageLayers, textLayers, undoStack, redoStack, previewPlaying, exportFps, duration]);
   async function openNativeMediaPicker(types: string[], fallback: { current: HTMLInputElement | null }) {
     if (!isNativeAndroid()) { fallback.current?.click(); return; }
     try {
