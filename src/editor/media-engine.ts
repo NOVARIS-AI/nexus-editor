@@ -3,6 +3,13 @@
  * Mediabunny handles incremental, timestamp-aware decoding for timeline assets.
  * The UI keeps lightweight browser-native fallbacks for older Android WebViews.
  */
+/** Choose a useful thumbnail density without exhausting low-memory phones. */
+export function getFilmstripFrameCount(durationSeconds: number, performanceTier: string = "balanced"): number {
+  const safeDuration = Number.isFinite(durationSeconds) ? Math.max(0, durationSeconds) : 0;
+  const limit = performanceTier === "compact" ? 24 : performanceTier === "power" ? 64 : 40;
+  return Math.max(12, Math.min(limit, Math.ceil(safeDuration * 0.75)));
+}
+
 export async function extractVideoFilmstripFrames(
   file: File,
   clipDuration: number,
@@ -28,12 +35,10 @@ export async function extractVideoFilmstripFrames(
   // Sparse timestamp decoding avoids repeatedly seeking a DOM video element.
   // A one-canvas pool bounds GPU memory on lower-end Android devices.
   const sink = new CanvasSink(track, { width: 112, poolSize: 1 });
-  const frameLimit = performanceTier === "compact" ? 360 : performanceTier === "power" ? 900 : 600;
-  // Sample multiple real source frames across the selected range. The timeline can
-  // choose representative cells for its one-second dividers, while the cache keeps
-  // enough chronological detail for accurate trimming and zoomed filmstrips.
+  // Keep a continuous-looking filmstrip while bounding image memory on Android.
+  // Compact phones receive fewer cells; higher-end devices can retain more detail.
   const sampleSpan = Math.max(0.04, end - start);
-  const count = Math.max(8, Math.min(frameLimit, Math.ceil(sampleSpan * 4)));
+  const count = getFilmstripFrameCount(sampleSpan, performanceTier);
   const timestamps = Array.from({ length: count }, (_, index) =>
     start + sampleSpan * ((index + 0.5) / count)
   );
