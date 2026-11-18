@@ -11068,3 +11068,132 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
     max-height:14px!important;
   }
 }
+
+
+/* NEXUS mobile workspace structural rearrangement: preview, timeline controls,
+   tracks and tools become deliberate rows in one editor grid. */
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-screen{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:30px minmax(150px,34dvh) 5px auto minmax(210px,1fr) 72px 14px!important;
+    gap:0!important;
+    padding:0!important;
+    align-content:stretch!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  /* Flatten the preview wrapper so its real contents can be laid out as rows. */
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone{
+    display:contents!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-meta{
+    grid-column:1!important;
+    grid-row:1!important;
+    display:flex!important;
+    align-items:center!important;
+    min-height:30px!important;
+    height:30px!important;
+    padding:0 12px!important;
+    margin:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame{
+    grid-column:1!important;
+    grid-row:2!important;
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:0!important;
+    border-radius:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-resize-handle{
+    grid-column:1!important;
+    grid-row:3!important;
+    height:5px!important;
+    min-height:5px!important;
+    max-height:5px!important;
+    margin:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone>section.nexus-timeline-controlbar{
+    grid-column:1!important;
+    grid-row:4!important;
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    max-height:116px!important;
+    overflow:hidden!important;
+    margin:0!important;
+    padding:0!important;
+    background:#111418!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport{
+    flex:0 0 42px!important;
+    height:42px!important;
+    min-height:42px!important;
+    padding:0 10px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-header{
+    flex:0 0 27px!important;
+    height:27px!important;
+    min-height:27px!important;
+    padding:0 10px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip{
+    flex:0 0 38px!important;
+    height:38px!important;
+    min-height:38px!important;
+    max-height:38px!important;
+    display:flex!important;
+    flex-flow:row nowrap!important;
+    align-items:center!important;
+    gap:5px!important;
+    padding:3px 8px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport .nexus-transport-pills,
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport .nexus-transport-summary{
+    display:none!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+    grid-column:1!important;
+    grid-row:5!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:100%!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:auto!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools{
+    grid-column:1!important;
+    grid-row:6!important;
+    width:100%!important;
+    min-width:0!important;
+    height:72px!important;
+    min-height:72px!important;
+    max-height:72px!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-status-line{
+    grid-column:1!important;
+    grid-row:7!important;
+    height:14px!important;
+    min-height:14px!important;
+    max-height:14px!important;
+    margin:0!important;
+    padding:0 8px!important;
+  }
+}
