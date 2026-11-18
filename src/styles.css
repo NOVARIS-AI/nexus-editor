@@ -10678,3 +10678,130 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
   .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip{grid-auto-rows:24px!important;padding:4px 8px!important;gap:2px!important}
   .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button{height:24px!important;min-height:24px!important;font-size:8px!important}
 }
+
+
+/* NEXUS unified mobile studio surface: one continuous canvas, not stacked cards. */
+.editor-fullscreen.nexus-studio-page{
+  --studio-surface:#111418;
+  --studio-divider:rgba(220,230,238,.10);
+  --studio-text:#edf1f4;
+  --studio-muted:#929ba4;
+  background:var(--studio-surface)!important;
+  color:var(--studio-text)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-topbar,
+.editor-fullscreen.nexus-studio-page .editor-screen,
+.editor-fullscreen.nexus-studio-page .editor-preview-zone,
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock,
+.editor-fullscreen.nexus-studio-page .editor-status-line,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar,
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip{
+  background:var(--studio-surface)!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-zone,
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock,
+.editor-fullscreen.nexus-studio-page .editor-screen,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-stage,
+.editor-fullscreen.nexus-studio-page .editor-preview-canvas,
+.editor-fullscreen.nexus-studio-page .editor-preview-frame,
+.editor-fullscreen.nexus-studio-page .editor-canvas-wrap,
+.editor-fullscreen.nexus-studio-page .editor-preview-inner{
+  background:var(--studio-surface)!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  border-top:1px solid var(--studio-divider)!important;
+  border-bottom:1px solid var(--studio-divider)!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-header{
+  border-top:0!important;
+  border-bottom:1px solid var(--studio-divider)!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip{
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button,
+.editor-fullscreen.nexus-studio-page .nexus-transport-rewind,
+.editor-fullscreen.nexus-studio-page .editor-topbar button,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button{
+  background:transparent!important;
+  border:0!important;
+  border-radius:8px!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button{
+  justify-content:flex-start!important;
+  padding-left:12px!important;
+  color:var(--studio-text)!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button:active,
+.editor-fullscreen.nexus-studio-page .editor-topbar button:active,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button:active{
+  background:rgba(255,255,255,.07)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner,
+.editor-fullscreen.nexus-studio-page .editor-lane-labels,
+.editor-fullscreen.nexus-studio-page .editor-lane,
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span,
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span,
+.editor-fullscreen.nexus-studio-page .editor-lane,
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler{
+  border-color:var(--studio-divider)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-status-line{
+  border-top:1px solid var(--studio-divider)!important;
+  color:var(--studio-muted)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip{
+  border-radius:4px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock{
+  border-top:1px solid var(--studio-divider)!important;
+  padding-top:4px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button{
+  color:#aeb7c0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button[aria-pressed="true"],
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button.active{
+  color:#fff!important;
+  background:rgba(255,255,255,.08)!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page,
+  .editor-fullscreen.nexus-studio-page .editor-screen,
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone,
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+  .editor-fullscreen.nexus-studio-page .editor-tool-dock,
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+    background:#111418!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone,
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-tool-dock{
+    padding-left:4px!important;
+    padding-right:4px!important;
+  }
+}
