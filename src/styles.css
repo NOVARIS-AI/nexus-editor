@@ -10949,3 +10949,122 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
     padding-right:10px!important;
   }
 }
+
+
+/* NEXUS mobile polish: compact action rail and remove dark/light panel mismatches. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll,
+.editor-fullscreen.nexus-studio-page .editor-timeline-ruler,
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows,
+.editor-fullscreen.nexus-studio-page .editor-lanes,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner,
+.editor-fullscreen.nexus-studio-page .editor-lane-labels,
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span,
+.editor-fullscreen.nexus-studio-page .editor-status-line,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-header,
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip{
+  background:#111418!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll,
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows,
+.editor-fullscreen.nexus-studio-page .editor-lanes,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner{
+  border-color:rgba(220,230,238,.09)!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport{
+  flex:0 0 38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  border:0!important;
+  border-bottom:1px solid rgba(220,230,238,.08)!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-header{
+  flex:0 0 28px!important;
+  height:28px!important;
+  min-height:28px!important;
+  border:0!important;
+  border-bottom:1px solid rgba(220,230,238,.08)!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip{
+  display:flex!important;
+  flex-flow:row nowrap!important;
+  align-items:center!important;
+  gap:4px!important;
+  height:36px!important;
+  min-height:36px!important;
+  max-height:36px!important;
+  padding:3px 7px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  scrollbar-width:none!important;
+  border:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-clip-action-strip::-webkit-scrollbar{
+  display:none!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button{
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:max-content!important;
+  height:28px!important;
+  min-height:28px!important;
+  padding:0 9px!important;
+  font-size:10px!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:5px!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-zone,
+.editor-fullscreen.nexus-studio-page .editor-preview-meta,
+.editor-fullscreen.nexus-studio-page .editor-transport,
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-bottom-tools,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock{
+  background:#111418!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-screen{
+    grid-template-rows:minmax(0,1fr) minmax(170px,27dvh) minmax(0,108px) 14px!important;
+    gap:0!important;
+    padding:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-screen[data-timeline-collapsed="true"]{
+    grid-template-rows:minmax(0,1fr) 0 minmax(0,108px) 14px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+    min-height:170px!important;
+    padding:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools{
+    min-height:0!important;
+    height:108px!important;
+    max-height:108px!important;
+    padding:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-tool-dock{
+    min-height:0!important;
+    height:108px!important;
+    padding:3px 4px 0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-status-line{
+    height:14px!important;
+    min-height:14px!important;
+    max-height:14px!important;
+  }
+}
