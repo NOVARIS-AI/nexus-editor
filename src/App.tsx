@@ -74,7 +74,7 @@ import { VideoObjectEraserStudio } from "./editor/VideoObjectEraserStudio";
 import { CREATIVE_FILTERS, CREATIVE_FILTER_CSS, CREATIVE_TEMPLATES, CREATIVE_EFFECTS, NEXUS_VIDEO_EFFECTS } from "./editor/creative-library";
 import { NEXUS_AUDIO_PRESETS, generateNexusAudio, type AudioPreset } from "./editor/audio-sfx";
 import { extractAudioTrackFromVideo } from "./editor/audio-extraction";
-import { extractVideoFilmstripFrames, extractAudioWaveformPeaks } from "./editor/media-engine";
+import { extractVideoFilmstripFrames, extractAudioWaveformPeaks, getFilmstripFrameCount } from "./editor/media-engine";
 import { interpretCreativeCommand } from "./editor/creative-brain";
 import { detectReferenceWorkflow, buildReferenceContext, buildReferenceFusion } from "./editor/reference-workflow";
 import { understandDirectorPrompt } from "./editor/prompt-understander";
@@ -199,7 +199,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         if (file) {
           try {
             const extracted = await getCachedVideoFilmstripFrames(file, duration, sourceIn, sourceOut, deviceProfile.tier);
-            if (!cancelled && extracted.length) { setFrames(extracted.slice(0, 5)); return; }
+            if (!cancelled && extracted.length) { setFrames(extracted.slice(0, getFilmstripFrameCount(duration, deviceProfile.tier))); return; }
           } catch { /* Fall through to the browser video-element decoder. */ }
         }
         // Canvas extraction is optional. Skip remote URLs that cannot safely be sampled without CORS headers; the main preview uses its own media element and is never touched here.
@@ -223,7 +223,7 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
         const clipEnd = Math.max(clipStart + 0.04, Math.min(requestedEnd, mediaEnd));
         // Five evenly spaced frames fill one visible filmstrip row.
         // Keep the fallback light on compact Android devices and long clips.
-        const frameCount = Math.max(1, Math.min(5, Math.ceil(duration)));
+        const frameCount = getFilmstripFrameCount(duration, deviceProfile.tier);
         const output: string[] = [];
         for (let index = 0; index < frameCount; index++) {
           if (cancelled) return;
@@ -255,8 +255,8 @@ function TimelineVideoFilmstrip({ src, file, duration, sourceIn = 0, sourceOut }
       if (ownedUrl) URL.revokeObjectURL(ownedUrl);
     };
   }, [src, file, duration, sourceIn, sourceOut]);
-  const displayFrames = frames.slice(0, 5);
-  const filmstripCount = displayFrames.length || Math.max(1, Math.min(5, Math.ceil(duration)));
+  const displayFrames = frames.slice(0, 64);
+  const filmstripCount = displayFrames.length || getFilmstripFrameCount(duration, "compact");
   return <span className="editor-video-filmstrip" data-frame-count={displayFrames.length} data-extraction-state={failed ? "fallback" : displayFrames.length ? "ready" : "loading"} aria-label="Video timeline thumbnails">
     {displayFrames.length ? displayFrames.map((frame, index) => <img key={index} src={frame} alt="" />) : Array.from({length:filmstripCount},(_,index)=><span key={index} className="editor-filmstrip-placeholder" aria-hidden="true" style={{display:"block",flex:"1 1 0",height:"100%",minWidth:0,background:"rgba(190,150,180,.12)",borderRadius:0}} />)}
   </span>;
