@@ -11267,7 +11267,6 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
   flex:1 1 0!important;
   min-width:1px!important;
   max-width:3px!important;
-  height:var(--wave-height, 40%)!important;
   min-height:3px!important;
   border-radius:2px!important;
   background:#70e3d1!important;
