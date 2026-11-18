@@ -11301,3 +11301,71 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
     max-height:56px!important;
   }
 }
+
+
+/* NEXUS timeline cleanup: one transport row, no duplicate header/action rows. */
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  height:42px!important;min-height:42px!important;max-height:42px!important;
+  overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport{
+  display:flex!important;flex:0 0 42px!important;height:42px!important;
+  min-height:42px!important;max-height:42px!important;padding:0 8px!important;
+  border:0!important;overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-header,
+.editor-fullscreen.nexus-studio-page .nexus-clip-action-strip{
+  display:none!important;height:0!important;min-height:0!important;max-height:0!important;
+  padding:0!important;margin:0!important;border:0!important;overflow:hidden!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-main{
+  display:grid!important;grid-template-columns:minmax(0,1fr) 42px minmax(0,1fr)!important;
+  align-items:center!important;width:100%!important;min-width:0!important;height:42px!important;
+  gap:4px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-time{
+  grid-column:1!important;justify-self:start!important;white-space:nowrap!important;
+  font-variant-numeric:tabular-nums!important;font-size:11px!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-play{
+  grid-column:2!important;grid-row:1!important;justify-self:center!important;
+  width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;
+  margin:0!important;border-radius:50%!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right{
+  grid-column:3!important;grid-row:1!important;justify-self:end!important;
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  gap:3px!important;min-width:0!important;white-space:nowrap!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right>button{
+  display:grid!important;place-items:center!important;flex:0 0 28px!important;
+  width:28px!important;min-width:28px!important;height:30px!important;min-height:30px!important;
+  padding:0!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-transport-right .nexus-timeline-zoom{display:none!important}
+.editor-fullscreen.nexus-studio-page .nexus-transport-pills,
+.editor-fullscreen.nexus-studio-page .nexus-transport-summary{display:none!important}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels{
+  flex:0 0 68px!important;width:68px!important;min-width:68px!important;max-width:68px!important;
+  box-sizing:border-box!important;padding-left:3px!important;padding-right:1px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  width:64px!important;min-width:64px!important;max-width:64px!important;
+  margin-left:0!important;box-sizing:border-box!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar{
+    grid-row:4!important;height:42px!important;min-height:42px!important;max-height:42px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar>.nexus-timeline-transport{
+    flex:0 0 42px!important;height:42px!important;min-height:42px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .nexus-transport-right{gap:1px!important}
+  .editor-fullscreen.nexus-studio-page .nexus-transport-right>button{
+    flex-basis:26px!important;width:26px!important;min-width:26px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-lane-labels{
+    flex:0 0 68px!important;width:68px!important;min-width:68px!important;max-width:68px!important;
+  }
+}
