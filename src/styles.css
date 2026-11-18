@@ -11197,3 +11197,108 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
     padding:0 8px!important;
   }
 }
+
+
+/* Focused timeline repair: give audio clips a readable waveform and keep every lane aligned. */
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+  min-height:0!important;
+  height:100%!important;
+  max-height:none!important;
+  padding:0 0 8px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-scroll{
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-rows,
+.editor-fullscreen.nexus-studio-page .editor-lanes-inner{
+  align-items:stretch!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-lane,
+.editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+  height:56px!important;
+  min-height:56px!important;
+  max-height:56px!important;
+  box-sizing:border-box!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform){
+  top:4px!important;
+  bottom:4px!important;
+  height:auto!important;
+  min-height:44px!important;
+  overflow:hidden!important;
+  background:#123b42!important;
+  border:1px solid rgba(91,220,213,.55)!important;
+  border-radius:5px!important;
+  isolation:isolate!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform) .editor-clip-visual{
+  z-index:0!important;
+  background:transparent!important;
+  opacity:.12!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform) .editor-clip-audio-icon{
+  z-index:1!important;
+  opacity:.12!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform) .editor-audio-waveform{
+  position:absolute!important;
+  z-index:5!important;
+  inset:3px 7px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:1px!important;
+  width:auto!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  opacity:1!important;
+  pointer-events:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform) .editor-audio-waveform i{
+  display:block!important;
+  flex:1 1 0!important;
+  min-width:1px!important;
+  max-width:3px!important;
+  height:var(--wave-height, 40%)!important;
+  min-height:3px!important;
+  border-radius:2px!important;
+  background:#70e3d1!important;
+  opacity:.95!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-clip:has(.editor-audio-waveform) .editor-waveform-loading{
+  position:relative!important;
+  z-index:6!important;
+  display:flex!important;
+  width:100%!important;
+  height:100%!important;
+  align-items:center!important;
+  justify-content:center!important;
+  color:#c4f7ee!important;
+  font-size:9px!important;
+  white-space:nowrap!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page .editor-screen{
+    grid-template-rows:30px minmax(140px,30dvh) 5px auto minmax(190px,1fr) 64px 14px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools,
+  .editor-fullscreen.nexus-studio-page .editor-tool-dock{
+    height:64px!important;
+    min-height:64px!important;
+    max-height:64px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-lane,
+  .editor-fullscreen.nexus-studio-page .editor-lane-labels>span.editor-track-mute{
+    height:56px!important;
+    min-height:56px!important;
+    max-height:56px!important;
+  }
+}
