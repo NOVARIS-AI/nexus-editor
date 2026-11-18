@@ -1,3 +1,4 @@
+import { getTimelineShortcutAction } from "./editor/timeline-shortcuts";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2 } from "lucide-react";
@@ -967,27 +968,33 @@ export default function App() {
       const target = event.target as HTMLElement | null;
       if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       const command = event.ctrlKey || event.metaKey;
-      if (!command && page === "editor" && editorView === "workspace") {
-        const key = event.key.toLowerCase();
-        if (key === " " || key === "spacebar") {
+      if (!command) {
+        const action = getTimelineShortcutAction({
+          key: event.key,
+          altKey: event.altKey,
+          page,
+          editorView,
+          previewPlaying,
+        });
+        if (action === "toggle-playback") {
           event.preventDefault();
           document.querySelector<HTMLButtonElement>(".nexus-transport-play")?.click();
           return;
         }
-        if (key === "home") {
+        if (action === "rewind") {
           event.preventDefault();
           document.querySelector<HTMLButtonElement>(".nexus-transport-rewind")?.click();
           return;
         }
-        if (key === "s" && !event.altKey) {
+        if (action === "split") {
           event.preventDefault();
           document.querySelector<HTMLButtonElement>(".nexus-timeline-split")?.click();
           return;
         }
-        if ((key === "arrowleft" || key === "arrowright") && !previewPlaying) {
+        if (action === "step-backward" || action === "step-forward") {
           event.preventDefault();
           const frameRate = Math.max(1, Number.parseInt(exportFps, 10) || 30);
-          const direction = key === "arrowright" ? 1 : -1;
+          const direction = action === "step-forward" ? 1 : -1;
           setPlayhead(value => Math.max(0, Math.min(duration, value + direction / frameRate)));
           return;
         }
