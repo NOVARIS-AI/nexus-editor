@@ -48,11 +48,20 @@ vi.mock("mediabunny", () => {
   return { Input, ALL_FORMATS: [], BlobSource, CanvasSink, AudioSampleSink };
 });
 
-import { extractAudioWaveformPeaks, extractVideoFilmstripFrames } from "../src/editor/media-engine";
+import { extractAudioWaveformPeaks, extractVideoFilmstripFrames, getFilmstripFrameCount } from "../src/editor/media-engine";
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe("NEXUS incremental media engine", () => {
+  it("keeps filmstrip thumbnails detailed but bounded for each device tier", () => {
+    expect(getFilmstripFrameCount(1, "compact")).toBe(12);
+    expect(getFilmstripFrameCount(30, "compact")).toBe(23);
+    expect(getFilmstripFrameCount(120, "compact")).toBe(24);
+    expect(getFilmstripFrameCount(120, "balanced")).toBe(40);
+    expect(getFilmstripFrameCount(120, "power")).toBe(64);
+    expect(getFilmstripFrameCount(Number.NaN, "balanced")).toBe(12);
+  });
+
   it("extracts timestamped video frames progressively within the requested source range", async () => {
     const canvas = {
       width: 0,
