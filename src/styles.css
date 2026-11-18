@@ -10805,3 +10805,147 @@ body>.nexus-mobile-tool-sheet:not(.is-closed){
     padding-right:4px!important;
   }
 }
+
+
+/* NEXUS mobile surface pass 2: unify the remaining preview chrome, sheets and tool dock. */
+.editor-fullscreen.nexus-studio-page .editor-topbar,
+.editor-fullscreen.nexus-studio-page .editor-screen,
+.editor-fullscreen.nexus-studio-page .editor-preview-zone,
+.editor-fullscreen.nexus-studio-page .editor-preview-meta,
+.editor-fullscreen.nexus-studio-page .editor-transport,
+.editor-fullscreen.nexus-studio-page .editor-bottom-tools,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock,
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+.editor-fullscreen.nexus-studio-page .editor-status-line{
+  background:#111418!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-topbar{
+  border-bottom:1px solid rgba(220,230,238,.09)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-topbar .editor-top-icon,
+.editor-fullscreen.nexus-studio-page .editor-topbar .editor-back,
+.editor-fullscreen.nexus-studio-page .editor-topbar .editor-export-entry{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  color:#e3e9ee!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-project-title{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-meta{
+  border:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .preview-meta-actions button,
+.editor-fullscreen.nexus-studio-page .preview-meta-actions select,
+.editor-fullscreen.nexus-studio-page .editor-transport button{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  color:#dce3e8!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-frame{
+  background:#111418!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  outline:0!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-empty{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-resize-handle{
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-preview-resize-handle span{
+  background:rgba(220,230,238,.35)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-bottom-tools,
+.editor-fullscreen.nexus-studio-page .editor-tool-dock{
+  border:0!important;
+  border-top:1px solid rgba(220,230,238,.09)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:7px!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-tool-dock button.active{
+  background:rgba(255,255,255,.075)!important;
+}
+.editor-fullscreen.nexus-studio-page .editor-timeline-zone{
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button{
+  border:0!important;
+  border-radius:6px!important;
+  background:transparent!important;
+}
+.editor-fullscreen.nexus-studio-page .nexus-timeline-controlbar .nexus-clip-action-strip button:active{
+  background:rgba(255,255,255,.07)!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed){
+  background:#111418!important;
+  color:#edf1f4!important;
+  border:0!important;
+  border-top:1px solid rgba(220,230,238,.12)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed) .nexus-mobile-sheet-head,
+body>.nexus-mobile-tool-sheet:not(.is-closed) .nexus-sheet-heading,
+body>.nexus-mobile-tool-sheet:not(.is-closed) .nexus-pixi-panel,
+body>.nexus-mobile-tool-sheet:not(.is-closed) .nexus-live-studio-section{
+  background:transparent!important;
+  border-color:rgba(220,230,238,.10)!important;
+  box-shadow:none!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed) button,
+body>.nexus-mobile-tool-sheet:not(.is-closed) input,
+body>.nexus-mobile-tool-sheet:not(.is-closed) select,
+body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
+  box-shadow:none!important;
+}
+@media(max-width:760px){
+  .editor-fullscreen.nexus-studio-page,
+  .editor-fullscreen.nexus-studio-page .editor-topbar,
+  .editor-fullscreen.nexus-studio-page .editor-screen,
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone,
+  .editor-fullscreen.nexus-studio-page .editor-preview-meta,
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame,
+  .editor-fullscreen.nexus-studio-page .editor-transport,
+  .editor-fullscreen.nexus-studio-page .editor-timeline-zone,
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools,
+  .editor-fullscreen.nexus-studio-page .editor-tool-dock,
+  .editor-fullscreen.nexus-studio-page .editor-status-line,
+  body>.nexus-mobile-tool-sheet:not(.is-closed){
+    background:#111418!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-zone{
+    padding:8px 10px 0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-meta{
+    padding:4px 2px 8px!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-preview-frame{
+    min-height:0!important;
+  }
+  .editor-fullscreen.nexus-studio-page .editor-bottom-tools{
+    padding:0!important;
+  }
+  body>.nexus-mobile-tool-sheet:not(.is-closed){
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+}
