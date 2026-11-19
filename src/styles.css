@@ -11402,3 +11402,17 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
   padding-left:6px!important;
   box-sizing:border-box!important;
 }
+
+
+/* Stage 3 · AI assistant project awareness and AI Studio bridge */
+.nexus-shell .nexus-assistant-context{display:flex;align-items:center;gap:9px;min-height:48px;padding:7px 11px;border-bottom:1px solid var(--nx-line);background:linear-gradient(90deg,color-mix(in srgb,var(--nx-accent-2) 12%,transparent),color-mix(in srgb,var(--nx-surface) 70%,transparent))}
+.nexus-shell .nexus-assistant-context-dot{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--nx-accent);box-shadow:0 0 12px var(--nx-glow)}
+.nexus-shell .nexus-assistant-context-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:2px}
+.nexus-shell .nexus-assistant-context-copy b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--nx-text)}
+.nexus-shell .nexus-assistant-context-copy small{font-size:9px;color:var(--nx-muted)}
+.nexus-shell .nexus-assistant-context>button{display:flex;align-items:center;gap:5px;min-height:29px;padding:0 9px;border:1px solid color-mix(in srgb,var(--nx-accent) 35%,var(--nx-line));border-radius:9px;background:color-mix(in srgb,var(--nx-accent) 12%,transparent);color:var(--nx-text);font-size:10px;font-weight:700}
+.nexus-shell .nexus-assistant-tools-grid{max-height:190px;overflow:auto}
+.nexus-shell .nexus-assistant-orb{isolation:isolate;overflow:visible;background:radial-gradient(circle at 32% 25%,rgba(255,255,255,.88) 0 3%,transparent 20%),linear-gradient(145deg,color-mix(in srgb,var(--nx-accent-2) 92%,#fff 8%),color-mix(in srgb,var(--nx-accent) 82%,#15101d 18%))!important}
+.nexus-shell .nexus-assistant-orb:before{content:"";position:absolute;inset:-5px;border:1px solid color-mix(in srgb,var(--nx-accent) 55%,transparent);border-radius:50%;box-shadow:0 0 18px var(--nx-glow);opacity:.8;pointer-events:none;animation:nexusAssistantPulse 3.2s ease-in-out infinite;z-index:-1}
+@keyframes nexusAssistantPulse{0%,100%{transform:scale(.96);opacity:.38}50%{transform:scale(1.12);opacity:.9}}
+@media(max-width:420px){.nexus-shell .nexus-assistant-window{width:min(310px,calc(100vw - 16px))!important}.nexus-shell .nexus-assistant-context{padding:6px 9px}.nexus-shell .nexus-assistant-context-copy b{max-width:155px}}
