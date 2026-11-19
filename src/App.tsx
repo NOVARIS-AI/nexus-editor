@@ -3185,8 +3185,14 @@ export default function App() {
               <button type="button" className="nexus-assistant-tools-toggle" onPointerDown={event=>event.stopPropagation()} onClick={()=>setAssistantToolsOpen(open=>!open)} aria-expanded={assistantToolsOpen} aria-label="Show AI tools"><SlidersHorizontal size={15}/><span>Tools</span></button>
               <button type="button" onPointerDown={event=>event.stopPropagation()} onClick={()=>{setAiWorkspaceOpen(false);setAssistantToolsOpen(false);}} aria-label="Close assistant"><X size={16}/></button>
             </header>
+            <div className="nexus-assistant-context" aria-live="polite">
+              <span className="nexus-assistant-context-dot"/>
+              <span className="nexus-assistant-context-copy"><b>{selectedClip ? selectedClip.label : projectName}</b><small>{selectedClip ? "Selected clip" : "Project context"} · {clips.length} clips · {clock(playhead)} playhead</small></span>
+              <button type="button" onPointerDown={event=>event.stopPropagation()} onClick={()=>{setPage("ai");setAiWorkspaceOpen(false);setAssistantToolsOpen(false);}} title="Open full AI Studio"><WandSparkles size={14}/><span>Studio</span></button>
+            </div>
             {assistantToolsOpen && <div className="nexus-assistant-tools-grid">
               <button onClick={()=>{setAssistantInput("Help me plan and improve this edit with AI Director.");setAssistantToolsOpen(false);}}><Sparkles size={17}/><b>AI Director</b><small>Plan and improve the edit</small></button>
+              <button onClick={()=>{setPage("ai");setAiWorkspaceOpen(false);setAssistantToolsOpen(false);}}><WandSparkles size={17}/><b>Full AI Studio</b><small>Open the complete creation workspace</small></button>
               <button onClick={()=>{setCreativeFabricOpen(true);setAssistantToolsOpen(false);}}><GitBranch size={17}/><b>Creative Fabric</b><small>Explore scene intelligence</small></button>
               <button onClick={()=>{setActiveTool("text");setToolPanelOpen(true);setAssistantInput("Help me create a strong title and captions for this project.");setAssistantToolsOpen(false);}}><Type size={17}/><b>Text & captions</b><small>Titles and subtitles</small></button>
               <button onClick={()=>{setActiveTool("audio");setToolPanelOpen(true);setAssistantInput("Help me improve the sound and audio mix in this project.");setAssistantToolsOpen(false);}}><Music2 size={17}/><b>Audio assistant</b><small>Sound and voice guidance</small></button>
