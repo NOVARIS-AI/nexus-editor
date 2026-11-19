@@ -94,6 +94,16 @@ const PublishFlow = lazy(() => import("./social/PublishFlow").then(module => ({ 
 const ModerationCentre = lazy(() => import("./social/ModerationCentre").then(module => ({ default: module.ModerationCentre })));
 const CreatorAppealsPage = lazy(() => import("./social/CreatorAppealsPage").then(module => ({ default: module.CreatorAppealsPage })));
 
+type AIAssetChecklistItem = { id:string; sceneIndex:number; title:string; query:string; reason:string; action:"auto"|"generate"|"source"|"existing"|"skip"; assetId:string; };
+function buildAIAssetChecklist(scenes:Array<{title:string;visual:string;searchTerms:string[]}>, media:MediaAsset[]):AIAssetChecklistItem[] {
+  const visualMedia=media.filter(item=>item.kind==="video"||item.kind==="image");
+  return scenes.flatMap((scene,index)=>{
+    const words=[scene.title,scene.visual,...scene.searchTerms].join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word=>word.length>3);
+    const matched=visualMedia.find(item=>words.some(word=>item.name.toLowerCase().includes(word)));
+    if(matched)return [];
+    return [{id:"need-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,title:scene.title,query:[scene.visual,...scene.searchTerms].filter(Boolean).join(", ").slice(0,700),reason:visualMedia.length===0?"No visual media has been added to this project yet.":"No supplied media clearly matches this scene.",action:"auto" as const,assetId:""}];
+  });
+}
 type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "appeals" | "editor" | "projects" | "templates" | "ai" | "settings";
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
@@ -113,6 +123,14 @@ const themes = [
   { id: "aurora-orchid", name: "Aurora Orchid", colors: ["#24112D", "#713B79", "#C17CCB", "#F3D8F5"] }
 ] as const;
 const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\'/g, "&apos;");
+function aiSceneThumbnail(title:string,detail:string,index:number) {
+  const safeTitle=escapeXml(title.slice(0,42));
+  const safeDetail=escapeXml(detail.slice(0,92));
+  const palettes=[["#321b35","#985d83"],["#172b35","#367d83"],["#3a271b","#a36b43"],["#20233e","#625d9a"]];
+  const colors=palettes[index%palettes.length];
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="'+colors[0]+'"/><stop offset="1" stop-color="'+colors[1]+'"/></linearGradient></defs><rect width="640" height="360" fill="url(#g)"/><circle cx="520" cy="65" r="145" fill="#fff" opacity=".08"/><circle cx="85" cy="340" r="180" fill="#fff" opacity=".06"/><text x="42" y="64" fill="#fff" opacity=".65" font-family="Arial" font-size="17" letter-spacing="4">NEXUS · SCENE '+String(index+1).padStart(2,"0")+'</text><text x="42" y="210" fill="#fff" font-family="Arial" font-size="36" font-weight="700">'+safeTitle+'</text><foreignObject x="42" y="232" width="550" height="88"><div xmlns="http://www.w3.org/1999/xhtml" style="font:16px Arial;color:#f4eefa;line-height:1.4">'+safeDetail+'</div></foreignObject></svg>';
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
 const clock = (n: number) => {
   const m = Math.floor(n / 60), s = Math.floor(n % 60);
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
@@ -462,6 +480,7 @@ export default function App() {
   const [aiWorkflowStage, setAiWorkflowStage] = useState<"idea" | "planning" | "review" | "editing">("idea");
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Hi, I’m your NEXUS creative assistant. Ask me a question, tell me what you’re trying to make, or ask me to improve the edit. I’ll use your current project as context and guide you step by step." }]);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number; audioCueType?: string }[]; sourcingNote: string }>(null);
+  const [aiAssetChecklist, setAiAssetChecklist] = useState<AIAssetChecklistItem[]>([]);
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
   const [mediaSearchStatus, setMediaSearchStatus] = useState("");
@@ -2346,6 +2365,31 @@ export default function App() {
       generationRefreshInFlight.current.delete(job.id);
     }
   }
+  async function importAIMediaFiles(fileList:FileList|null) {
+    const incoming=Array.from(fileList||[]).slice(0,20);
+    const created:MediaAsset[]=[];
+    for(const file of incoming) {
+      const kind:MediaAsset["kind"]=file.type.startsWith("video/")?"video":file.type.startsWith("audio/")?"audio":file.type.startsWith("image/")?"image":"image";
+      if(!file.type.startsWith("video/")&&!file.type.startsWith("audio/")&&!file.type.startsWith("image/"))continue;
+      const objectUrl=URL.createObjectURL(file);
+      const duration=kind==="image"?5:await new Promise<number>(resolve=>{
+        const media=document.createElement(kind==="video"?"video":"audio");
+        let settled=false;
+        const finish=(value:number)=>{if(settled)return;settled=true;media.removeAttribute("src");media.load();resolve(Number.isFinite(value)&&value>0?value:5);};
+        media.preload="metadata";media.onloadedmetadata=()=>finish(media.duration);media.onerror=()=>finish(5);
+        media.src=objectUrl;window.setTimeout(()=>finish(5),8000);
+      });
+      created.push({id:uid(),name:file.name,kind,duration,mimeType:file.type,file,objectUrl,source:{type:"personal"}});
+    }
+    if(!created.length){setAiChatMessages(old=>[...old,{role:"assistant",text:"I couldn't find supported image, video or audio files in that selection."}]);return;}
+    setAssets(old=>[...old,...created]);
+    void Promise.all(created.map(item=>saveMediaAsset(item))).catch(()=>setDraftSaveStatus("Some newly imported AI Studio media could not be backed up on this device."));
+    setAiChatMessages(old=>[...old,{role:"assistant",text:"Added "+created.length+" media item(s) to this project. I'm using them to refresh the asset checklist; choose which ones should be used, generated or sourced."}]);
+    if(aiPlan)setAiAssetChecklist(buildAIAssetChecklist(aiPlan.scenes,[...assets,...created]));
+  }
+  function updateAIAssetNeed(id:string,patch:Partial<AIAssetChecklistItem>) {
+    setAiAssetChecklist(old=>old.map(item=>item.id===id?{...item,...patch}:item));
+  }
   async function buildAIProjectTimeline() {
     if (!aiPlan) return;
     const visualAssets = assets.filter(item => item.kind === "video" || item.kind === "image");
@@ -2360,10 +2404,14 @@ export default function App() {
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
-      let chosen = visualAssets.find(item => terms.some(word => item.name.toLowerCase().includes(word)));
-      if (!chosen) {
+      const checklistItem = aiAssetChecklist.find(item => item.sceneIndex === index);
+      let chosen = checklistItem?.action === "existing"
+        ? visualAssets.find(item => item.id === checklistItem.assetId)
+        : checklistItem?.action === "generate" || checklistItem?.action === "skip" ? undefined
+        : visualAssets.find(item => terms.some(word => item.name.toLowerCase().includes(word)));
+      if (!chosen && checklistItem?.action !== "generate" && checklistItem?.action !== "skip" && checklistItem?.action !== "existing") {
         try {
-          const online = await searchWikimediaCommons(scene.searchTerms[0] || scene.visual);
+          const online = await searchWikimediaCommons(checklistItem?.query || scene.searchTerms[0] || scene.visual);
           const candidate = online.find(item => item.mediaKind === "video" || item.mediaKind === "image");
           if (candidate) {
             const response = await fetch(candidate.downloadUrl);
@@ -2388,7 +2436,7 @@ export default function App() {
       const sourceDuration = chosen.kind === "image" ? sceneLength : Math.min(sceneLength, Math.max(0.5, chosen.duration || sceneLength));
       newClips.push({ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } });
       newTextLayers.push({ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 });
-      if (chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
+      if (checklistItem?.action !== "skip" && chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
         const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
         if (engine === "image") {
           pendingWorkerImages.push({ scene, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
@@ -2449,6 +2497,7 @@ export default function App() {
       const target = match ? Math.min(180,Math.max(10,Number(match[1]))) : 30;
       const plannedScenes = rawScenes.map((scene,index) => ({ title: String(scene.title || "Scene " + (index+1)).slice(0, 64), visual: String(scene.visual || "Supporting visual").slice(0, 600), narration: String(scene.narration || "").slice(0, 900), searchTerms: Array.isArray(scene.searchTerms) && scene.searchTerms.length ? scene.searchTerms.slice(0,4).map((term:string)=>String(term).slice(0,100)) : [String(scene.visual || brief).slice(0,120)], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: target / rawScenes.length, audioCueType: String(scene.audioCueType || "").slice(0,48) }));
       setAiPlan({title:brief.slice(0,72),duration:target,scenes:plannedScenes,sourcingNote:result.plan.userReferenceNeeded ? "A personal reference photo or video is needed to depict you accurately." : "NEXUS will search licensed media first; unavailable visuals remain editable placeholders."});
+      setAiAssetChecklist(buildAIAssetChecklist(plannedScenes,assets));
       setAiWorkflowStage("review");
       setAiReply(result.plan.summary + " Review the scenes and approve before timeline changes are made.");
       setEngineReport(["AI Director ready",...result.plan.editPlan.map(step => step.action + " · " + step.target + ": " + step.details)]);
@@ -3008,13 +3057,13 @@ export default function App() {
       </section>}
 
       {page === "ai" && <section className="page-content ai-studio-page">
-        <div className="page-title-row"><div><div className="eyebrow">STAGE 1 · IDEA & CREATIVE DIRECTION</div><h1>NEXUS AI Studio <span>✦</span></h1><p>Develop the idea, review every scene, and approve the plan before editing begins.</p></div><button className="outline-button" onClick={()=>{setAiPlan(null);setAiWorkflowStage("idea");setAiChatMessages([{role:"assistant",text:"New idea ready. What would you like to create?"}]);setAiBrief("");}}>＋ New idea</button></div>
+        <div className="page-title-row"><div><div className="eyebrow">STAGE 1 · IDEA & CREATIVE DIRECTION</div><h1>NEXUS AI Studio <span>✦</span></h1><p>Develop the idea, review every scene, and approve the plan before editing begins.</p></div><button className="outline-button" onClick={()=>{setAiPlan(null);setAiAssetChecklist([]);setAiWorkflowStage("idea");setAiChatMessages([{role:"assistant",text:"New idea ready. What would you like to create?"}]);setAiBrief("");}}>＋ New idea</button></div>
         <div className="ai-live-steps"><div className={aiWorkflowStage==="editing"?"complete":"current"}><b>01</b><span>AI planning & approval</span><small>{aiWorkflowStage==="idea"?"Waiting for your idea":aiWorkflowStage==="planning"?"Building the first scene plan…":aiWorkflowStage==="review"?"Blueprint ready · changes welcome":"Approved · moving to editor"}</small></div><div className={aiWorkflowStage==="editing"?"current":"pending"}><b>02</b><span>Editing workspace</span><small>{aiWorkflowStage==="editing"?"Timeline created · edit your scenes":"Starts after plan approval"}</small></div><div className="pending"><b>03</b><span>Rendering & export</span><small>Next engine milestone · not yet enabled</small></div></div>
         <div className="ai-studio-layout">
           <div className="ai-studio-chat">
             <div className="ai-studio-chat-head"><span className="ai-studio-orb"><Sparkles size={19}/></span><div><b>NEXUS CREATIVE PARTNER</b><small>IDEA DEVELOPMENT · LIVE WORKFLOW GUIDANCE</small></div><span className="ai-studio-stage">STAGE 1 / 3</span></div>
             <div className="ai-studio-messages">{aiChatMessages.map((m,i)=><article key={i} className={"ai-studio-message "+m.role}><b>{m.role==="assistant"?"NEXUS AI":"YOU"}</b><p>{m.text}</p></article>)}</div>
-            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message or visual style..." rows={3}/><label className="ai-studio-reference-upload">Attach text reference <input type="file" multiple accept=".txt,.md,.csv,.json,.yaml,.yml,.xml,.html" onChange={e=>setAiFiles(Array.from(e.target.files||[]).slice(0,5))}/></label>{aiFiles.length>0&&<small>{aiFiles.map(file=>file.name).join(" · ")}</small>}<button onClick={()=>{
+            <div className="ai-studio-compose"><textarea value={aiBrief} onChange={e=>setAiBrief(e.target.value)} placeholder="Describe your video idea, audience, message or visual style..." rows={3}/><label className="ai-studio-reference-upload">Attach text reference <input type="file" multiple accept=".txt,.md,.csv,.json,.yaml,.yml,.xml,.html" onChange={e=>setAiFiles(Array.from(e.target.files||[]).slice(0,5))}/></label><label className="ai-studio-reference-upload ai-studio-media-upload">Add project media <input type="file" multiple accept="image/*,video/*,audio/*" onChange={e=>{void importAIMediaFiles(e.target.files);e.currentTarget.value="";}}/></label>{aiFiles.length>0&&<small>{aiFiles.map(file=>file.name).join(" · ")}</small>}<button onClick={()=>{
               const message=aiBrief.trim(); if(!message)return;
               setAiChatMessages(old=>[...old,{role:"user",text:message}]);
               if(!aiPlan){void (async()=>{await createAIProjectPlan(message);setAiChatMessages(old=>[...old,{role:"assistant",text:"Your storyboard is ready. Review the scenes and make any changes before approval."}]);})();}
@@ -3024,7 +3073,7 @@ export default function App() {
                 else if(/shorter|shorten/.test(lower)){next={...next,duration:Math.max(10,Math.round(next.duration*.75))};response="Shortened the target duration. Review the updated blueprint.";}
                 else if(/longer|extend/.test(lower)){next={...next,duration:Math.min(180,Math.round(next.duration*1.25))};response="Extended the target duration. Review the updated blueprint.";}
                 else {const match=lower.match(/(\d+)\s*(seconds?|secs?)\b/);if(match){next={...next,duration:Math.min(180,Math.max(10,Number(match[1])))};response="Updated the target duration to "+next.duration+" seconds.";}}
-                setAiPlan(next);setAiChatMessages(old=>[...old,{role:"assistant",text:response}]);
+                setAiPlan(next);setAiAssetChecklist(buildAIAssetChecklist(next.scenes,assets));setAiChatMessages(old=>[...old,{role:"assistant",text:response}]);
               }
               setAiBrief("");
             }}><Sparkles size={15}/> Send</button></div>
@@ -3033,12 +3082,26 @@ export default function App() {
           <aside className="ai-studio-plan"><div className="ai-studio-plan-head"><div><div className="eyebrow">CREATIVE BLUEPRINT</div><h2>{aiPlan?.title||"Your idea, mapped out"}</h2></div><span className="ai-studio-stage">LIVE PLAN</span></div>
             {!aiPlan?<div className="ai-studio-empty"><Sparkles size={28}/><b>Your visual plan will appear here</b><p>First, share the idea. The plan will show the story structure, scene-by-scene visuals, narration and suggested media.</p><div><span>✓ Understand the brief</span><span>✓ Map the story</span><span>✓ Plan visuals and narration</span><span>✓ Review before editing</span></div></div>:<>
               <div className="ai-studio-plan-meta"><span>{aiPlan.duration}s target</span><span>{aiPlan.scenes.length} scenes</span><span>{aiFormat}</span><span>{aiStyle}</span></div>
-              <div className="ai-studio-scenes">{aiPlan.scenes.map((scene,i)=><article key={i}><div className="ai-studio-scene-title"><b>{String(i+1).padStart(2,"0")} · {scene.title}</b><span>{Math.round(aiPlan.duration/aiPlan.scenes.length)}s</span></div><p><strong>Visuals</strong>{scene.visual}</p><p><strong>Voice / script</strong>{scene.narration}</p><small>Search: {scene.searchTerms.join(" · ")}</small><small>Alternative idea: {scene.fallback}</small></article>)}</div>
+              <div className="ai-studio-scenes">{aiPlan.scenes.map((scene,i)=>{const matched=assets.find(item=>(item.kind==="video"||item.kind==="image")&&scene.searchTerms.some(term=>term.length>2&&item.name.toLowerCase().includes(term.toLowerCase())));return <article key={i}><div className="ai-studio-scene-visual"><img src={matched?.objectUrl||aiSceneThumbnail(scene.title,scene.visual,i)} alt={matched?matched.name:"Visual concept for "+scene.title}/><span>{matched?"PROJECT MEDIA":"SCENE CONCEPT"}</span></div><div className="ai-studio-scene-title"><b>{String(i+1).padStart(2,"0")} · {scene.title}</b><span>{Math.round(aiPlan.duration/aiPlan.scenes.length)}s</span></div><p><strong>Visuals</strong>{scene.visual}</p><p><strong>Voice / script</strong>{scene.narration}</p><small>Search: {scene.searchTerms.join(" · ")}</small><small>Alternative idea: {scene.fallback}</small></article>})}</div>
+              {aiAssetChecklist.length>0&&<section className="ai-asset-checklist"><div className="ai-asset-checklist-head"><div><div className="eyebrow">MEDIA GAP ANALYSIS</div><h3>Assets NEXUS needs</h3><p>Generated from this prompt and the media already in this project. Review, change, add or remove any requirement before building.</p></div><span>{aiAssetChecklist.length} needed</span></div>
+                <div className="ai-asset-checklist-list">{aiAssetChecklist.map((item,index)=>{const selected=assets.find(asset=>asset.id===item.assetId);return <article className={"ai-asset-need"+(item.action==="skip"?" is-skipped":"")} key={item.id}>
+                  <img className="ai-asset-need-thumb" src={selected?.objectUrl||aiSceneThumbnail(item.title,item.query,index)} alt={selected?.name||"Planned media for "+item.title}/>
+                  <div className="ai-asset-need-body"><div className="ai-asset-need-title"><b>{item.title}</b><button type="button" className="ai-asset-remove" onClick={()=>setAiAssetChecklist(old=>old.filter(entry=>entry.id!==item.id))} title="Remove this requirement"><X size={14}/></button></div>
+                    <textarea aria-label={"Media description for "+item.title} value={item.query} onChange={event=>updateAIAssetNeed(item.id,{query:event.target.value})} rows={2}/>
+                    <div className="ai-asset-need-controls"><select aria-label={"Media action for "+item.title} value={item.action} onChange={event=>updateAIAssetNeed(item.id,{action:event.target.value as AIAssetChecklistItem["action"]})}><option value="auto">Find or generate automatically</option><option value="generate">Generate new media</option><option value="source">Find licensed media</option><option value="existing">Use my media</option><option value="skip">Skip this asset</option></select>
+                    {item.action==="existing"&&<select aria-label={"Choose existing media for "+item.title} value={item.assetId} onChange={event=>updateAIAssetNeed(item.id,{assetId:event.target.value})}><option value="">Choose media…</option>{assets.filter(asset=>asset.kind==="video"||asset.kind==="image").map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}</select>}</div>
+                    {selected&&(selected.kind==="video"||selected.kind==="audio")&&<video className="ai-asset-mini-player" src={selected.objectUrl} controls playsInline/>}
+                    <small>{item.reason} · {item.action==="skip"?"Will use an editable scene placeholder":item.action==="generate"?"NEXUS will request a generated visual":item.action==="existing"?"Uses the selected project media":"NEXUS will search available media sources first"}</small>
+                  </div>
+                </article>})}</div>
+                <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>setAiAssetChecklist(old=>[...old,{id:"manual-"+Date.now(),sceneIndex:0,title:"Additional project asset",query:"Describe the extra visual or audio asset needed",reason:"Added by you",action:"auto",assetId:""}])}><Plus size={14}/> Add requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
+              </section>}
+              {aiAssetChecklist.length===0&&<div className="ai-asset-checklist-ready"><CheckCircle2 size={16}/> Your current project media covers the planned scenes. You can still add extra media before building.</div>}
               <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p><div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={()=>{setAiWorkflowStage("editing");buildAIProjectTimeline();}}>Approve & build timeline <ArrowRight size={15}/></button></div>
             </>}
           </aside>
         </div>
-        <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The timeline is not created until you approve this blueprint. The AI planning page is separate from the editor.</p>
+        <p className="ai-studio-disclaimer"><CheckCircle2 size={15}/> The asset checklist is rebuilt for each prompt from the current project media. Nothing is generated, sourced or placed on the timeline until you approve the plan.</p>
       </section>}
 
       {page === "editor" && <section className="editor-fullscreen nexus-studio-page">
