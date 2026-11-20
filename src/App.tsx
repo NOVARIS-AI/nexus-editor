@@ -2713,6 +2713,145 @@ export default function App() {
     const selectedKind = asset?.kind;
     const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
     const normalized = request.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+    // Direct live-edit router: clear instructions become real, undo-aware timeline changes.
+    const runLiveOperation = async (tool: string, label: string, detail: string, execute: () => void | Promise<void>, success: string) => {
+      const actionId = await beginAILiveAction(tool, label, detail);
+      try {
+        await execute();
+        finishAILiveAction(actionId, "done", "Applied to the current project.");
+        respond(success);
+      } catch (error) {
+        finishAILiveAction(actionId, "error", error instanceof Error ? error.message : "The operation could not be completed.");
+        respond(error instanceof Error ? error.message : "The edit could not be completed.");
+      }
+    };
+
+    const liveTitleMatch = rawRequest.match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title|caption)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
+    if (liveTitleMatch) {
+      const titleText = (liveTitleMatch[1] || "Your title").trim().replace(/^["“]|["”]$/g, "").slice(0, 180);
+      await runLiveOperation("text", "Adding a timeline title", "Creating an editable text layer at the current playhead.", () => {
+        setPage("editor"); setEditorView("workspace"); addGraphicLayer(titleText);
+      }, "Added “" + titleText + "” as an editable, timed text layer on the timeline.");
+      return;
+    }
+
+    const liveRatioMatch = normalized.match(/\b(?:ratio|aspect ratio|canvas|format)\s*(?:to|=|of)?\s*(9:16|16:9|1:1|4:5|3:4)\b|\b(9:16|16:9|1:1|4:5|3:4)\s*(?:ratio|canvas|format)\b/);
+    if (liveRatioMatch) {
+      const ratio = liveRatioMatch[1] || liveRatioMatch[2];
+      await runLiveOperation("ratio", "Changing canvas format", "Updating the project canvas and export aspect ratio.", () => {
+        setPage("editor"); setEditorView("workspace"); setAspectRatio(ratio); setActiveSubtool(ratio);
+      }, "Changed the project canvas to " + ratio + ". Export will use the same aspect ratio.");
+      return;
+    }
+
+    const liveSpeedMatch = normalized.match(/\b(?:speed|playback)\s*(?:to|at|=)?\s*(0?\.\d+|[1-4](?:\.\d+)?)\s*x?\b/);
+    if (liveSpeedMatch && /\b(speed|playback)\b/.test(normalized)) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know which clip to change."); return; }
+      const speed = Math.max(0.1, Math.min(4, Number(liveSpeedMatch[1])));
+      await runLiveOperation("edit", "Adjusting clip speed", "Updating playback speed for “" + selectedClip.label + "”.", () => {
+        updateSelectedClip({ speed }); setActiveSubtool("speed");
+      }, "Set “" + selectedClip.label + "” to " + speed + "× speed. Timeline duration and export timing use this setting.");
+      return;
+    }
+
+    const liveVolumeMatch = normalized.match(/\b(?:volume|gain)\s*(?:to|at|=)?\s*(\d{1,3})\s*%/);
+    if (liveVolumeMatch) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know which audio to adjust."); return; }
+      const gain = Math.max(0, Math.min(200, Number(liveVolumeMatch[1]))) / 100;
+      await runLiveOperation("audio", "Adjusting clip volume", "Setting “" + selectedClip.label + "” to " + Math.round(gain * 100) + "% gain.", () => {
+        updateSelectedClip({ gain }); setActiveSubtool("volume");
+      }, "Set “" + selectedClip.label + "” volume to " + Math.round(gain * 100) + "%.");
+      return;
+    }
+
+    if (/\b(unmute)\b/.test(normalized) || /\b(mute|silence)\b/.test(normalized)) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know which clip to mute or unmute."); return; }
+      const muted = !/\bunmute\b/.test(normalized);
+      await runLiveOperation("audio", muted ? "Muting clip audio" : "Unmuting clip audio", "Changing the audio state of “" + selectedClip.label + "”.", () => {
+        updateSelectedClip({ muted }); setMuteClip(muted); setActiveSubtool("volume");
+      }, (muted ? "Muted " : "Unmuted ") + "“" + selectedClip.label + "”.");
+      return;
+    }
+
+    const liveFadeMatch = normalized.match(/\b(fade\s*in|fade\s*out)\s*(?:for|over)?\s*(\d+(?:\.\d+)?)?\s*(?:seconds?|secs?|s)?\b/);
+    if (liveFadeMatch) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know where to apply the fade."); return; }
+      const seconds = Math.max(0, Math.min(10, Number(liveFadeMatch[2] || 1)));
+      const fadeIn = liveFadeMatch[1].toLowerCase().includes("in");
+      await runLiveOperation("audio", fadeIn ? "Applying fade-in" : "Applying fade-out", "Applying a " + seconds + " second fade to “" + selectedClip.label + "”.", () => {
+        updateSelectedClip(fadeIn ? { fadeIn: seconds } : { fadeOut: seconds }); setActiveSubtool("fade");
+      }, "Applied a " + seconds + " second " + (fadeIn ? "fade-in" : "fade-out") + " to “" + selectedClip.label + "”.");
+      return;
+    }
+
+    const liveFilterName = [...CREATIVE_FILTERS.map(item => item.name), ...FILTER_PRESETS].find(name => normalized.includes(name.toLowerCase()));
+    if (liveFilterName && /\b(filter|colour|color|look|apply|make|give)\b/.test(normalized)) {
+      if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first so I can apply that visual filter."); return; }
+      await runLiveOperation("filters", "Applying " + liveFilterName + " filter", "Updating the selected visual clip and its preview.", () => {
+        updateSelectedClip({ filter: liveFilterName }); setActiveSubtool(liveFilterName);
+      }, "Applied the " + liveFilterName + " filter to “" + selectedClip.label + "”. It remains editable and can be undone.");
+      return;
+    }
+
+    const liveEffect = NEXUS_VIDEO_EFFECTS.find(item => normalized.includes(item.name.toLowerCase()));
+    if (liveEffect && /\b(effect|look|apply|make|give|style)\b/.test(normalized)) {
+      if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first so I can apply that effect."); return; }
+      await runLiveOperation("effects", "Applying " + liveEffect.name, "Applying the selected creative effect to “" + selectedClip.label + "”.", () => {
+        applyCreativeEffect(liveEffect);
+      }, "Applied " + liveEffect.name + " to “" + selectedClip.label + "”. The effect can be adjusted or undone.");
+      return;
+    }
+
+    if (/\bduplicate\b/.test(normalized) && /\b(clip|selected|this)\b/.test(normalized)) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know which clip to duplicate."); return; }
+      const source = selectedClip;
+      const copy = { ...source, id: uid(), start: source.start + clipDuration(source), label: source.label + " copy" };
+      await runLiveOperation("edit", "Duplicating timeline clip", "Creating an independent copy after “" + source.label + "”.", () => {
+        applyClipChange([...clips, copy], "Selected clip duplicated after the original."); setSelected(copy.id); setPlayhead(copy.start);
+      }, "Duplicated “" + source.label + "” and placed the copy immediately after it.");
+      return;
+    }
+
+    if (/\b(flip|mirror)\b/.test(normalized) && /\b(horizontal|horizontally|left.?right|vertical|vertically|up.?down)\b/.test(normalized)) {
+      if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first so I know what to flip."); return; }
+      const horizontal = /\b(horizontal|horizontally|left.?right)\b/.test(normalized);
+      const patch = horizontal ? { flipHorizontal: !selectedClip.flipHorizontal } : { flipVertical: !selectedClip.flipVertical };
+      await runLiveOperation("adjust", horizontal ? "Flipping horizontally" : "Flipping vertically", "Updating the selected clip orientation.", () => {
+        updateSelectedClip(patch); setActiveSubtool("transform");
+      }, "Updated the selected clip’s " + (horizontal ? "horizontal" : "vertical") + " flip.");
+      return;
+    }
+
+    const liveTransitionMatch = normalized.match(/\b(?:transition|transitions)\s*(?:to|=)?\s*(fade|zoom|wipe|slide|blur)\b/);
+    if (liveTransitionMatch) {
+      if (!selectedClip || !asset || asset.kind === "audio") { respond("Select a photo or video clip first so I know where to apply the transition."); return; }
+      const transition = liveTransitionMatch[1] as "fade" | "zoom" | "wipe" | "slide" | "blur";
+      await runLiveOperation("effects", "Applying " + transition + " transition", "Adding an editable transition to the selected clip.", () => {
+        updateSelectedClip({ transitionStyle: transition, transitionIn: selectedClip.transitionIn ?? 0.45, transitionOut: selectedClip.transitionOut ?? 0.45 });
+        setActiveSubtool(transition);
+      }, "Applied the " + transition + " transition to “" + selectedClip.label + "”.");
+      return;
+    }
+
+    const liveMoveMatch = normalized.match(/\b(?:move|place|position)\s+(?:the\s+)?(?:selected\s+)?clip\s+(?:to|at)\s*(\d+(?:\.\d+)?)\s*(?:s|sec|seconds?)\b/);
+    if (liveMoveMatch) {
+      if (!selectedClip) { respond("Select a timeline clip first so I know which clip to move."); return; }
+      const nextStart = Math.max(0, Math.min(600, Number(liveMoveMatch[1])));
+      const source = selectedClip;
+      await runLiveOperation("edit", "Moving timeline clip", "Moving “" + source.label + "” to " + nextStart + " seconds.", () => {
+        applyClipChange(clips.map(clip => clip.id === source.id ? { ...clip, start: nextStart } : clip), "Selected clip moved on the timeline."); setPlayhead(nextStart);
+      }, "Moved “" + source.label + "” to " + nextStart + " seconds. Other clips were left in place.");
+      return;
+    }
+
+    const liveAudioPreset = NEXUS_AUDIO_PRESETS.find(item => normalized.includes(item.name.toLowerCase()));
+    if (liveAudioPreset && /\b(add|create|generate|make|music|sound|audio|sfx)\b/.test(normalized)) {
+      await runLiveOperation("audio", "Creating original audio", "Generating the requested NEXUS audio asset and adding it to the project.", async () => {
+        await addGeneratedAudio(liveAudioPreset);
+      }, "Created the original NEXUS " + liveAudioPreset.name + " audio and added it to the audio timeline.");
+      return;
+    }
+
     const activeImageLayer=imageLayers.find(layer=>layer.id===selectedImageLayer);
     if(activeImageLayer) {
       if(/\b(regenerate|replace|make another|new version)\b/.test(normalized)) { await regenerateSelectedImageLayer(); return; }
