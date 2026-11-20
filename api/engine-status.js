@@ -15,10 +15,7 @@ export default function handler(_req, res) {
   const dedicatedAudioWorkerConfigured = hasSecureWorkerPair("NEXUS_AUDIO_ENGINE_URL", "NEXUS_AUDIO_ENGINE_TOKEN");
   const sharedAudioWorkerConfigured = hasSecureWorkerPair("NEXUS_ENGINE_WORKER_URL", "NEXUS_ENGINE_WORKER_TOKEN");
   const audioWorkerConfigured = dedicatedAudioWorkerConfigured || sharedAudioWorkerConfigured;
-  const requestedAudioProvider = String(process.env.NEXUS_AUDIO_ENGINE_PROVIDER || "").trim().toLowerCase();
-  const audioProvider = audioWorkerConfigured && requestedAudioProvider === "voxillika"
-    ? "Voxillika"
-    : "NEXUS-managed audio worker";
+  const audioProvider = audioWorkerConfigured ? "NEXUS Audio Router" : "NEXUS local audio engine";
   res.status(200).json({
     providers: { cloudflareWorkersAI: { configured: cloudflareAvailable, connection: workerConfigured ? "secure-worker-proxy" : cloudflareConfigured ? "direct-api" : "not-configured", textModel: process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.2-1b-instruct", imageModel: process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell", capabilities: ["text", "image-proxy"], note: workerConfigured ? "Cloudflare Worker is connected through the server-side proxy. Storyboard scene images and selected image-layer replacements can be generated and imported by the editor." : "Set NEXUS_WORKER_URL and NEXUS_WORKER_TOKEN in the app server runtime to connect the deployed Worker." } },
     workerProtocol: "nexus-ai-v1",
@@ -31,7 +28,7 @@ export default function handler(_req, res) {
     engines: {
       image: { configured: workerConfigured || (env("NEXUS_IMAGE_ENGINE_URL") && env("NEXUS_IMAGE_ENGINE_TOKEN")), provider: "NEXUS-managed image worker", fallback: "Editable SVG/Canvas graphics and licensed sourced images" },
       video: { configured: env("NEXUS_VIDEO_ENGINE_URL") && env("NEXUS_VIDEO_ENGINE_TOKEN"), provider: "NEXUS-managed video worker", fallback: "Licensed sourced footage and native animated timeline scenes" },
-      audio: { configured: audioWorkerConfigured, provider: audioProvider, fallback: "Wikimedia Commons licensed audio search, then original local Web Audio synthesis" },
+      audio: { configured: audioWorkerConfigured, provider: audioProvider, capabilities: ["ElevenLabs voice, music and sound effects", "Stable Audio 3 music, ambience and sound effects", "Disband stem separation (separate upload flow)", "Wikimedia Commons licensed audio sourcing"], fallback: "Wikimedia Commons licensed audio search, then original local Web Audio synthesis" },
       render: { configured: env("NEXUS_RENDER_ENGINE_URL") && env("NEXUS_RENDER_ENGINE_TOKEN"), provider: "NEXUS-managed render worker", fallback: "Browser MediaRecorder WebM where supported" },
       remotion: { configured: mediaWorkerConfigured || (env("NEXUS_REMOTION_ENGINE_URL") && env("NEXUS_REMOTION_ENGINE_TOKEN")), provider: "Remotion composition worker", fallback: "Existing editable browser timeline composition" },
       hyperframes: { configured: mediaWorkerConfigured || (env("NEXUS_HYPERFRAMES_ENGINE_URL") && env("NEXUS_HYPERFRAMES_ENGINE_TOKEN")), provider: "HyperFrames motion-graphics worker", fallback: "Existing SVG/Canvas text and motion layers" },
