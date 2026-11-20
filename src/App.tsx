@@ -2546,7 +2546,6 @@ export default function App() {
           }
         }
         if (!audioAsset && (audioChecklistItem?.action === "auto" || audioChecklistItem?.action === "generate" || !audioChecklistItem)) {
-          const audioProvider = String(engineAvailability?.engines?.audio?.provider || "");
           if (engineAvailability?.engines?.audio?.configured) {
             try {
               const job = await submitEngineJob("audio", "Create original, scene-matched audio for: " + scene.title + ". Visual direction: " + scene.visual + ". Narration context: " + scene.narration + ". Audio direction: " + (scene.audioCueType || "cinematic background music") + ". Make a clean, editable music or sound-effect asset with no speech or copyrighted melody.", {
