@@ -5,8 +5,12 @@ export interface Env {
   STABILITY_API_KEY?: string;
   DISBAND_KEY?: string;
   AUDIO_JOBS: KVNamespace;
-  AUDIO_OUTPUTS: R2Bucket;
+  AUDIO_OUTPUTS: R2Store;
+  AUDIO_JOBS: KVStore;
 }
+interface KVStore { get(key:string,type:"json"):Promise<any>; put(key:string,value:string,options?:{expirationTtl?:number}):Promise<void>; }
+interface R2Store { put(key:string,value:ArrayBuffer,options?:any):Promise<void>; list(options?:any):Promise<{objects:Array<{key:string}>}>; get(key:string):Promise<{writeHttpMetadata(headers:Headers):void;body:ReadableStream<Uint8Array>}|null>; }
+interface ExecutionContextLike { waitUntil(promise:Promise<unknown>):void; }
 type Job = { id:string; engine:"audio"; provider:string; state:"queued"|"running"|"succeeded"|"failed"; progress:number; message:string; createdAt:number; output?:{url:string;mimeType:string}; metadata?:Record<string,unknown>; error?:string; externalId?:string; options?:Record<string,unknown>; prompt?:string };
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});
 const safeId=(v:string)=>/^[a-zA-Z0-9_-]{8,100}$/.test(v);
@@ -54,7 +58,7 @@ async function generate(job:Job,env:Env,publicBase:string):Promise<Job>{
   throw new Error("Unsupported audio provider. Choose elevenlabs, stable-audio or disband.");
 }
 export default {
-  async fetch(request:Request,env:Env):Promise<Response>{
+  async fetch(request:Request,env:Env,ctx:ExecutionContextLike):Promise<Response>{
     const url=new URL(request.url),path=url.pathname;
     if(path==="/health"&&request.method==="GET") return json({ok:true,service:"nexus-audio-router",providers:{elevenlabs:Boolean(env.ELEVENLABS_API_KEY),stableAudio:Boolean(env.STABILITY_API_KEY),disband:Boolean(env.DISBAND_KEY)}});
     if(request.headers.get("Authorization")!=="Bearer "+env.NEXUS_AUDIO_WORKER_TOKEN) return json({error:"Unauthorized"},401);
@@ -66,10 +70,14 @@ export default {
       if(provider==="elevenlabs"&&!env.ELEVENLABS_API_KEY) return json({error:"ElevenLabs is not configured."},503);
       if(provider==="stable-audio"&&!env.STABILITY_API_KEY) return json({error:"Stable Audio is not configured."},503);
       const id=crypto.randomUUID().replace(/-/g,"");
-      let job:Job={id,engine:"audio",provider,state:"running",progress:10,message:"Sending audio request to "+provider+".",createdAt:Date.now(),options,prompt:body.prompt};
+      let job:Job={id,engine:"audio",provider,state:"queued",progress:0,message:"Audio request accepted by NEXUS Audio Router.",createdAt:Date.now(),options,prompt:body.prompt};
       await env.AUDIO_JOBS.put(id,JSON.stringify(job),{expirationTtl:86400});
-      try{job=await generate(job,env,url.origin);}catch(error){job={...job,state:"failed",progress:0,message:"Audio generation failed.",error:error instanceof Error?error.message:"Unknown provider error"};}
-      await env.AUDIO_JOBS.put(id,JSON.stringify(job),{expirationTtl:86400});
+      ctx.waitUntil((async()=>{
+        let current:Job={...job,state:"running",progress:10,message:"Generating audio with "+provider+"."};
+        await env.AUDIO_JOBS.put(id,JSON.stringify(current),{expirationTtl:86400});
+        try{current=await generate(current,env,url.origin);}catch(error){current={...current,state:"failed",progress:0,message:"Audio generation failed.",error:error instanceof Error?error.message:"Unknown provider error"};}
+        await env.AUDIO_JOBS.put(id,JSON.stringify(current),{expirationTtl:86400});
+      })());
       return json(job,202);
     }
     const match=path.match(/^\/jobs\/([a-zA-Z0-9_-]{8,100})$/);
