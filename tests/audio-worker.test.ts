@@ -47,6 +47,31 @@ describe("NEXUS Cloudflare audio router",()=>{
     expect(response.status).toBe(503);
   });
 
+  it("submits a source file to Disband and imports returned vocal and instrumental stems",async()=>{
+    const fakeFetch=vi.fn(async(input:RequestInfo|URL)=>{
+      const url=String(input);
+      if(url.includes("/v1/separations?")) return new Response(JSON.stringify({id:"sep_123",status:"queued"}),{status:202,headers:{"Content-Type":"application/json"}});
+      if(url.endsWith("/v1/separations/sep_123")) return new Response(JSON.stringify({id:"sep_123",status:"ready",stems:{
+        vocals:{mp3:{url:"https://api.disband.io/v1/separations/sep_123/stems/vocals/mp3"}},
+        instrumental:{mp3:{url:"https://api.disband.io/v1/separations/sep_123/stems/instrumental/mp3"}}
+      }}),{status:200,headers:{"Content-Type":"application/json"}});
+      return new Response(new Uint8Array([4,5,6]),{status:200,headers:{"Content-Type":"audio/mpeg"}});
+    });
+    vi.stubGlobal("fetch",fakeFetch);
+    const env=environment({DISBAND_KEY:"disband-secret"}),ctx=context();
+    const form=new FormData();
+    form.set("file",new File([new Uint8Array([1,2,3])],"song.mp3",{type:"audio/mpeg"}));
+    form.set("stems","vocals,instrumental");
+    const acceptedResponse=await audioWorker.fetch(new Request("https://audio.example/separations",{method:"POST",headers:{"Authorization":"Bearer worker-secret"},body:form}),env,ctx as any);
+    expect(acceptedResponse.status).toBe(202);
+    const accepted=await acceptedResponse.json() as any;
+    const poll=await audioWorker.fetch(new Request("https://audio.example/jobs/"+accepted.id,{headers:{"Authorization":"Bearer worker-secret"}}),env,context() as any);
+    const completed=await poll.json() as any;
+    expect(completed).toMatchObject({state:"succeeded",metadata:{provider:"disband"}});
+    expect(completed.metadata.stems).toHaveLength(2);
+    expect(completed.output.url).toContain("/assets/"+accepted.id+"-vocals");
+  });
+
   it("serves generated audio with cross-origin access for the editor app",async()=>{
     const env=environment(),ctx=context();
     vi.stubGlobal("fetch",vi.fn(async()=>new Response(new Uint8Array([7,8,9]),{status:200,headers:{"Content-Type":"audio/mpeg"}})));
