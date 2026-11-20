@@ -1,0 +1,15 @@
+name = "nexus-audio-router"
+main = "src/index.ts"
+compatibility_date = "2026-11-20"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "AUDIO_JOBS"
+id = "REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID"
+
+[[r2_buckets]]
+binding = "AUDIO_OUTPUTS"
+bucket_name = "nexus-audio-outputs"
+
+[vars]
+# Provider API keys and worker auth token must be added with wrangler secret put.
