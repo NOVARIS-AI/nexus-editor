@@ -6,7 +6,7 @@ NEXUS uses a server-side Cloudflare audio router. Provider keys never belong in 
 
 - **ElevenLabs**: character dialogue, narration, voiceover, sound effects and music. Music API access is plan-gated; use Music v2.5.
 - **Stable Audio 3**: prompt-to-music, ambience, loops and sound effects.
-- **Disband**: stem separation (vocals, instrumental, drums, bass, guitar, piano). It is not a music-generation provider.
+- **Disband**: selected as the planned stem-separation specialist (vocals, instrumental, drums, bass, guitar, piano). It is not wired into the current worker upload flow yet and is not advertised as available.
 - **Wikimedia Commons**: search reusable existing audio and retain creator/licence/attribution metadata.
 - **NEXUS local engine**: offline procedural audio fallback.
 
@@ -20,7 +20,6 @@ From `workers/audio`:
    - `wrangler secret put NEXUS_AUDIO_WORKER_TOKEN`
    - `wrangler secret put ELEVENLABS_API_KEY`
    - `wrangler secret put STABILITY_API_KEY`
-   - `wrangler secret put DISBAND_KEY`
    - Optional: `wrangler secret put ELEVENLABS_DEFAULT_VOICE_ID`
 4. Deploy with `wrangler deploy`.
 5. Configure the app server's secret environment variables:
@@ -39,7 +38,7 @@ Provider keys are optional individually. The worker reports which are configured
 
 ## Important limitations
 
-- The current worker generation route supports ElevenLabs voice, music and sound-effects generation, plus Stable Audio 3 generation.
-- Disband requires an uploaded source-audio file and is intentionally not misrepresented as a generative model. Its authenticated upload/separation UI is a separate integration step.
+- The current worker generation route supports ElevenLabs voice, music and sound-effects generation, plus Stable Audio 3 generation. If Stable Audio is not configured, the router can fall back to ElevenLabs when its key is present.
+- Disband is documented as the planned stem-separation specialist, but its authenticated source-file upload, polling and multi-stem timeline import are not implemented in this change. Do not treat it as connected yet.
 - Do not use an asset commercially unless its source or generated output licence covers the intended project and distribution. Keep attribution for Commons assets.
 - Provider usage may incur charges. NEXUS should only submit a paid generation after the user approves the relevant AI media checklist item.
