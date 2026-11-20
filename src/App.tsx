@@ -1,4 +1,5 @@
 import { getTimelineShortcutAction } from "./editor/timeline-shortcuts";
+import { planLiveEditInstruction } from "./editor/live-edit-planner";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Maximize2 } from "lucide-react";
@@ -2713,6 +2714,103 @@ export default function App() {
     const selectedKind = asset?.kind;
     const visualSelected = Boolean(selectedClip && selectedKind && selectedKind !== "audio");
     const normalized = request.replace(/[’']/g, "'").replace(/\s+/g, " ").trim();
+
+    const multiStepPlan = planLiveEditInstruction(rawRequest);
+    if (multiStepPlan) {
+      if (multiStepPlan.unsupported.length) {
+        respond("I understood part of that sequence, but I won't guess the unsupported step(s): " + multiStepPlan.unsupported.join(" · ") + ". Please rephrase those steps using supported editing actions; nothing has been changed.");
+        return;
+      }
+      let plannedTarget: TimelineClip | null = selectedClip;
+      for (const step of multiStepPlan.steps) {
+        if (step.type === "select") {
+          const query = step.target.toLowerCase();
+          plannedTarget = clips.find(clip => clip.label.toLowerCase() === query) || clips.find(clip => clip.label.toLowerCase().includes(query)) || null;
+          if (!plannedTarget) { respond("I couldn't find a timeline clip matching “" + step.target + "”. Nothing has been changed."); return; }
+        } else if (["speed", "volume", "mute", "fade", "duplicate", "move"].includes(step.type) && !plannedTarget) {
+          respond("That sequence needs a selected timeline clip before “" + step.label + "”. Select a clip first; nothing has been changed.");
+          return;
+        } else if (step.type === "duplicate" && plannedTarget) {
+          plannedTarget = { ...plannedTarget, id: "planned-duplicate" };
+        }
+      }
+      recordProjectHistory();
+      setPage("editor"); setEditorView("workspace");
+      let workingClips = [...clips];
+      let workingTextLayers = [...textLayers];
+      let currentTarget: TimelineClip | null = selectedClip;
+      const applyBatchClipPatch = (patch: Partial<TimelineClip>) => {
+        if (!currentTarget) throw new Error("Select a clip before applying this change.");
+        const updated = { ...currentTarget, ...patch };
+        workingClips = workingClips.map(clip => clip.id === currentTarget!.id ? updated : clip);
+        currentTarget = updated;
+        setClips(workingClips);
+      };
+      let completed = 0;
+      let failedStep = "";
+      for (const step of multiStepPlan.steps) {
+        const actionId = await beginAILiveAction(
+          step.type === "title" ? "text" : step.type === "volume" || step.type === "mute" || step.type === "fade" ? "audio" : step.type === "ratio" ? "ratio" : "edit",
+          step.label,
+          "Step " + (completed + 1) + " of " + multiStepPlan.steps.length + " · applying to the current project."
+        );
+        try {
+          switch (step.type) {
+            case "select": {
+              const query = step.target.toLowerCase();
+              const match = workingClips.find(clip => clip.label.toLowerCase() === query) || workingClips.find(clip => clip.label.toLowerCase().includes(query));
+              if (!match) throw new Error("Clip “" + step.target + "” was not found.");
+              currentTarget = match;
+              setSelected(match.id); setSelectedTextLayer(null); setPlayhead(match.start);
+              setActiveTool("edit"); setActiveSubtool("select");
+              break;
+            }
+            case "speed": applyBatchClipPatch({ speed: step.value }); setActiveTool("edit"); setActiveSubtool("speed"); break;
+            case "volume": applyBatchClipPatch({ gain: step.value / 100 }); setActiveTool("audio"); setActiveSubtool("volume"); break;
+            case "mute": applyBatchClipPatch({ muted: step.value }); setMuteClip(step.value); setActiveTool("audio"); setActiveSubtool("volume"); break;
+            case "fade":
+              applyBatchClipPatch(step.direction === "in" ? { fadeIn: step.seconds } : { fadeOut: step.seconds });
+              setActiveTool("audio"); setActiveSubtool("fade");
+              break;
+            case "title": {
+              const layer: TimelineTextLayer = {
+                id: uid(), trackId: "text-1", start: playhead, duration: 5, text: step.text,
+                color: "#ffffff", fontSize: 64, fontFamily: "Arial", x: 50, y: 50,
+                backgroundColor: "transparent", padding: 12, align: "center", shadow: true
+              };
+              workingTextLayers = [...workingTextLayers, layer];
+              setTextLayers(workingTextLayers); setSelectedTextLayer(layer.id);
+              setOverlayText(step.text); setTextColor("#ffffff"); setTextSize(64);
+              setActiveTool("text"); setActiveSubtool("add");
+              break;
+            }
+            case "ratio": setAspectRatio(step.value); setActiveTool("ratio"); setActiveSubtool(step.value); break;
+            case "duplicate": {
+              if (!currentTarget) throw new Error("Select a clip before duplicating it.");
+              const copy: TimelineClip = { ...currentTarget, id: uid(), start: currentTarget.start + clipDuration(currentTarget), label: currentTarget.label + " copy" };
+              workingClips = [...workingClips, copy]; setClips(workingClips);
+              currentTarget = copy; setSelected(copy.id); setPlayhead(copy.start);
+              setActiveTool("edit"); setActiveSubtool("select");
+              break;
+            }
+            case "move": applyBatchClipPatch({ start: step.seconds }); setPlayhead(step.seconds); setActiveTool("edit"); break;
+          }
+          completed += 1;
+          finishAILiveAction(actionId, "done", "Applied to the real timeline/project state.");
+        } catch (error) {
+          failedStep = step.label;
+          finishAILiveAction(actionId, "error", error instanceof Error ? error.message : "This step could not be completed.");
+          break;
+        }
+      }
+      if (failedStep) {
+        respond("I completed " + completed + " of " + multiStepPlan.steps.length + " steps before “" + failedStep + "” failed. The completed changes remain in the project; use Undo to reverse the batch.");
+      } else {
+        setActiveTool("edit"); setActiveSubtool("select");
+        respond("Completed all " + completed + " editing steps in order. The timeline/project has been updated, and one Undo reverses the whole batch.");
+      }
+      return;
+    }
     // Direct live-edit router: clear instructions become real, undo-aware timeline changes.
     const runLiveOperation = async (tool: string, label: string, detail: string, execute: () => void | Promise<void>, success: string) => {
       const actionId = await beginAILiveAction(tool, label, detail);
