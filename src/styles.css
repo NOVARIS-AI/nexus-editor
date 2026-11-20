@@ -626,6 +626,8 @@ body{overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain}
 .ai-asset-need{display:grid;grid-template-columns:104px minmax(0,1fr);gap:11px;padding:10px;border:1px solid var(--border);border-radius:11px;background:rgba(5,7,16,.24)}
 .ai-asset-need.is-skipped{opacity:.58}
 .ai-asset-need-thumb{width:104px;height:84px;object-fit:cover;border-radius:8px;background:rgba(139,92,246,.12)}
+.ai-audio-need-thumb{display:grid;place-content:center;justify-items:center;gap:5px;color:var(--accent);border:1px solid rgba(139,92,246,.22);background:linear-gradient(145deg,rgba(139,92,246,.18),rgba(45,212,191,.08))}
+.ai-audio-need-thumb small{font-size:8px;letter-spacing:.14em;font-weight:800}
 .ai-asset-need-body{display:grid;gap:7px;min-width:0}
 .ai-asset-need-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .ai-asset-need-title b{font-size:11px}
