@@ -106,7 +106,7 @@ function buildAIAssetChecklist(scenes:Array<{title:string;visual:string;searchTe
     const matchedAudio=audioMedia.find(item=>words.some(word=>item.name.toLowerCase().includes(word)));
     const needs:AIAssetChecklistItem[]=[];
     if(!matchedVisual) needs.push({id:"visual-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,kind:"visual",title:scene.title,query:[scene.visual,...scene.searchTerms].filter(Boolean).join(", ").slice(0,700),reason:visualMedia.length===0?"No visual media has been added to this project yet.":"No supplied media clearly matches this scene.",action:"auto",assetId:""});
-    if(!matchedAudio) needs.push({id:"audio-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,kind:"audio",title:scene.title+" · Audio",query:[scene.audioCueType,scene.title,scene.narration].filter(Boolean).join(" · ").slice(0,700),reason:audioMedia.length===0?"No audio has been added to this project yet. NEXUS can search licensed audio or generate a scene-matched cue.":"No supplied audio clearly matches this scene.",action:"auto",assetId:""});
+    needs.push({id:"audio-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,kind:"audio",title:scene.title+" · Audio",query:[scene.audioCueType,scene.title,scene.narration].filter(Boolean).join(" · ").slice(0,700),reason:matchedAudio?"A project audio file looks relevant. Review it or choose a different source.":audioMedia.length===0?"No audio has been added to this project yet. NEXUS can search licensed audio or generate a scene-matched cue.":"No supplied audio clearly matches this scene.",action:matchedAudio?"existing":"auto",assetId:matchedAudio?.id||""});
     return needs;
   });
 }
