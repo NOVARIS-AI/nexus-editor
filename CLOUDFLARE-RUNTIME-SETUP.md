@@ -50,3 +50,22 @@ After saving the runtime values, use:
 A healthy static deployment does not mean the private API integrations are configured. Test Google/email sign-in, transcription, AI generation, and Stream publishing separately before switching the production domain.
 
 Do not put service-role keys, provider tokens, or worker tokens in `VITE_*` variables or browser code. Do not commit secrets to Git.
+
+## Audio sourcing and Voxillika generation
+
+NEXUS AI Studio handles scene audio in this order:
+
+1. Reuse a matching audio asset already in the project.
+2. For **Auto** or **Source**, search Wikimedia Commons for audio and retain the creator, license, attribution, and source-page link with the imported asset.
+3. For **Auto** or **Generate**, queue an original scene-matched audio job through the configured audio worker using the `voxillika` provider when enabled.
+4. If the remote provider is not configured or a job cannot be queued, use the built-in original Web Audio synthesis fallback. The AI build does not silently claim that Voxillika generated an asset when it did not.
+
+To enable the Voxillika route, configure the secure audio worker pair:
+
+- `NEXUS_AUDIO_ENGINE_URL` — HTTPS base URL for the NEXUS-compatible audio job worker.
+- `NEXUS_AUDIO_ENGINE_TOKEN` — server-only bearer token for that worker.
+- `NEXUS_AUDIO_ENGINE_PROVIDER` — set to `voxillika` to select the Voxillika adapter.
+
+Alternatively, the shared `NEXUS_ENGINE_WORKER_URL` and `NEXUS_ENGINE_WORKER_TOKEN` pair can host the audio job route. The worker adapter must accept `POST /jobs` with `{ engine: "audio", prompt, options }`, honor `options.provider: "voxillika"`, and return the standard NEXUS job shape. It must support `GET /jobs/:id` and return a completed HTTPS output URL with an audio MIME type such as `audio/mpeg` or `audio/wav`. Provider credentials stay on the server/worker and must never be placed in browser variables.
+
+The app only reports Voxillika as configured when a secure worker route and token are present. A successful job is downloaded, validated as audio, saved into the project media library, and placed on the audio timeline beneath its matching scene.
