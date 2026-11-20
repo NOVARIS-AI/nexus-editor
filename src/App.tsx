@@ -2740,6 +2740,7 @@ export default function App() {
       let workingTextLayers = [...textLayers];
       let currentTarget: TimelineClip | null = selectedClip || null;
       let workingPlayhead = playhead;
+      let workingAspectRatio = aspectRatio;
       const applyBatchClipPatch = (patch: Partial<TimelineClip>) => {
         if (!currentTarget) throw new Error("Select a clip before applying this change.");
         const updated = { ...currentTarget, ...patch };
@@ -2750,6 +2751,7 @@ export default function App() {
       let completed = 0;
       let failedStep = "";
       for (const step of multiStepPlan.steps) {
+        let createdTextId = "";
         const actionId = await beginAILiveAction(
           step.type === "title" ? "text" : step.type === "volume" || step.type === "mute" || step.type === "fade" ? "audio" : step.type === "ratio" ? "ratio" : "edit",
           step.label,
@@ -2780,13 +2782,14 @@ export default function App() {
                 color: "#ffffff", fontSize: 64, fontFamily: "Arial", x: 50, y: 50,
                 backgroundColor: "transparent", padding: 12, align: "center", shadow: true
               };
+              createdTextId = layer.id;
               workingTextLayers = [...workingTextLayers, layer];
               setTextLayers(workingTextLayers); setSelectedTextLayer(layer.id);
               setOverlayText(step.text); setTextColor("#ffffff"); setTextSize(64);
               setActiveTool("text"); setActiveSubtool("add");
               break;
             }
-            case "ratio": setAspectRatio(step.value); setActiveTool("ratio"); setActiveSubtool(step.value); break;
+            case "ratio": workingAspectRatio = step.value; setAspectRatio(step.value); setActiveTool("ratio"); setActiveSubtool(step.value); break;
             case "duplicate": {
               if (!currentTarget) throw new Error("Select a clip before duplicating it.");
               const copy: TimelineClip = { ...currentTarget, id: uid(), start: currentTarget.start + clipDuration(currentTarget), label: currentTarget.label + " copy" };
@@ -2797,8 +2800,21 @@ export default function App() {
             }
             case "move": workingPlayhead = step.seconds; applyBatchClipPatch({ start: step.seconds }); setPlayhead(step.seconds); setActiveTool("edit"); break;
           }
+          let verified = false;
+          switch (step.type) {
+            case "select": verified = Boolean(currentTarget && workingClips.some(clip => clip.id === currentTarget!.id)); break;
+            case "speed": verified = currentTarget?.speed === step.value; break;
+            case "volume": verified = currentTarget?.gain === step.value / 100; break;
+            case "mute": verified = currentTarget?.muted === step.value; break;
+            case "fade": verified = step.direction === "in" ? currentTarget?.fadeIn === step.seconds : currentTarget?.fadeOut === step.seconds; break;
+            case "title": verified = Boolean(createdTextId && workingTextLayers.some(layer => layer.id === createdTextId && layer.text === step.text)); break;
+            case "ratio": verified = workingAspectRatio === step.value; break;
+            case "duplicate": verified = Boolean(currentTarget && workingClips.some(clip => clip.id === currentTarget!.id)); break;
+            case "move": verified = currentTarget?.start === step.seconds; break;
+          }
+          if (!verified) throw new Error("The editor did not confirm that this change was applied.");
           completed += 1;
-          finishAILiveAction(actionId, "done", "Applied to the real timeline/project state.");
+          finishAILiveAction(actionId, "done", "Applied and verified in the current project state.");
         } catch (error) {
           failedStep = step.label;
           finishAILiveAction(actionId, "error", error instanceof Error ? error.message : "This step could not be completed.");
