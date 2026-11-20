@@ -66,6 +66,6 @@ export function planLiveEditInstruction(input: string): LiveEditPlan | null {
     if (step) steps.push(step);
     else unsupported.push(part);
   }
-  if (steps.length < 2) return null;
+  if (steps.length === 0) return null;
   return { steps, unsupported };
 }
