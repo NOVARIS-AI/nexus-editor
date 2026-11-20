@@ -5,8 +5,16 @@ export default function handler(_req, res) {
   const mediaWorkerConfigured = env("NEXUS_ENGINE_WORKER_URL") && env("NEXUS_ENGINE_WORKER_TOKEN");
   const workerConfigured = env("NEXUS_WORKER_URL") && env("NEXUS_WORKER_TOKEN");
   const cloudflareAvailable = cloudflareConfigured || workerConfigured;
-  const dedicatedAudioWorkerConfigured = env("NEXUS_AUDIO_ENGINE_URL") && env("NEXUS_AUDIO_ENGINE_TOKEN");
-  const audioWorkerConfigured = dedicatedAudioWorkerConfigured || mediaWorkerConfigured;
+  const hasSecureWorkerPair = (urlKey, tokenKey) => {
+    if (!env(tokenKey)) return false;
+    try {
+      const endpoint = new URL(process.env[urlKey]);
+      return endpoint.protocol === "https:" && !endpoint.username && !endpoint.password;
+    } catch { return false; }
+  };
+  const dedicatedAudioWorkerConfigured = hasSecureWorkerPair("NEXUS_AUDIO_ENGINE_URL", "NEXUS_AUDIO_ENGINE_TOKEN");
+  const sharedAudioWorkerConfigured = hasSecureWorkerPair("NEXUS_ENGINE_WORKER_URL", "NEXUS_ENGINE_WORKER_TOKEN");
+  const audioWorkerConfigured = dedicatedAudioWorkerConfigured || sharedAudioWorkerConfigured;
   const requestedAudioProvider = String(process.env.NEXUS_AUDIO_ENGINE_PROVIDER || "").trim().toLowerCase();
   const audioProvider = audioWorkerConfigured && requestedAudioProvider === "voxillika"
     ? "Voxillika"
