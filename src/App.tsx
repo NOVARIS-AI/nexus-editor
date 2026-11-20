@@ -52,6 +52,7 @@ import { LiveCameraStudio } from "./editor/LiveCameraStudio";
 import { LiveFootageCleanupStudio } from "./editor/LiveFootageCleanupStudio";
 import { detectSubjectKeyframes } from "./editor/subject-tracking";
 import { searchWikimediaCommons, type SourcedMediaResult } from "./editor/media-sourcing";
+import { searchWikimediaCommonsAudio } from "./editor/audio-sourcing";
 import { analyzeMediaAsset, buildTextCompositionLayers, getRenderCapabilities, interpretEditorCommand, makeEditingGuidance, verifyProject, type MediaAnalysis } from "./editor/engines";
 import { clipDuration, clipSourceAtTimeline, clipTimelineAtSource, speedAtSourceProgress, defaultTracks, downloadProject, makeProject, parseProject, timelineDuration } from "./project";
 import { trimClipAtPlayhead, moveClip, applyMediaElementGain, getGraphicsFallbackStyle } from "./editor/engine-runtime";
@@ -95,14 +96,18 @@ const PublishFlow = lazy(() => import("./social/PublishFlow").then(module => ({ 
 const ModerationCentre = lazy(() => import("./social/ModerationCentre").then(module => ({ default: module.ModerationCentre })));
 const CreatorAppealsPage = lazy(() => import("./social/CreatorAppealsPage").then(module => ({ default: module.CreatorAppealsPage })));
 
-type AIAssetChecklistItem = { id:string; sceneIndex:number; title:string; query:string; reason:string; action:"auto"|"generate"|"source"|"existing"|"skip"; assetId:string; };
-function buildAIAssetChecklist(scenes:Array<{title:string;visual:string;searchTerms:string[]}>, media:MediaAsset[]):AIAssetChecklistItem[] {
+type AIAssetChecklistItem = { id:string; sceneIndex:number; kind:"visual"|"audio"; title:string; query:string; reason:string; action:"auto"|"generate"|"source"|"existing"|"skip"; assetId:string; };
+function buildAIAssetChecklist(scenes:Array<{title:string;visual:string;searchTerms:string[];narration?:string;audioCueType?:string}>, media:MediaAsset[]):AIAssetChecklistItem[] {
   const visualMedia=media.filter(item=>item.kind==="video"||item.kind==="image");
+  const audioMedia=media.filter(item=>item.kind==="audio");
   return scenes.flatMap((scene,index)=>{
     const words=[scene.title,scene.visual,...scene.searchTerms].join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word=>word.length>3);
-    const matched=visualMedia.find(item=>words.some(word=>item.name.toLowerCase().includes(word)));
-    if(matched)return [];
-    return [{id:"need-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,title:scene.title,query:[scene.visual,...scene.searchTerms].filter(Boolean).join(", ").slice(0,700),reason:visualMedia.length===0?"No visual media has been added to this project yet.":"No supplied media clearly matches this scene.",action:"auto" as const,assetId:""}];
+    const matchedVisual=visualMedia.find(item=>words.some(word=>item.name.toLowerCase().includes(word)));
+    const matchedAudio=audioMedia.find(item=>words.some(word=>item.name.toLowerCase().includes(word)));
+    const needs:AIAssetChecklistItem[]=[];
+    if(!matchedVisual) needs.push({id:"visual-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,kind:"visual",title:scene.title,query:[scene.visual,...scene.searchTerms].filter(Boolean).join(", ").slice(0,700),reason:visualMedia.length===0?"No visual media has been added to this project yet.":"No supplied media clearly matches this scene.",action:"auto",assetId:""});
+    if(!matchedAudio) needs.push({id:"audio-"+index+"-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),sceneIndex:index,kind:"audio",title:scene.title+" · Audio",query:[scene.audioCueType,scene.title,scene.narration].filter(Boolean).join(" · ").slice(0,700),reason:audioMedia.length===0?"No audio has been added to this project yet. NEXUS can search licensed audio or generate a scene-matched cue.":"No supplied audio clearly matches this scene.",action:"auto",assetId:""});
+    return needs;
   });
 }
 type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "appeals" | "editor" | "projects" | "templates" | "ai" | "settings";
@@ -2343,7 +2348,9 @@ export default function App() {
       const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind:expectedKind,duration:expectedKind==="image"?5:mediaDuration,mimeType:file.type,file,objectUrl,source:{type:"generated",pageUrl:url,creator:"NEXUS AI"}};
       setAssets(old=>[...old,created]);
       const sceneTitle=job.sceneTitle.startsWith("Scene · ")?job.sceneTitle.slice(8):"";
+      const audioSceneTitle=job.sceneTitle.startsWith("Audio · ")?job.sceneTitle.slice(8):"";
       const sceneFallback=sceneTitle?clips.find(item=>item.aiScene?.title===sceneTitle):undefined;
+      const audioSceneFallback=audioSceneTitle?clips.find(item=>item.aiScene?.title===audioSceneTitle):undefined;
       if(sceneFallback){
         const replacement:TimelineClip={...sceneFallback,assetId:created.id,sourceIn:0,sourceOut:expectedKind==="image"?Math.max(.5,clipDuration(sceneFallback)):created.duration,label:sceneTitle+" · AI generated",aiScene:{...sceneFallback.aiScene!,sourceType:"generated"}};
         applyClipChange(clips.map(item=>item.id===sceneFallback.id?replacement:item),"Generated scene media replaced its editable placeholder.");
@@ -2366,7 +2373,7 @@ export default function App() {
           setSelectedImageLayer(background.id);
           setAiReply("Generated background imported as a full-frame image layer beneath your footage. It is editable on the Images & Stickers track.");
         } else {
-          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:audioSceneFallback?audioSceneFallback.start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
           applyClipChange([...clips,clip],isBackground?"Generated background clip imported at the playhead.":"Generated "+expectedKind+" added to the editable timeline.");
           setSelected(clip.id);setPlayhead(clip.start);
           setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
@@ -2429,7 +2436,8 @@ export default function App() {
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
       const mediaActionId=await beginAILiveAction("media","Finding media · "+scene.title,"Checking your supplied files and the media choice you approved.");
-      const checklistItem = aiAssetChecklist.find(item => item.sceneIndex === index);
+      const checklistItem = aiAssetChecklist.find(item => item.sceneIndex === index && item.kind === "visual");
+      const audioChecklistItem = aiAssetChecklist.find(item => item.sceneIndex === index && item.kind === "audio");
       let chosen = checklistItem?.action === "existing"
         ? visualAssets.find(item => item.id === checklistItem.assetId)
         : checklistItem?.action === "generate" || checklistItem?.action === "skip" || checklistItem?.action === "source" ? undefined
@@ -2491,6 +2499,84 @@ export default function App() {
           } catch (error) {
             setEngineReport(old => [...old, "Video generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
           }
+        }
+      }
+      if (audioChecklistItem?.action !== "skip") {
+        const audioActionId = await beginAILiveAction("audio", "Finding audio · " + scene.title, "Checking approved project audio, searching licensed audio sources, then using Voxillika generation when connected.");
+        let audioAsset: MediaAsset | undefined = audioChecklistItem?.action === "existing"
+          ? assets.find(item => item.id === audioChecklistItem.assetId && item.kind === "audio")
+          : undefined;
+        if (!audioAsset && audioChecklistItem?.action !== "generate" && audioChecklistItem?.action !== "existing") {
+          try {
+            const query = audioChecklistItem?.query || scene.audioCueType || (scene.title + " background music");
+            const onlineAudio = await searchWikimediaCommonsAudio(query);
+            const candidate = onlineAudio[0];
+            if (candidate) {
+              const response = await fetch(candidate.downloadUrl);
+              if (!response.ok) throw new Error("Online audio download failed.");
+              const blob = await response.blob();
+              const mimeType = (blob.type || candidate.mimeType).split(";")[0].trim().toLowerCase();
+              if (!mimeType.startsWith("audio/")) throw new Error("Online source did not return a valid audio file.");
+              const file = new File([blob], candidate.fileName || "nexus-licensed-audio", { type: mimeType });
+              const objectUrl = URL.createObjectURL(file);
+              const probe = document.createElement("audio");
+              probe.preload = "metadata"; probe.src = objectUrl;
+              let audioDuration = await new Promise<number>(resolve => {
+                const timer = window.setTimeout(() => resolve(0), 9000);
+                probe.onloadedmetadata = () => { window.clearTimeout(timer); resolve(Number.isFinite(probe.duration) && probe.duration > 0 ? probe.duration : 0); };
+                probe.onerror = () => { window.clearTimeout(timer); resolve(0); };
+              });
+              probe.removeAttribute("src"); probe.load();
+              if (audioDuration <= 0) audioDuration = Math.max(1, sceneLength);
+              audioAsset = { id: uid(), name: candidate.title, kind: "audio", duration: audioDuration, mimeType, file, objectUrl, source: { type: "commons", pageUrl: candidate.pageUrl, creator: candidate.creator, license: candidate.license, licenseUrl: candidate.licenseUrl, attribution: candidate.attribution } };
+              setAssets(old => [...old, audioAsset!]);
+              void saveMediaAsset(audioAsset).catch(() => setDraftSaveStatus("Sourced audio is available in this session but could not be backed up on this device."));
+            }
+          } catch (error) {
+            setEngineReport(old => [...old, "Online audio search did not complete for " + scene.title + ": " + (error instanceof Error ? error.message : "source unavailable")]);
+          }
+        }
+        if (!audioAsset && (audioChecklistItem?.action === "auto" || audioChecklistItem?.action === "generate" || !audioChecklistItem)) {
+          const audioProvider = String(engineAvailability?.engines?.audio?.provider || "");
+          if (engineAvailability?.engines?.audio?.configured && /voxillika/i.test(audioProvider)) {
+            try {
+              const job = await submitEngineJob("audio", "Create original, scene-matched audio for: " + scene.title + ". Visual direction: " + scene.visual + ". Narration context: " + scene.narration + ". Audio direction: " + (scene.audioCueType || "cinematic background music") + ". Make a clean, editable music or sound-effect asset with no speech or copyrighted melody.", {
+                provider: "voxillika", sceneTitle: scene.title, projectName: aiPlan.title, duration: Math.min(30, Math.max(3, sceneLength)),
+                target: "add-audio-under-scene", sceneIndex: index, timelineStart: cursor, source: "nexus-ai-director"
+              });
+              setGenerationJobs(old => [{ ...job, sceneTitle: "Audio · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
+              queuedGenerationCount += 1;
+              audioAsset = undefined;
+            } catch (error) {
+              setEngineReport(old => [...old, "Voxillika audio generation could not be queued for " + scene.title + ": " + (error instanceof Error ? error.message : "engine unavailable")]);
+            }
+          } else {
+            if (audioChecklistItem?.action === "generate" || audioChecklistItem?.action === "auto" || !audioChecklistItem) {
+              if (audioChecklistItem?.action === "generate" || audioChecklistItem?.action === "auto") {
+                setEngineReport(old => [...old, "Voxillika is not connected in the audio engine configuration; used the local NEXUS audio fallback for " + scene.title + "."]);
+              }
+              try {
+                const preset = createSceneAudioPreset({ ...scene, duration: Math.min(12, sceneLength) });
+                const blob = await generateNexusAudio(preset);
+                const safeName = ("nexus-" + scene.title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 70);
+                const file = new File([blob], safeName + ".wav", { type: "audio/wav" });
+                const objectUrl = URL.createObjectURL(file);
+                audioAsset = { id: uid(), name: scene.title + " · Original audio", kind: "audio", duration: preset.duration, mimeType: "audio/wav", file, objectUrl, source: { type: "generated", attribution: "Original procedural audio generated locally by NEXUS Editor" } };
+                setAssets(old => [...old, audioAsset!]);
+                void saveMediaAsset(audioAsset).catch(() => setDraftSaveStatus("Generated audio is available in this session but could not be backed up on this device."));
+              } catch (error) {
+                setEngineReport(old => [...old, "Audio fallback could not be generated for " + scene.title + ": " + (error instanceof Error ? error.message : "audio generation unavailable")]);
+              }
+            }
+          }
+        }
+        if (audioAsset) {
+          const audioClip: TimelineClip = { id: uid(), assetId: audioAsset.id, trackId: "audio-1", start: cursor, sourceIn: 0, sourceOut: Math.max(0.1, Math.min(audioAsset.duration || sceneLength, sceneLength)), label: audioAsset.name, gain: 1, muted: false, fadeIn: 0.12, fadeOut: 0.2, speed: 1 };
+          setClips(old => [...old, audioClip]);
+          await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+          finishAILiveAction(audioActionId, "done", audioAsset.name + " was added to the audio track at " + clock(cursor) + ".");
+        } else {
+          finishAILiveAction(audioActionId, "done", "Audio generation/search was queued or no suitable licensed source was available.");
         }
       }
       cursor += sourceDuration;
@@ -3411,16 +3497,16 @@ export default function App() {
               <div className="ai-studio-scenes">{aiPlan.scenes.map((scene,i)=>{const matched=assets.find(item=>(item.kind==="video"||item.kind==="image")&&scene.searchTerms.some(term=>term.length>2&&item.name.toLowerCase().includes(term.toLowerCase())));return <article key={i}><div className="ai-studio-scene-visual"><img src={matched?.objectUrl||aiSceneThumbnail(scene.title,scene.visual,i)} alt={matched?matched.name:"Visual concept for "+scene.title}/><span>{matched?"PROJECT MEDIA":"SCENE CONCEPT"}</span></div><div className="ai-studio-scene-title"><b>{String(i+1).padStart(2,"0")} · {scene.title}</b><span>{Math.round(aiPlan.duration/aiPlan.scenes.length)}s</span></div><p><strong>Visuals</strong>{scene.visual}</p><p><strong>Voice / script</strong>{scene.narration}</p><small>Search: {scene.searchTerms.join(" · ")}</small><small>Alternative idea: {scene.fallback}</small></article>})}</div>
               {aiAssetChecklist.length>0&&<section className="ai-asset-checklist"><div className="ai-asset-checklist-head"><div><div className="eyebrow">MEDIA GAP ANALYSIS</div><h3>Assets NEXUS needs</h3><p>Generated from this prompt and the media already in this project. Review, change, add or remove any requirement before building.</p></div><span>{aiAssetChecklist.length} needed</span></div>
                 <div className="ai-asset-checklist-list">{aiAssetChecklist.map((item,index)=>{const selected=assets.find(asset=>asset.id===item.assetId);return <article className={"ai-asset-need"+(item.action==="skip"?" is-skipped":"")} key={item.id}>
-                  <img className="ai-asset-need-thumb" src={selected?.objectUrl||aiSceneThumbnail(item.title,item.query,index)} alt={selected?.name||"Planned media for "+item.title}/>
-                  <div className="ai-asset-need-body"><div className="ai-asset-need-title"><b>{item.title}</b><button type="button" className="ai-asset-remove" onClick={()=>setAiAssetChecklist(old=>old.filter(entry=>entry.id!==item.id))} title="Remove this requirement"><X size={14}/></button></div>
+                  {item.kind==="audio"?<div className="ai-asset-need-thumb ai-audio-need-thumb"><AudioLines size={24}/><small>AUDIO</small></div>:<img className="ai-asset-need-thumb" src={selected?.objectUrl||aiSceneThumbnail(item.title,item.query,index)} alt={selected?.name||"Planned media for "+item.title}/>}
+                  <div className="ai-asset-need-body"><div className="ai-asset-need-title"><b>{item.kind==="audio"?"AUDIO · ":"VISUAL · "}{item.title}</b><button type="button" className="ai-asset-remove" onClick={()=>setAiAssetChecklist(old=>old.filter(entry=>entry.id!==item.id))} title="Remove this requirement"><X size={14}/></button></div>
                     <textarea aria-label={"Media description for "+item.title} value={item.query} onChange={event=>updateAIAssetNeed(item.id,{query:event.target.value})} rows={2}/>
                     <div className="ai-asset-need-controls"><select aria-label={"Media action for "+item.title} value={item.action} onChange={event=>updateAIAssetNeed(item.id,{action:event.target.value as AIAssetChecklistItem["action"]})}><option value="auto">Find or generate automatically</option><option value="generate">Generate new media</option><option value="source">Find licensed media</option><option value="existing">Use my media</option><option value="skip">Skip this asset</option></select>
-                    {item.action==="existing"&&<select aria-label={"Choose existing media for "+item.title} value={item.assetId} onChange={event=>updateAIAssetNeed(item.id,{assetId:event.target.value})}><option value="">Choose media…</option>{assets.filter(asset=>asset.kind==="video"||asset.kind==="image").map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}</select>}</div>
-                    {selected&&(selected.kind==="video"||selected.kind==="audio")&&<video className="ai-asset-mini-player" src={selected.objectUrl} controls playsInline/>}
-                    <small>{item.reason} · {item.action==="skip"?"Will use an editable scene placeholder":item.action==="generate"?"NEXUS will request a generated visual":item.action==="existing"?"Uses the selected project media":"NEXUS will search available media sources first"}</small>
+                    {item.action==="existing"&&<select aria-label={"Choose existing media for "+item.title} value={item.assetId} onChange={event=>updateAIAssetNeed(item.id,{assetId:event.target.value})}><option value="">Choose media…</option>{assets.filter(asset=>item.kind==="audio"?asset.kind==="audio":asset.kind==="video"||asset.kind==="image").map(asset=><option key={asset.id} value={asset.id}>{asset.name}</option>)}</select>}</div>
+                    {selected&&selected.kind==="audio"?<audio className="ai-asset-mini-player" src={selected.objectUrl} controls/>:selected&&selected.kind==="video"?<video className="ai-asset-mini-player" src={selected.objectUrl} controls playsInline/>:null}
+                    <small>{item.reason} · {item.action==="skip"?"Will skip this asset":item.action==="generate"?(item.kind==="audio"?"NEXUS will request Voxillika audio generation when connected":"NEXUS will request generated visual media"):item.action==="existing"?"Uses the selected project media":item.action==="source"?"NEXUS will search licensed online media":"NEXUS will search licensed media, then generate a fallback if needed"}</small>
                   </div>
                 </article>})}</div>
-                <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>{if(!aiPlan)return;const sceneIndex=aiPlan.scenes.length;const scene={title:"Additional scene",visual:"Describe the extra visual needed for this scene",narration:"",searchTerms:["additional scene"],fallback:"Editable NEXUS scene card"};setAiPlan({...aiPlan,scenes:[...aiPlan.scenes,scene]});setAiAssetChecklist(old=>[...old,{id:"manual-"+Date.now(),sceneIndex,title:scene.title,query:scene.visual,reason:"Added by you",action:"auto",assetId:""}]);}}><Plus size={14}/> Add scene & requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
+                <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>{if(!aiPlan)return;const sceneIndex=aiPlan.scenes.length;const scene={title:"Additional scene",visual:"Describe the extra visual needed for this scene",narration:"",searchTerms:["additional scene"],fallback:"Editable NEXUS scene card"};setAiPlan({...aiPlan,scenes:[...aiPlan.scenes,scene]});setAiAssetChecklist(old=>[...old,{id:"manual-visual-"+Date.now(),sceneIndex,kind:"visual",title:scene.title,query:scene.visual,reason:"Added by you",action:"auto",assetId:""},{id:"manual-audio-"+Date.now(),sceneIndex,kind:"audio",title:scene.title+" · Audio",query:scene.audioCueType||scene.title+" background music",reason:"Audio requirement added with this scene",action:"auto",assetId:""}]);}}><Plus size={14}/> Add scene & requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
               </section>}
               {aiAssetChecklist.length===0&&<div className="ai-asset-checklist-ready"><CheckCircle2 size={16}/> Your current project media covers the planned scenes. You can still add extra media before building.</div>}
               <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p><div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={()=>{setAiWorkflowStage("editing");buildAIProjectTimeline();}}>Approve & build timeline <ArrowRight size={15}/></button></div>
