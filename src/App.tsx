@@ -2739,6 +2739,7 @@ export default function App() {
       let workingClips = [...clips];
       let workingTextLayers = [...textLayers];
       let currentTarget: TimelineClip | null = selectedClip || null;
+      let workingPlayhead = playhead;
       const applyBatchClipPatch = (patch: Partial<TimelineClip>) => {
         if (!currentTarget) throw new Error("Select a clip before applying this change.");
         const updated = { ...currentTarget, ...patch };
@@ -2761,6 +2762,7 @@ export default function App() {
               const match = workingClips.find(clip => clip.label.toLowerCase() === query) || workingClips.find(clip => clip.label.toLowerCase().includes(query));
               if (!match) throw new Error("Clip “" + step.target + "” was not found.");
               currentTarget = match;
+              workingPlayhead = match.start;
               setSelected(match.id); setSelectedTextLayer(null); setPlayhead(match.start);
               setActiveTool("edit"); setActiveSubtool("select");
               break;
@@ -2774,7 +2776,7 @@ export default function App() {
               break;
             case "title": {
               const layer: TimelineTextLayer = {
-                id: uid(), trackId: "text-1", start: playhead, duration: 5, text: step.text,
+                id: uid(), trackId: "text-1", start: workingPlayhead, duration: 5, text: step.text,
                 color: "#ffffff", fontSize: 64, fontFamily: "Arial", x: 50, y: 50,
                 backgroundColor: "transparent", padding: 12, align: "center", shadow: true
               };
@@ -2789,11 +2791,11 @@ export default function App() {
               if (!currentTarget) throw new Error("Select a clip before duplicating it.");
               const copy: TimelineClip = { ...currentTarget, id: uid(), start: currentTarget.start + clipDuration(currentTarget), label: currentTarget.label + " copy" };
               workingClips = [...workingClips, copy]; setClips(workingClips);
-              currentTarget = copy; setSelected(copy.id); setPlayhead(copy.start);
+              currentTarget = copy; workingPlayhead = copy.start; setSelected(copy.id); setPlayhead(copy.start);
               setActiveTool("edit"); setActiveSubtool("select");
               break;
             }
-            case "move": applyBatchClipPatch({ start: step.seconds }); setPlayhead(step.seconds); setActiveTool("edit"); break;
+            case "move": workingPlayhead = step.seconds; applyBatchClipPatch({ start: step.seconds }); setPlayhead(step.seconds); setActiveTool("edit"); break;
           }
           completed += 1;
           finishAILiveAction(actionId, "done", "Applied to the real timeline/project state.");
