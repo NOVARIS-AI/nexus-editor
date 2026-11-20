@@ -2346,6 +2346,23 @@ export default function App() {
     try {
       const latest=await getEngineJob(job.engine,job.id);
       setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
+      if(latest.state==="failed" && job.engine==="audio" && job.sceneTitle.startsWith("Audio · ")){
+        const title=job.sceneTitle.slice(8);
+        const preset=createSceneAudioPreset({title,visual:"Original local fallback audio for the approved scene",narration:"",searchTerms:[],duration:12});
+        const blob=await generateNexusAudio(preset);
+        const safeName=("nexus-"+title).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"audio-fallback";
+        const file=new File([blob],safeName+"-local-fallback.wav",{type:"audio/wav"});
+        const objectUrl=URL.createObjectURL(file);
+        const created:MediaAsset={id:uid(),name:title+" · Local audio fallback",kind:"audio",duration:preset.duration,mimeType:"audio/wav",file,objectUrl,source:{type:"generated",creator:"NEXUS local procedural audio synthesizer",attribution:"Original audio generated locally after the remote provider was unavailable."}};
+        const target=clips.find(item=>item.aiScene?.title===title);
+        const start=target?.start??timelineDuration(clips);
+        const clip:TimelineClip={id:uid(),assetId:created.id,trackId:"audio-1",start,sourceIn:0,sourceOut:preset.duration,label:created.name,gain:1,muted:false,fadeIn:.12,fadeOut:.25,speed:1};
+        setAssets(old=>[...old,created]);
+        applyClipChange([...clips,clip],"Remote audio provider failed; original local fallback added to the timeline.");
+        setSelected(clip.id);setPlayhead(start);
+        setAiReply("The connected audio provider could not complete this request. NEXUS created an original local audio fallback instead; no generated provider audio was claimed.");
+        return;
+      }
       if(latest.state==="succeeded" && latest.metadata && job.engine==="ytdlp") {
         const title=String(latest.metadata.title||"Reference media");
         const duration=Number(latest.metadata.duration);
