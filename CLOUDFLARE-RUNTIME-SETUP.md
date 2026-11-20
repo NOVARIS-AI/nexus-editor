@@ -51,21 +51,35 @@ A healthy static deployment does not mean the private API integrations are confi
 
 Do not put service-role keys, provider tokens, or worker tokens in `VITE_*` variables or browser code. Do not commit secrets to Git.
 
-## Audio sourcing and Voxillika generation
+## NEXUS Audio Router
 
-NEXUS AI Studio handles scene audio in this order:
+The app uses a dedicated Cloudflare Worker in `workers/audio` for AI audio. The router supports:
 
-1. Reuse a matching audio asset already in the project.
-2. For **Auto** or **Source**, search Wikimedia Commons for audio and retain the creator, license, attribution, and source-page link with the imported asset.
-3. For **Auto** or **Generate**, queue an original scene-matched audio job through the configured audio worker using the `voxillika` provider when enabled.
-4. If the remote provider is not configured or a job cannot be queued, use the built-in original Web Audio synthesis fallback. The AI build does not silently claim that Voxillika generated an asset when it did not.
+- **ElevenLabs** for AI voiceovers, character speech, music and sound effects.
+- **Stable Audio 3** for prompt-generated music, ambience and sound effects. If Stable Audio is not configured, music/SFX jobs can fall back to ElevenLabs when its key is configured.
+- **Disband** for separating an uploaded audio file into vocals and instrumental stems. The primary stem is added to the timeline and additional stems go into the media library.
+- **Wikimedia Commons** for licensed audio discovery with creator and licence metadata retained.
+- **NEXUS Offline Audio** for locally synthesised fallback sounds and music beds.
 
-To enable the Voxillika route, configure the secure audio worker pair:
+### Deploy the dedicated audio worker
 
-- `NEXUS_AUDIO_ENGINE_URL` — HTTPS base URL for the NEXUS-compatible audio job worker.
-- `NEXUS_AUDIO_ENGINE_TOKEN` — server-only bearer token for that worker.
-- `NEXUS_AUDIO_ENGINE_PROVIDER` — set to `voxillika` to select the Voxillika adapter.
+1. Create a Cloudflare KV namespace for audio job records and replace the placeholder ID in `workers/audio/wrangler.toml`.
+2. Create the R2 bucket named `nexus-audio-outputs`. Configure a lifecycle rule to expire generated audio objects after one day.
+3. From the `workers/audio` directory, add these encrypted Worker secrets:
+   - `NEXUS_AUDIO_WORKER_TOKEN`
+   - `ELEVENLABS_API_KEY`
+   - `ELEVENLABS_DEFAULT_VOICE_ID` (needed for generated speech)
+   - `STABILITY_API_KEY`
+   - `DISBAND_KEY`
+4. Deploy that Worker with Wrangler. The Worker exposes authenticated `POST /jobs`, authenticated `GET /jobs/:id`, authenticated `POST /separations`, and temporary audio delivery at `GET /assets/:id`.
+5. In the main `nexus-studio-app` Worker, add these encrypted secrets:
+   - `NEXUS_AUDIO_ENGINE_URL` — HTTPS base URL of the dedicated audio Worker.
+   - `NEXUS_AUDIO_ENGINE_TOKEN` — the same bearer token as `NEXUS_AUDIO_WORKER_TOKEN`.
 
-Alternatively, the shared `NEXUS_ENGINE_WORKER_URL` and `NEXUS_ENGINE_WORKER_TOKEN` pair can host the audio job route. The worker adapter must accept `POST /jobs` with `{ engine: "audio", prompt, options }`, honor `options.provider: "voxillika"`, and return the standard NEXUS job shape. It must support `GET /jobs/:id` and return a completed HTTPS output URL with an audio MIME type such as `audio/mpeg` or `audio/wav`. Provider credentials stay on the server/worker and must never be placed in browser variables.
+The provider keys stay in the dedicated audio Worker. The main app receives only the audio Worker URL and its server-to-server token. Never place provider keys in `VITE_*` variables, browser code, project files, or Git.
 
-The app only reports Voxillika as configured when a secure worker route and token are present. A successful job is downloaded, validated as audio, saved into the project media library, and placed on the audio timeline beneath its matching scene.
+### Audio job behaviour
+
+The AI Studio queues Stable Audio music/SFX jobs when the router is configured. The Voiceover tool queues ElevenLabs speech jobs. The Audio > Beats panel includes **Separate vocals & instruments**, which uploads the selected audio to Disband after the user explicitly starts the operation. Completed files are checked for audio MIME type, downloaded, imported into the project library, and placed on the timeline where applicable.
+
+Disband accepts audio files up to 100 MB in this integration. The service processes the uploaded source audio; only upload files you have the right to process. Generated and sourced audio still needs a licence check for the intended use, especially commercial distribution.
