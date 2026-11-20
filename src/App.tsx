@@ -2726,6 +2726,39 @@ export default function App() {
       }
     };
 
+    if (/^(undo|undo last edit|undo that|go back)$/i.test(normalized)) {
+      await runLiveOperation("edit", "Undoing last edit", "Restoring the previous saved editor state.", () => undoEdit(), "Undid the last project edit. You can redo it if needed.");
+      return;
+    }
+    if (/^(redo|redo last edit|redo that)$/i.test(normalized)) {
+      await runLiveOperation("edit", "Redoing last edit", "Restoring the most recently undone editor state.", () => redoEdit(), "Redid the last project edit.");
+      return;
+    }
+
+    if (/\b(split|cut)\b/.test(normalized) && /\b(clip|at the playhead|here|selected)\b/.test(normalized)) {
+      if (!selectedClip && !selectedTextLayer) { respond("Select a clip or text layer first, then place the playhead where you want the split."); return; }
+      await runLiveOperation("edit", "Splitting at playhead", "Creating two independently editable timeline segments at " + clock(playhead) + ".", () => {
+        setPage("editor"); setEditorView("workspace"); split();
+      }, "Split the selected timeline item at " + clock(playhead) + ". Both segments remain editable; undo is available.");
+      return;
+    }
+
+    const selectClipMatch = normalized.match(/^(?:select|choose|focus)\s+(?:the\s+)?(?:clip\s+)?["“]?(.+?)["”]?$/i);
+    if (selectClipMatch) {
+      const query = selectClipMatch[1].trim().toLowerCase();
+      const match = clips.find(clip => clip.label.toLowerCase() === query) ||
+        clips.find(clip => clip.label.toLowerCase().includes(query));
+      if (match) {
+        await runLiveOperation("edit", "Selecting timeline clip", "Focusing “" + match.label + "” for the next edit.", () => {
+          setPage("editor"); setEditorView("workspace"); setSelected(match.id); setSelectedTextLayer(null);
+          setPlayhead(match.start); setActiveTool("edit");
+        }, "Selected “" + match.label + "”. You can now ask me to trim it, change its speed or volume, apply effects, and more.");
+      } else {
+        respond("I couldn't find a clip matching “" + selectClipMatch[1] + "”. Check the clip names in the timeline.");
+      }
+      return;
+    }
+
     const liveTitleMatch = rawRequest.match(/(?:add|insert|create)\s+(?:a\s+)?(?:text|title|caption)(?:\s+(?:saying|that says|:)?\s*["“]?(.+?)["”]?)?$/i);
     if (liveTitleMatch) {
       const titleText = (liveTitleMatch[1] || "Your title").trim().replace(/^["“]|["”]$/g, "").slice(0, 180);
