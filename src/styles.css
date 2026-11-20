@@ -11463,3 +11463,32 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
 .nexus-shell .nexus-assistant-orb:before{content:"";position:absolute;inset:-5px;border:1px solid color-mix(in srgb,var(--nx-accent) 55%,transparent);border-radius:50%;box-shadow:0 0 18px var(--nx-glow);opacity:.8;pointer-events:none;animation:nexusAssistantPulse 3.2s ease-in-out infinite;z-index:-1}
 @keyframes nexusAssistantPulse{0%,100%{transform:scale(.96);opacity:.38}50%{transform:scale(1.12);opacity:.9}}
 @media(max-width:420px){.nexus-shell .nexus-assistant-window{width:min(310px,calc(100vw - 16px))!important}.nexus-shell .nexus-assistant-context{padding:6px 9px}.nexus-shell .nexus-assistant-context-copy b{max-width:155px}}
+
+/* NEXUS AI live operation feedback */
+.nexus-live-action-console{position:absolute;z-index:35;top:72px;left:50%;transform:translateX(-50%);width:min(520px,calc(100vw - 28px));max-height:min(42vh,340px);overflow:auto;padding:11px;border:1px solid rgba(172,132,255,.34);border-radius:15px;background:linear-gradient(145deg,rgba(25,20,42,.96),rgba(12,17,28,.95));box-shadow:0 16px 48px rgba(0,0,0,.38),0 0 28px rgba(153,106,255,.12);backdrop-filter:blur(22px);pointer-events:auto}
+.nexus-live-action-console.is-running{border-color:rgba(174,137,255,.72);box-shadow:0 16px 48px rgba(0,0,0,.4),0 0 30px rgba(153,106,255,.24)}
+.nexus-live-action-top{display:flex;align-items:center;gap:9px;padding:1px 2px 9px;border-bottom:1px solid rgba(255,255,255,.09)}
+.nexus-live-action-orb{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid rgba(190,154,255,.45);border-radius:50%;color:#d5baff;background:rgba(139,92,246,.2);box-shadow:0 0 17px rgba(167,124,255,.3)}
+.nexus-live-action-console.is-running .nexus-live-action-orb{animation:nexus-ai-orb-pulse 1.35s ease-in-out infinite}
+.nexus-live-action-top>div{display:grid;gap:3px;min-width:0;flex:1}
+.nexus-live-action-top b{font-size:9px;letter-spacing:1.15px;color:#d7c2ff}
+.nexus-live-action-top small{font-size:10px;line-height:1.4;color:rgba(237,233,248,.72)}
+.nexus-live-action-state{flex:none;padding:4px 7px;border:1px solid rgba(255,255,255,.14);border-radius:20px;font-size:8px;letter-spacing:.7px;color:var(--muted)}
+.nexus-live-action-state.active{color:#c8a8ff;border-color:rgba(178,137,255,.5);background:rgba(139,92,246,.14)}
+.nexus-live-action-list{display:grid;gap:5px;padding-top:8px}
+.nexus-live-action-item{display:grid;grid-template-columns:25px minmax(0,1fr) 20px;align-items:center;gap:8px;padding:6px 7px;border-radius:8px;background:rgba(255,255,255,.035)}
+.nexus-live-action-tool{width:24px;height:24px;display:grid;place-items:center;border:1px solid rgba(174,137,255,.24);border-radius:7px;color:#c7a8ff;background:rgba(139,92,246,.12)}
+.nexus-live-action-item>span:nth-child(2){display:grid;gap:2px;min-width:0}
+.nexus-live-action-item b{font-size:10px;color:var(--text)}
+.nexus-live-action-item small{font-size:9px;line-height:1.35;color:var(--muted);overflow-wrap:anywhere}
+.nexus-live-action-check{display:grid;place-items:center;color:#65d7b1}
+.nexus-live-action-item.working .nexus-live-action-check{color:#c9a7ff}
+.nexus-live-action-item.error .nexus-live-action-check{color:#f08c8c}
+.nexus-live-action-check i{width:11px;height:11px;border:2px solid rgba(194,164,255,.25);border-top-color:#c6a0ff;border-radius:50%;animation:nexus-live-spin .75s linear infinite}
+.nexus-tool-stack[data-ai-active="true"] .nexus-mobile-tool-sheet:not(.is-closed){border-color:rgba(178,137,255,.75);box-shadow:0 0 0 1px rgba(178,137,255,.2),0 0 25px rgba(153,106,255,.2)}
+.nexus-tool-stack[data-ai-active="true"] .nexus-mobile-tool-sheet .nexus-mobile-sheet-head{background:linear-gradient(90deg,rgba(139,92,246,.17),transparent)}
+.nexus-tool-stack[data-ai-active="true"] .nexus-mobile-tool-sheet .nexus-mobile-sheet-head b{color:#d2b8ff}
+.nexus-tool-stack[data-ai-active="true"] .nexus-mobile-tool-sheet .nexus-sheet-drag-handle span{background:#b995ff;box-shadow:0 0 12px rgba(185,149,255,.75)}
+@keyframes nexus-ai-orb-pulse{0%,100%{transform:scale(1);box-shadow:0 0 10px rgba(167,124,255,.22)}50%{transform:scale(1.08);box-shadow:0 0 22px rgba(167,124,255,.58)}}
+@keyframes nexus-live-spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.nexus-live-action-console{top:62px;left:10px;transform:none;width:min(390px,calc(100vw - 20px));max-height:32vh;padding:9px}.nexus-live-action-top small{font-size:9px}.nexus-live-action-item{padding:5px 6px}}
