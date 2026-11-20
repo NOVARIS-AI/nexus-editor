@@ -15,7 +15,7 @@ NEXUS uses a server-side Cloudflare audio router. Provider keys never belong in 
 From `workers/audio`:
 
 1. Create a KV namespace and replace the placeholder namespace ID in `wrangler.toml`.
-2. Create the R2 bucket `nexus-audio-outputs`.
+2. Create the R2 bucket `nexus-audio-outputs` and configure an R2 lifecycle rule to expire generated objects after 1 day.
 3. Set secrets:
    - `wrangler secret put NEXUS_AUDIO_WORKER_TOKEN`
    - `wrangler secret put ELEVENLABS_API_KEY`
