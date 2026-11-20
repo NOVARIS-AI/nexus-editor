@@ -2262,15 +2262,15 @@ export default function App() {
     const key="audio:"+scene.title;
     setGenerationBusy(key);
     try {
-      if(engineAvailability?.engines?.audio?.configured && /voxillika/i.test(engineAvailability.engines.audio.provider||"")) {
+      if(engineAvailability?.engines?.audio?.configured) {
         const job=await submitEngineJob("audio","Create original, scene-matched audio for: "+scene.title+". Visual direction: "+scene.visual+". Narration context: "+scene.narration+". Audio direction: "+(scene.audioCueType||"cinematic background music")+". Make a clean, editable music or sound-effect asset with no speech or copyrighted melody.",{
-          provider:"voxillika",sceneTitle:scene.title,projectName,duration:Math.min(30,Math.max(3,Number(scene.duration)||8)),target:"add-audio-under-scene",source:"nexus-manual-scene-audio"
+          provider:"stable-audio",task:/music|score|song|background|ambience|ambient|theme/i.test(scene.audioCueType||"")?"music":"sfx",instrumental:true,sceneTitle:scene.title,projectName,duration:Math.min(30,Math.max(3,Number(scene.duration)||8)),target:"add-audio-under-scene",source:"nexus-manual-scene-audio"
         });
         setGenerationJobs(old=>[{...job,sceneTitle:"Audio · "+scene.title},...old.filter(item=>item.id!==job.id)]);
-        setAiReply("Voxillika audio generation is queued for "+scene.title+". NEXUS will import the verified audio file and place it beneath the matching scene when the worker finishes.");
+        setAiReply("NEXUS Audio Router queued "+scene.title+" audio. The completed file will be imported into the media library and placed beneath the matching scene.");
         return;
       }
-      setAiReply("Voxillika is not connected. Creating an original local audio fallback for "+scene.title+"…");
+      setAiReply("NEXUS Audio Router is not connected. Creating an original local audio fallback for "+scene.title+"…");
       const preset=createSceneAudioPreset(scene);
       const blob=await generateNexusAudio(preset);
       const safeName=preset.name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,70)||"nexus-scene-audio";
@@ -2285,7 +2285,7 @@ export default function App() {
       const clip:TimelineClip={id:uid(),assetId:created.id,trackId,start,sourceIn:0,sourceOut:preset.duration,label:preset.name,gain:1,muted:false,fadeIn:.12,fadeOut:.35,speed:1};
       setAssets(old=>[...old,created]);applyClipChange([...clips,clip],"Original locally generated audio added under "+scene.title+".");
       setSelected(clip.id);setPlayhead(start);setPage("editor");setEditorView("workspace");setActiveTool("audio");setActiveSubtool("mixer");
-      setAiReply("Original local audio added beneath "+scene.title+". "+(preset.duration>=12?"The generated bed is capped at 12 seconds; duplicate or extend it for longer scenes.":"Preview it and adjust its level against the dialogue.")+" This is procedural audio, not a Voxillika generation.");
+      setAiReply("Original local audio added beneath "+scene.title+". "+(preset.duration>=12?"The generated bed is capped at 12 seconds; duplicate or extend it for longer scenes.":"Preview it and adjust its level against the dialogue.")+" This is procedural audio, not a cloud AI generation.");
     } catch(error) {
       setAiReply((error instanceof Error?error.message:"Audio generation failed.")+" The existing project remains unchanged.");
     } finally {setGenerationBusy(null);}
@@ -2511,7 +2511,7 @@ export default function App() {
         }
       }
       if (audioChecklistItem?.action !== "skip") {
-        const audioActionId = await beginAILiveAction("audio", "Finding audio · " + scene.title, "Checking approved project audio, searching licensed audio sources, then using Voxillika generation when connected.");
+        const audioActionId = await beginAILiveAction("audio", "Finding audio · " + scene.title, "Checking approved project audio, searching licensed sources, then using the connected NEXUS audio providers.");
         let audioAsset: MediaAsset | undefined = audioChecklistItem?.action === "existing"
           ? assets.find(item => item.id === audioChecklistItem.assetId && item.kind === "audio")
           : undefined;
@@ -2547,17 +2547,17 @@ export default function App() {
         }
         if (!audioAsset && (audioChecklistItem?.action === "auto" || audioChecklistItem?.action === "generate" || !audioChecklistItem)) {
           const audioProvider = String(engineAvailability?.engines?.audio?.provider || "");
-          if (engineAvailability?.engines?.audio?.configured && /voxillika/i.test(audioProvider)) {
+          if (engineAvailability?.engines?.audio?.configured) {
             try {
               const job = await submitEngineJob("audio", "Create original, scene-matched audio for: " + scene.title + ". Visual direction: " + scene.visual + ". Narration context: " + scene.narration + ". Audio direction: " + (scene.audioCueType || "cinematic background music") + ". Make a clean, editable music or sound-effect asset with no speech or copyrighted melody.", {
-                provider: "voxillika", sceneTitle: scene.title, projectName: aiPlan.title, duration: Math.min(30, Math.max(3, sceneLength)),
+                provider: "stable-audio", task: /music|score|song|background|ambience|ambient|theme/i.test(scene.audioCueType || "") ? "music" : "sfx", instrumental: true, sceneTitle: scene.title, projectName: aiPlan.title, duration: Math.min(30, Math.max(3, sceneLength)),
                 target: "add-audio-under-scene", sceneIndex: index, timelineStart: cursor, source: "nexus-ai-director"
               });
               setGenerationJobs(old => [{ ...job, sceneTitle: "Audio · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
               queuedGenerationCount += 1;
               audioAsset = undefined;
             } catch (error) {
-              setEngineReport(old => [...old, "Voxillika audio generation could not be queued for " + scene.title + ": " + (error instanceof Error ? error.message : "engine unavailable") + ". Switching to the local original-audio fallback."]);
+              setEngineReport(old => [...old, "NEXUS audio generation could not be queued for " + scene.title + ": " + (error instanceof Error ? error.message : "engine unavailable") + ". Switching to the local original-audio fallback."]);
               try {
                 const preset = createSceneAudioPreset({ ...scene, duration: Math.min(12, sceneLength) });
                 const blob = await generateNexusAudio(preset);
@@ -2574,7 +2574,7 @@ export default function App() {
           } else {
             if (audioChecklistItem?.action === "generate" || audioChecklistItem?.action === "auto" || !audioChecklistItem) {
               if (audioChecklistItem?.action === "generate" || audioChecklistItem?.action === "auto") {
-                setEngineReport(old => [...old, "Voxillika is not connected in the audio engine configuration; used the local NEXUS audio fallback for " + scene.title + "."]);
+                setEngineReport(old => [...old, "NEXUS Audio Router is not connected; used the local NEXUS audio fallback for " + scene.title + "."]);
               }
               try {
                 const preset = createSceneAudioPreset({ ...scene, duration: Math.min(12, sceneLength) });
