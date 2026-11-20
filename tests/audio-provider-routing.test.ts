@@ -35,9 +35,21 @@ describe("NEXUS audio provider discovery", () => {
   });
 
   it("does not advertise Voxillika when no secure worker is configured", () => {
+    vi.stubEnv("NEXUS_AUDIO_ENGINE_URL", "");
+    vi.stubEnv("NEXUS_AUDIO_ENGINE_TOKEN", "");
+    vi.stubEnv("NEXUS_ENGINE_WORKER_URL", "");
+    vi.stubEnv("NEXUS_ENGINE_WORKER_TOKEN", "");
     vi.stubEnv("NEXUS_AUDIO_ENGINE_PROVIDER", "voxillika");
     const response = makeResponse();
     engineStatusHandler({ method: "GET" } as any, response as any);
     expect((response.body as any).engines.audio).toMatchObject({ configured: false, provider: "NEXUS-managed audio worker" });
+  });
+  it("does not advertise an insecure audio worker as available", () => {
+    vi.stubEnv("NEXUS_AUDIO_ENGINE_URL", "http://audio-worker.example");
+    vi.stubEnv("NEXUS_AUDIO_ENGINE_TOKEN", "server-secret");
+    vi.stubEnv("NEXUS_AUDIO_ENGINE_PROVIDER", "voxillika");
+    const response = makeResponse();
+    engineStatusHandler({ method: "GET" } as any, response as any);
+    expect((response.body as any).engines.audio.configured).toBe(false);
   });
 });
