@@ -29,7 +29,7 @@ async function generate(job:Job,env:Env,publicBase:string):Promise<Job>{
       const voiceId=String(options.voiceId||env.ELEVENLABS_DEFAULT_VOICE_ID||"").trim();
       const text=String(options.text||prompt).trim().slice(0,5000);
       if(!voiceId||!text) throw new Error("ElevenLabs voice generation requires a configured default voice ID and text.");
-      response=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(voiceId),{method:"POST",headers:{"xi-api-key":env.ELEVENLABS_API_KEY,"Content-Type":"application/json","Accept":"audio/mpeg"},body:JSON.stringify({text,model_id:"eleven_multilingual_v2",output_format:"mp3_44100_128"})});
+      response=await fetch("https://api.elevenlabs.io/v1/text-to-speech/"+encodeURIComponent(voiceId)+"?output_format=mp3_44100_128",{method:"POST",headers:{"xi-api-key":env.ELEVENLABS_API_KEY,"Content-Type":"application/json","Accept":"audio/mpeg"},body:JSON.stringify({text,model_id:"eleven_multilingual_v2"})});
     }else if(task==="music"){
       const length=durationOf(options.duration,3,600,30);
       response=await fetch("https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128",{method:"POST",headers:{"xi-api-key":env.ELEVENLABS_API_KEY,"Content-Type":"application/json","Accept":"audio/mpeg"},body:JSON.stringify({prompt,music_length_ms:Math.round(length*1000),model_id:"music_v2_5",force_instrumental:options.instrumental!==false})});
@@ -66,7 +66,7 @@ export default {
       const options=body.options&&typeof body.options==="object"&&!Array.isArray(body.options)?body.options:{};
       const provider=providerOf(options);
       if(provider==="elevenlabs"&&!env.ELEVENLABS_API_KEY) return json({error:"ElevenLabs is not configured."},503);
-      if(provider==="stable-audio"&&!env.STABILITY_API_KEY) return json({error:"Stable Audio is not configured."},503);
+      if(provider==="stable-audio"&&!env.STABILITY_API_KEY&&!env.ELEVENLABS_API_KEY) return json({error:"Stable Audio and ElevenLabs are not configured."},503);
       const id=crypto.randomUUID().replace(/-/g,"");
       let job:Job={id,engine:"audio",provider,state:"queued",progress:0,message:"Audio request accepted by NEXUS Audio Router.",createdAt:Date.now(),options,prompt:body.prompt};
       await env.AUDIO_JOBS.put(id,JSON.stringify(job),{expirationTtl:86400});
