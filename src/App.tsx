@@ -481,6 +481,23 @@ export default function App() {
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Hi, I’m your NEXUS creative assistant. Ask me a question, tell me what you’re trying to make, or ask me to improve the edit. I’ll use your current project as context and guide you step by step." }]);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number; audioCueType?: string }[]; sourcingNote: string }>(null);
   const [aiAssetChecklist, setAiAssetChecklist] = useState<AIAssetChecklistItem[]>([]);
+  const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
+  const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
+  async function beginAILiveAction(tool:string,label:string,detail:string) {
+    const id=uid();
+    setAiLiveAction({id,tool,label,detail});
+    setAiLiveHistory(old=>[...old.slice(-5),{id,tool,label,detail,state:"working"}]);
+    setActiveTool(tool);
+    setActiveSubtool(tool==="edit"?"select":"");
+    setToolPanelOpen(tool!=="edit");
+    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+    return id;
+  }
+  function finishAILiveAction(id:string,state:"done"|"error"="done",detail?:string) {
+    setAiLiveHistory(old=>old.map(item=>item.id===id?{...item,state,detail:detail||item.detail}:item));
+    setAiLiveAction(current=>current?.id===id?null:current);
+  }
+
   const [mediaSearchQuery, setMediaSearchQuery] = useState("");
   const [mediaSearchResults, setMediaSearchResults] = useState<SourcedMediaResult[]>([]);
   const [mediaSearchStatus, setMediaSearchStatus] = useState("");
@@ -2392,6 +2409,12 @@ export default function App() {
   }
   async function buildAIProjectTimeline() {
     if (!aiPlan) return;
+    recordProjectHistory();
+    setPage("editor"); setEditorView("workspace"); setAiWorkspaceOpen(true);
+    setAiWorkflowStage("editing"); setActiveTool("media"); setToolPanelOpen(true);
+    setAiReply("NEXUS is opening the workspace and preparing the first media operation. Watch the tools, media library and timeline as each real project change is applied.");
+    const kickoff=await beginAILiveAction("media","Opening the media workspace","Preparing your selected media and scene requirements.");
+    finishAILiveAction(kickoff);
     const visualAssets = assets.filter(item => item.kind === "video" || item.kind === "image");
     const defaultSceneLength = aiPlan.duration / aiPlan.scenes.length;
     const additions: MediaAsset[] = [];
@@ -2404,6 +2427,7 @@ export default function App() {
     for (const [index, scene] of aiPlan.scenes.entries()) {
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
+      const mediaActionId=await beginAILiveAction("media","Finding media · "+scene.title,"Checking your supplied files and the media choice you approved.");
       const checklistItem = aiAssetChecklist.find(item => item.sceneIndex === index);
       let chosen = checklistItem?.action === "existing"
         ? visualAssets.find(item => item.id === checklistItem.assetId)
@@ -2433,9 +2457,23 @@ export default function App() {
         chosen = { id: uid(), name: scene.title + " · Native scene", kind: "image", duration: sceneLength, mimeType: "image/svg+xml", file, objectUrl, source: { type: "generated", attribution: "Created inside NEXUS Editor from editable project brief" } };
         additions.push(chosen);
       }
+      finishAILiveAction(mediaActionId,"done",chosen.name+" is ready for the scene.");
+      if(additions.some(item=>item.id===chosen!.id)){
+        setAssets(old=>old.some(item=>item.id===chosen!.id)?old:[...old,chosen!]);
+        void saveMediaAsset(chosen!).catch(()=>setDraftSaveStatus("Some AI-created media could not be backed up on this device."));
+      }
       const sourceDuration = chosen.kind === "image" ? sceneLength : Math.min(sceneLength, Math.max(0.5, chosen.duration || sceneLength));
-      newClips.push({ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } });
-      newTextLayers.push({ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 });
+      const clipActionId=await beginAILiveAction("edit","Placing scene · "+scene.title,"Adding "+chosen.name+" to the video track at "+clock(cursor)+".");
+      const createdClip:TimelineClip={ id: uid(), assetId: chosen.id, trackId: "video-1", start: cursor, sourceIn: 0, sourceOut: sourceDuration, label: scene.title, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration, sourceType: chosen.source?.type === "commons" ? "commons" : chosen.source?.type === "personal" ? "personal" : "native-fallback" } };
+      const createdTitle:TimelineTextLayer={ id: uid(), trackId: "text-1", start: cursor, duration: Math.min(sourceDuration, 4), text: scene.title, color: "#ffffff", fontSize: 44, fontFamily: "Arial", x: 50, y: 78 };
+      newClips.push(createdClip);
+      newTextLayers.push(createdTitle);
+      setClips(old=>[...old,createdClip]);
+      setTextLayers(old=>[...old,createdTitle]);
+      setSelected(createdClip.id);
+      setPlayhead(cursor);
+      finishAILiveAction(clipActionId,"done","Scene clip and title are now visible on the real timeline.");
+      await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
       if (checklistItem?.action !== "skip" && checklistItem?.action !== "source" && checklistItem?.action !== "existing" && chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
         const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
         if (engine === "image") {
@@ -2456,24 +2494,23 @@ export default function App() {
       }
       cursor += sourceDuration;
     }
-    setAssets(old => [...old, ...additions]);
-    void Promise.all(additions.map(item => saveMediaAsset(item))).catch(() => setDraftSaveStatus("Storyboard media is available in this session but some files could not be backed up on this device."));
-    setTextLayers(old => [...old, ...newTextLayers]);
-    applyClipChange([...clips, ...newClips], "AI storyboard added as " + newClips.length + " editable scenes with timed title layers");
+    setStatus("NEXUS added "+newClips.length+" scene(s) live to the timeline with editable title layers. Use Undo to reverse the complete AI build.");
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor"); setEditorView("workspace");
     for (const pending of pendingWorkerImages) {
       setGenerationBusy("image:storyboard:" + pending.scene.title);
       setAiReply("Generating scene image " + (generatedImageCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
+      const generationActionId=await beginAILiveAction("media","Generating scene · "+pending.scene.title,"The image worker is creating the approved visual and will replace the timeline placeholder when ready.");
       try {
         await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
         queuedGenerationCount += 1;
         generatedImageCount += 1;
       } catch (error) {
         setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
-      } finally { setGenerationBusy(null); }
+      } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
+    setAiLiveAction(null); setActiveTool("edit"); setActiveSubtool("select"); setToolPanelOpen(false);
     setAiReply("Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + generatedImageCount + " missing scene image(s) were generated and imported" + (pendingWorkerImages.length > generatedImageCount ? "; some image requests could not complete and their editable placeholders remain." : "") + (queuedGenerationCount > generatedImageCount ? " " + (queuedGenerationCount - generatedImageCount) + " additional video job(s) were queued." : "") + (pendingWorkerImages.length === 0 ? " Missing visuals remain as editable native placeholders because no image worker was configured." : "") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
   async function createAIProjectPlan(briefOverride?: string) {
