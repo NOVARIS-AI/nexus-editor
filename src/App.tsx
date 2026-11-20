@@ -2721,7 +2721,7 @@ export default function App() {
         respond("I understood part of that sequence, but I won't guess the unsupported step(s): " + multiStepPlan.unsupported.join(" · ") + ". Please rephrase those steps using supported editing actions; nothing has been changed.");
         return;
       }
-      let plannedTarget: TimelineClip | null = selectedClip;
+      let plannedTarget: TimelineClip | null = selectedClip || null;
       for (const step of multiStepPlan.steps) {
         if (step.type === "select") {
           const query = step.target.toLowerCase();
@@ -2738,7 +2738,7 @@ export default function App() {
       setPage("editor"); setEditorView("workspace");
       let workingClips = [...clips];
       let workingTextLayers = [...textLayers];
-      let currentTarget: TimelineClip | null = selectedClip;
+      let currentTarget: TimelineClip | null = selectedClip || null;
       const applyBatchClipPatch = (patch: Partial<TimelineClip>) => {
         if (!currentTarget) throw new Error("Select a clip before applying this change.");
         const updated = { ...currentTarget, ...patch };
