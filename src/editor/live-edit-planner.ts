@@ -46,7 +46,7 @@ function parseStep(raw: string): LiveEditStep | null {
 
   match = raw.match(/^(?:(?:set|change)\s+)?(?:the\s+)?(?:canvas\s+)?(?:aspect\s+)?(?:ratio|format)\s*(?:to|=)?\s*(9:16|16:9|1:1|4:5|3:4)$/i)
     || raw.match(/^(9:16|16:9|1:1|4:5|3:4)\s+(?:ratio|canvas|format)$/i);
-  if (match) return { type: "ratio", value: match[1] as LiveEditStep & never, label: "Change canvas · " + match[1] };
+  if (match) return { type: "ratio", value: match[1] as "9:16" | "16:9" | "1:1" | "4:5" | "3:4", label: "Change canvas · " + match[1] };
 
   if (/^(?:duplicate|copy)(?:\s+(?:the\s+)?(?:selected\s+)?clip)?$/i.test(raw)) return { type: "duplicate", label: "Duplicate clip" };
 
