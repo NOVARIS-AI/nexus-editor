@@ -2425,6 +2425,9 @@ export default function App() {
       if (latest.state === "failed" && job.metadata?.productionRunId && job.metadata?.productionSceneId) {
         checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "failed", progress: latest.progress, error: latest.error || latest.message });
       }
+      if (latest.state === "succeeded" && !latest.output?.url && job.metadata?.productionRunId && job.metadata?.productionSceneId && job.engine === "video") {
+        checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "failed", progress: 100, error: "The worker reported success but did not return a downloadable video output." });
+      }
       if(latest.state==="failed" && job.engine==="audio" && job.sceneTitle.startsWith("Audio · ")){
         const title=job.sceneTitle.slice(8);
         const preset=createSceneAudioPreset({title,visual:"Original local fallback audio for the approved scene",narration:"",searchTerms:[],duration:12});
@@ -2669,7 +2672,7 @@ export default function App() {
             checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "video", jobId: job.id, progress: job.progress });
             queuedGenerationCount += 1;
           } catch (error) {
-            checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: error instanceof Error ? error.message : "Video worker unavailable; editable native placeholder retained." });
+            checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "failed", progress: 0, error: error instanceof Error ? error.message : "Video worker unavailable; retry this scene when the provider is ready." });
             setEngineReport(old => [...old, "Video generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
           }
         } else {
@@ -2786,7 +2789,7 @@ export default function App() {
         generatedImageCount += 1;
       } catch (error) {
         const sceneIndex = aiPlan.scenes.findIndex(scene => scene.title === pending.scene.title);
-        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "skipped", progress: 100, error: error instanceof Error ? error.message : "Image generation unavailable; editable placeholder retained." });
+        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "failed", progress: 0, error: error instanceof Error ? error.message : "Image generation unavailable; retry this scene when the provider is ready." });
         setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
       } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
