@@ -2404,6 +2404,9 @@ export default function App() {
     try {
       const latest=await getEngineJob(job.engine,job.id);
       setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
+      if (latest.state === "failed" && job.metadata?.productionRunId && job.metadata?.productionSceneId) {
+        checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "failed", progress: latest.progress, error: latest.error || latest.message });
+      }
       if(latest.state==="failed" && job.engine==="audio" && job.sceneTitle.startsWith("Audio · ")){
         const title=job.sceneTitle.slice(8);
         const preset=createSceneAudioPreset({title,visual:"Original local fallback audio for the approved scene",narration:"",searchTerms:[],duration:12});
@@ -2518,12 +2521,18 @@ export default function App() {
         }
       }
       setPage("editor"); setEditorView("workspace");
+      if (job.metadata?.productionRunId && job.metadata?.productionSceneId && job.engine === "video") {
+        checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "succeeded", progress: 100, outputUrl: url, outputMimeType: mimeType });
+      }
       if(extraStemAssets.length) setAiReply("Disband separated the source into "+(extraStemAssets.length+1)+" audio stems. The primary stem is on the timeline; the other stems are available in your media library.");
     } catch(error) {
       if(reservedObjectUrl) URL.revokeObjectURL(reservedObjectUrl);
       if(reservedUrl) importedGenerationOutputs.current.delete(reservedUrl);
       const message = error instanceof Error ? error.message : "Could not refresh this generation job.";
       setGenerationJobs(old => old.map(item => item.id === job.id ? { ...item, state: "failed", error: message, message } : item));
+      if (job.metadata?.productionRunId && job.metadata?.productionSceneId) {
+        checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "failed", progress: job.progress, error: message });
+      }
       setAiReply(message);
     } finally {
       generationRefreshInFlight.current.delete(job.id);
@@ -2648,6 +2657,9 @@ export default function App() {
         } else {
           checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: "No compatible image or video worker is configured; an editable native scene placeholder was kept." });
         }
+      }
+      if (checklistItem?.action === "skip" || checklistItem?.action === "source" || checklistItem?.action === "existing") {
+        if (productionScene && productionScene.state === "pending") checkpointProductionScene(productionRun?.id, productionScene.id, { state: "skipped", progress: 100, error: "The approved choice keeps the selected source or native fallback without cloud generation." });
       }
       if (audioChecklistItem?.action !== "skip") {
         const audioActionId = await beginAILiveAction("audio", "Finding audio · " + scene.title, "Checking approved project audio, searching licensed sources, then using the connected NEXUS audio providers.");
