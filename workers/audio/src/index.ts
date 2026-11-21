@@ -23,7 +23,7 @@ async function refreshDisbandJob(job:Job,env:Env,publicBase:string):Promise<Job>
   if(!response.ok) throw new Error("Disband status check failed (HTTP "+response.status+").");
   if(body?.status==="failed") throw new Error(String(body.problem?.type||"Disband separation failed."));
   if(body?.status!=="ready") return {...job,state:"running",progress:body?.status==="processing"?55:25,message:"Disband is separating the selected audio into stems."};
-  const outputs:Array<{name:string;url:string;mimeType:string}>=[];
+  const outputs:Array<{name:string;url:string;mimeType:string;assetId?:string}>=[];
   for(const [stem,formats] of Object.entries(body.stems||{})){
     const mp3=(formats as any)?.mp3;
     if(!mp3?.url) continue;
