@@ -81,11 +81,11 @@ export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
     const safe = jobs
       .filter(job => !job.id.startsWith("unavailable-"))
       .slice(0, MAX_SAVED_JOBS)
-      .map(({ id, engine, state, progress, message, output, error, sceneTitle }) => ({
+      .map(({ id, engine, state, progress, message, output, metadata, error, sceneTitle }) => ({
         id, engine, state, progress: Math.max(0, Math.min(100, Number(progress) || 0)),
         message: String(message || "").slice(0, 500),
         ...(output?.url ? { output: { url: output.url, mimeType: output.mimeType, assetId: output.assetId } } : {}),
-        ...(job.metadata && JSON.stringify(job.metadata).length <= 4000 ? { metadata: JSON.parse(JSON.stringify(job.metadata)) } : {}),
+        ...(metadata && JSON.stringify(metadata).length <= 4000 ? { metadata: JSON.parse(JSON.stringify(metadata)) } : {}),
         ...(error ? { error: String(error).slice(0, 1000) } : {}),
         sceneTitle: String(sceneTitle || "Generated media").slice(0, 160)
       }));
