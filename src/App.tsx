@@ -2425,6 +2425,7 @@ export default function App() {
       setAssets(old=>[...old,created,...extraStemAssets]);
       const sceneTitle=job.sceneTitle.startsWith("Scene · ")?job.sceneTitle.slice(8):"";
       const audioSceneTitle=job.sceneTitle.startsWith("Audio · ")?job.sceneTitle.slice(8):"";
+      const isAIVoiceover=job.sceneTitle.startsWith("AI Voiceover · ");
       const stemSourceName=job.sceneTitle.startsWith("Stems · ")?job.sceneTitle.slice(8):"";
       const stemSourceAsset=stemSourceName?assets.find(item=>item.name===stemSourceName):undefined;
       const stemSourceClip=stemSourceAsset?clips.find(item=>item.assetId===stemSourceAsset.id):undefined;
@@ -2452,7 +2453,7 @@ export default function App() {
           setSelectedImageLayer(background.id);
           setAiReply("Generated background imported as a full-frame image layer beneath your footage. It is editable on the Images & Stickers track.");
         } else {
-          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?"audio-1":"video-1",start:audioSceneFallback?audioSceneFallback.start:stemSourceClip?stemSourceClip.start:isBackground?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:created.name,gain:1,muted:false};
+          const clip:TimelineClip={id:uid(),assetId:created.id,trackId:expectedKind==="audio"?(isAIVoiceover?"audio-4":"audio-1"):"video-1",start:audioSceneFallback?audioSceneFallback.start:stemSourceClip?stemSourceClip.start:isBackground||isAIVoiceover?Math.max(0,playhead):timelineDuration(clips),sourceIn:0,sourceOut:created.duration,label:isAIVoiceover?"AI Voiceover":created.name,gain:1,muted:false};
           applyClipChange([...clips,clip],isBackground?"Generated background clip imported at the playhead.":"Generated "+expectedKind+" added to the editable timeline.");
           setSelected(clip.id);setPlayhead(clip.start);
           setAiReply("Generated "+expectedKind+" imported into the project and added to the timeline. You can now edit it.");
