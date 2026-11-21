@@ -2371,8 +2371,9 @@ export default function App() {
         return;
       }
       if(latest.state!=="succeeded" || !latest.output?.url || job.engine==="render") return;
-      const url=latest.output.url;
-      if(!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
+      const assetProxyUrl=job.engine==="audio"&&latest.output.assetId?"/api/audio-assets?id="+encodeURIComponent(latest.output.assetId):"";
+      const url=assetProxyUrl||latest.output.url;
+      if(!assetProxyUrl&&!/^https:\/\//i.test(url)) throw new Error("Worker output must use a secure HTTPS URL.");
       if(importedGenerationOutputs.current.has(url) || assets.some(item=>item.source?.type==="generated"&&item.source.pageUrl===url)) return;
       importedGenerationOutputs.current.add(url); reservedUrl=url;
       const response=await fetch(url,{headers:{Accept:"image/*,video/*,audio/*"}});
@@ -2406,8 +2407,9 @@ export default function App() {
       const extraStemAssets:MediaAsset[]=[];
       const stemOutputs=job.engine==="audio"&&latest.metadata?.provider==="disband"&&Array.isArray(latest.metadata.stems)?latest.metadata.stems as Array<{name?:string;url?:string;mimeType?:string}>:[];
       for(const stem of stemOutputs){
-        if(!stem.url||stem.url===url) continue;
-        const stemResponse=await fetch(stem.url,{headers:{Accept:"audio/*"}});
+        const stemUrl=stem.assetId?"/api/audio-assets?id="+encodeURIComponent(stem.assetId):stem.url;
+        if(!stemUrl||stemUrl===url||(!stem.assetId&&!/^https:\/\//i.test(stemUrl))) continue;
+        const stemResponse=await fetch(stemUrl,{headers:{Accept:"audio/*"}});
         if(!stemResponse.ok) continue;
         const stemBlob=await stemResponse.blob();
         const stemMime=(stemBlob.type||stem.mimeType||"").split(";")[0].trim().toLowerCase();
