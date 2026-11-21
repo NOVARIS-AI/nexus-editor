@@ -742,7 +742,7 @@ export default function App() {
   const activeVisualClips = activeTimelineClips.filter(clip => assets.some(item => item.id === clip.assetId && item.kind !== "audio") && !trackStates.find(track => track.id === clip.trackId)?.hidden);
   const primaryVideoTrackId = trackStates.find(track => track.kind === "video" && !track.hidden)?.id;
   const selectedPreviewClip = selectedClip && assets.some(item => item.id === selectedClip.assetId && item.kind !== "audio") && !trackStates.find(track => track.id === selectedClip.trackId)?.hidden ? selectedClip : undefined;
-  const previewClip = selectedPreviewClip || activeVisualClips.filter(clip => clip.trackId === primaryVideoTrackId).slice(-1)[0] || activeVisualClips[0] || activeTimelineClips.slice(-1)[0];
+  const previewClip = activeVisualClips.filter(clip => clip.trackId === primaryVideoTrackId).slice(-1)[0] || activeVisualClips[0] || selectedPreviewClip || activeTimelineClips.slice(-1)[0];
   const previewAsset = assets.find(item => item.id === previewClip?.assetId);
   // Recreate object URLs when a restored/imported asset still has its File but its
   // temporary browser URL was lost. This keeps the preview and filmstrip usable.
