@@ -2421,7 +2421,7 @@ export default function App() {
     let reservedObjectUrl = "";
     try {
       const latest=await getEngineJob(job.engine,job.id);
-      setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,sceneTitle:job.sceneTitle}:item));
+      setGenerationJobs(old=>old.map(item=>item.id===job.id?{...item,...latest,metadata:{...(item.metadata||{}),...(latest.metadata||{})},sceneTitle:job.sceneTitle}:item));
       if (latest.state === "failed" && job.metadata?.productionRunId && job.metadata?.productionSceneId) {
         checkpointProductionScene(String(job.metadata.productionRunId), String(job.metadata.productionSceneId), { state: "failed", progress: latest.progress, error: latest.error || latest.message });
       }
