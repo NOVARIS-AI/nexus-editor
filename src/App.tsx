@@ -84,7 +84,7 @@ import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
-import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, updateProductionScene, sendProductionToReview, type NexusProductionRun } from "./editor/production-jobs";
+import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, updateProductionScene, retryProductionScene, sendProductionToReview, type NexusProductionRun } from "./editor/production-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -548,6 +548,20 @@ export default function App() {
         return allFinished ? sendProductionToReview(updated) : updated;
       } catch { return run; }
     }));
+  }
+  async function retryProductionSceneTask(runId: string, sceneId: string) {
+    const run = productionRuns.find(item => item.id === runId);
+    const scene = run?.scenes.find(item => item.id === sceneId);
+    const plannedScene = aiPlan?.scenes.find(item => item.title === scene?.title);
+    if (!run || !scene || !plannedScene) { setStatus("Open the matching AI Director plan before retrying this scene."); return; }
+    try {
+      const retried = startProductionRun(retryProductionScene(run, sceneId));
+      setProductionRuns(old => old.map(item => item.id === runId ? retried : item));
+      const engine: "image" | "video" = engineAvailability?.engines?.video?.configured ? "video" : "image";
+      await generateSceneMedia(plannedScene, engine, { runId, sceneId });
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "This scene could not be retried.");
+    }
   }
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
   const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
@@ -2302,7 +2316,7 @@ export default function App() {
     setSelected(generatedClip.id); setPlayhead(generatedClip.start); setPage("editor"); setEditorView("workspace");
     setAiReply("Your visual is ready with editable motion and has been added to the timeline.");
   }
-  async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video") {
+  async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video", production?: {runId:string;sceneId:string}) {
     const key=engine+":"+scene.title;
     setGenerationBusy(key); setAiReply("Preparing "+engine+" generation for "+scene.title+"…");
     try {
@@ -2334,15 +2348,19 @@ export default function App() {
           setAiReply("Image generated, validated, imported and added to the editable timeline.");
         }
         setPage("editor"); setEditorView("workspace");
+        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image" });
       } else if(route.route==="image-motion-fallback") {
         await generateAnimatedSceneFromStill(scene,prompt);
+        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image" });
       } else {
-        const job=await submitEngineJob("video",prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
-        setGenerationJobs(old=>[{...job,sceneTitle:scene.title},...old.filter(item=>item.id!==job.id)]);
+        const job=await submitEngineJob("video",prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,productionRunId:production?.runId,productionSceneId:production?.sceneId,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
+        setGenerationJobs(old=>[{...job,metadata:{...(job.metadata||{}),productionRunId:production?.runId,productionSceneId:production?.sceneId},sceneTitle:"Scene · "+scene.title},...old.filter(item=>item.id!==job.id)]);
+        checkpointProductionScene(production?.runId, production?.sceneId, { state: "running", engine: "video", jobId: job.id, progress: job.progress });
         setAiReply("Video generation job queued for "+scene.title+". The worker must return a verified video before it is imported.");
       }
     } catch(error) {
       const message=error instanceof Error?error.message:"Generation worker unavailable.";
+      checkpointProductionScene(production?.runId, production?.sceneId, { state: "failed", progress: 0, error: message });
       setAiReply(message+" Your storyboard and timeline have not been changed.");
       setGenerationJobs(old=>[{id:"unavailable-"+Date.now(),engine,state:"failed",progress:0,message,sceneTitle:scene.title,error:message},...old]);
     } finally { setGenerationBusy(null); }
@@ -3687,7 +3705,7 @@ export default function App() {
                 <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>{if(!aiPlan)return;const sceneIndex=aiPlan.scenes.length;const scene={title:"Additional scene",visual:"Describe the extra visual needed for this scene",narration:"",searchTerms:["additional scene"],fallback:"Editable NEXUS scene card",audioCueType:"cinematic background music"};syncAIProductionPlan(aiPlan.title,[...aiPlan.scenes,scene]);setAiPlan({...aiPlan,scenes:[...aiPlan.scenes,scene]});setAiAssetChecklist(old=>[...old,{id:"manual-visual-"+Date.now(),sceneIndex,kind:"visual",title:scene.title,query:scene.visual,reason:"Added by you",action:"auto",assetId:""},{id:"manual-audio-"+Date.now(),sceneIndex,kind:"audio",title:scene.title+" · Audio",query:scene.audioCueType||scene.title+" background music",reason:"Audio requirement added with this scene",action:"auto",assetId:""}]);}}><Plus size={14}/> Add scene & requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
               </section>}
               {aiAssetChecklist.length===0&&<div className="ai-asset-checklist-ready"><CheckCircle2 size={16}/> Your current project media covers the planned scenes. You can still add extra media before building.</div>}
-              <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p>{activeProductionRun&&<section className="ai-production-run"><div className="eyebrow">PRODUCTION CHECKPOINT</div><div className="ai-production-run-head"><b>{activeProductionRun.title}</b><span>{activeProductionRun.state.replace(/-/g," ").toUpperCase()}</span></div><p>{activeProductionRun.state==="awaiting-approval"?"This plan is saved locally and waiting for your approval.":activeProductionRun.state==="queued"?"Approved. Scene jobs are checkpointed and waiting for a compatible generation worker.":activeProductionRun.state==="review"?"All scene outputs are ready for your review.":activeProductionRun.state==="completed"?"This production has been approved as complete.":"Production progress is saved on this device."}</p><div className="ai-production-run-scenes">{activeProductionRun.scenes.map((scene,index)=><div key={scene.id}><span>{String(index+1).padStart(2,"0")} · {scene.title}</span><small>{scene.state==="pending"?"Waiting":scene.state==="succeeded"?"Ready":scene.state==="failed"?"Needs retry":scene.state.toUpperCase()}</small></div>)}</div><small>Checkpoints preserve completed scenes; retries can target a single failed scene. No scene is marked generated until a worker returns a validated output.</small></section>}<div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={approveLatestProductionPlan}>Approve plan & build timeline <ArrowRight size={15}/></button></div>
+              <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p>{activeProductionRun&&<section className="ai-production-run"><div className="eyebrow">PRODUCTION CHECKPOINT</div><div className="ai-production-run-head"><b>{activeProductionRun.title}</b><span>{activeProductionRun.state.replace(/-/g," ").toUpperCase()}</span></div><p>{activeProductionRun.state==="awaiting-approval"?"This plan is saved locally and waiting for your approval.":activeProductionRun.state==="queued"?"Approved. Scene jobs are checkpointed and waiting for a compatible generation worker.":activeProductionRun.state==="review"?"All scene outputs are ready for your review.":activeProductionRun.state==="completed"?"This production has been approved as complete.":"Production progress is saved on this device."}</p><div className="ai-production-run-scenes">{activeProductionRun.scenes.map((scene,index)=><div key={scene.id}><span>{String(index+1).padStart(2,"0")} · {scene.title}</span><small>{scene.state==="pending"?"Waiting":scene.state==="succeeded"?"Ready":scene.state==="failed"?"Needs retry":scene.state.toUpperCase()}</small>{scene.state==="failed"&&<button type="button" className="outline-button" onClick={()=>void retryProductionSceneTask(activeProductionRun.id,scene.id)}>Retry scene</button>}</div>)}</div><small>Checkpoints preserve completed scenes; retries can target a single failed scene. No scene is marked generated until a worker returns a validated output.</small></section>}<div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={approveLatestProductionPlan}>Approve plan & build timeline <ArrowRight size={15}/></button></div>
             </>}
           </aside>
         </div>
