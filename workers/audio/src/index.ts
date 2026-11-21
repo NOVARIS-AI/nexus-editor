@@ -15,7 +15,7 @@ const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,
 const providerOf=(options:Record<string,unknown>)=>String(options.provider||"stable-audio").toLowerCase();
 const durationOf=(v:unknown,min:number,max:number,fallback:number)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):fallback));
 function promptText(value:unknown){return String(value||"").trim().slice(0,4100);}
-const DISBAND_STEMS=new Set(["vocals","vocals.lead","vocals.backing","instrumental","instrumental.drums","instrumental.bass","instrumental.guitar","instrumental.piano","instrumental.other"]);
+const DISBAND_STEMS=new Set(["vocals","vocals.lead","vocals.backing","instrumental","instrumental.drums","instrumental.bass","instrumental.guitar","instrumental.piano","instrumental.other","instrumental.drums.kick","instrumental.drums.snare","instrumental.drums.toms","instrumental.drums.hihat","instrumental.drums.cymbals","instrumental.drums.other"]);
 async function refreshDisbandJob(job:Job,env:Env,publicBase:string):Promise<Job>{
   if(!env.DISBAND_KEY||!job.externalId) throw new Error("Disband is not configured for this audio worker.");
   const response=await fetch("https://api.disband.io/v1/separations/"+encodeURIComponent(job.externalId),{headers:{Authorization:"Bearer "+env.DISBAND_KEY,Prefer:"wait=2",Accept:"application/json"}});
@@ -138,7 +138,13 @@ export default {
       if(job.provider==="stable-audio"&&job.state!=="succeeded"&&job.state!=="failed"&&job.externalId){
         const response=await fetch("https://api.stability.ai/v2beta/audio/stable-audio/results/"+encodeURIComponent(job.externalId),{headers:{Authorization:"Bearer "+env.STABILITY_API_KEY,Accept:"audio/*"}});
         if(response.status===202) return json({...job,state:"running",progress:Math.min(90,job.progress+5),message:"Stable Audio is still rendering the soundtrack."});
-        if(!response.ok){const detail=(await response.text()).slice(0,350);job={...job,state:"failed",progress:0,message:"Stable Audio generation failed.",error:"Stable Audio result check returned HTTP "+response.status+": "+detail};}
+        if(!response.ok){
+          const detail=(await response.text()).slice(0,350);
+          if(env.ELEVENLABS_API_KEY){
+            try{job=await generate({...job,provider:"elevenlabs",options:{...(job.options||{}),task:String(job.options?.task||"music")}},env,url.origin);job={...job,metadata:{...(job.metadata||{}),fallbackFrom:"stable-audio",fallbackReason:"Stable Audio result check returned HTTP "+response.status}};}
+            catch(fallbackError){job={...job,state:"failed",progress:0,message:"Stable Audio and ElevenLabs generation failed.",error:fallbackError instanceof Error?fallbackError.message:detail};}
+          }else job={...job,state:"failed",progress:0,message:"Stable Audio generation failed.",error:"Stable Audio result check returned HTTP "+response.status+": "+detail};
+        }
         else{
           const bytes=await response.arrayBuffer();
           if(!bytes.byteLength) job={...job,state:"failed",progress:0,message:"Stable Audio returned an empty result.",error:"The completed Stable Audio result contained no audio bytes."};
