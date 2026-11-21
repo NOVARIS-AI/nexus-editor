@@ -11508,3 +11508,7 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
 .ai-production-run-scenes>div>small{font-size:9px;opacity:.7;flex:none}
 .ai-production-run>small{font-size:10px;line-height:1.45;opacity:.7}
 @media(max-width:640px){.ai-production-run{padding:11px;border-radius:13px}.ai-production-run-scenes>div{align-items:flex-start}.ai-production-run-head{align-items:flex-start;flex-direction:column}}
+
+.ai-production-run-scenes button{flex:none;padding:5px 9px;border-radius:9px;border:1px solid rgba(151,132,255,.28);background:rgba(151,132,255,.10);color:inherit;font-size:10px;font-weight:700}
+.ai-production-run-scenes button:active{transform:translateY(1px)}
+.ai-production-run>.gradient-button{justify-self:start;min-height:38px;margin-top:2px}
