@@ -345,7 +345,7 @@ async function readImportedMediaDuration(file: File, kind: "video" | "audio"): P
   const probe = document.createElement(kind);
   probe.preload = "metadata";
   probe.muted = true;
-  return await new Promise<number>(resolve => {
+  return await new Promise<number | null>(resolve => {
     let settled = false;
     const finish = (duration: number) => {
       if (settled) return;
