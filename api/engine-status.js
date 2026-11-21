@@ -39,7 +39,7 @@ export default function handler(_req, res) {
   const engines = {
     image: capability(workerConfigured || dedicated.image, workerConfigured ? "Cloudflare Workers AI image worker" : "NEXUS-managed image worker", "Editable SVG/Canvas graphics and licensed sourced images", ["image-generation", "image-layer-replacement"]),
     video: capability(dedicated.video || mediaWorkerConfigured, dedicated.video ? "NEXUS-managed video worker" : "NEXUS shared media worker", "Licensed sourced footage and native animated timeline scenes", ["prompt-to-video", "scene-video"]),
-    audio: capability(audioWorkerConfigured, audioProvider, "Wikimedia Commons licensed audio search, then original local Web Audio synthesis", ["voice", "music", "sound-effects", "stem-separation"]),
+    audio: capability(audioWorkerConfigured, audioProvider, "Wikimedia Commons licensed audio search, then original local Web Audio synthesis", ["ElevenLabs voice, music and sound effects", "Stable Audio 3 music, ambience and sound effects", "Disband stem separation and multi-stem import", "Wikimedia Commons licensed audio sourcing"]),
     render: capability(dedicated.render || mediaWorkerConfigured, "NEXUS-managed render worker", "Browser MediaRecorder WebM where supported", ["final-render", "export"]),
     remotion: capability(dedicated.remotion || mediaWorkerConfigured, "Remotion composition worker", "Existing editable browser timeline composition", ["react-video-composition", "deterministic-render"]),
     hyperframes: capability(dedicated.hyperframes || mediaWorkerConfigured, "HyperFrames motion-graphics worker", "Existing SVG/Canvas text and motion layers", ["motion-graphics", "animated-typography"]),
