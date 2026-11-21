@@ -25,8 +25,13 @@ describe("NEXUS Cloudflare audio router",()=>{
     expect(response.status).toBe(401);
   });
 
-  it("generates Stable Audio output into R2 and exposes a pollable job",async()=>{
-    const fakeFetch=vi.fn(async()=>new Response(new Uint8Array([1,2,3,4]),{status:200,headers:{"Content-Type":"audio/mpeg"}}));
+  it("polls Stable Audio async jobs and stores private R2 output",async()=>{
+    const fakeFetch=vi.fn(async(input:RequestInfo|URL)=>{
+      const url=String(input);
+      if(url.includes("/text-to-audio")) return new Response(JSON.stringify({id:"stable-result-123"}),{status:202,headers:{"Content-Type":"application/json"}});
+      if(url.includes("/results/stable-result-123")) return new Response(new Uint8Array([1,2,3,4]),{status:200,headers:{"Content-Type":"audio/mpeg"}});
+      return new Response("unexpected request",{status:500});
+    });
     vi.stubGlobal("fetch",fakeFetch);
     const env=environment(),ctx=context();
     const response=await audioWorker.fetch(new Request("https://audio.example/jobs",{method:"POST",headers:{"Authorization":"Bearer worker-secret","Content-Type":"application/json"},body:JSON.stringify({engine:"audio",prompt:"Warm cinematic background score",options:{provider:"stable-audio",task:"music",duration:12}})}),env,ctx as any);
@@ -36,9 +41,9 @@ describe("NEXUS Cloudflare audio router",()=>{
     await Promise.all(ctx.tasks);
     const poll=await audioWorker.fetch(new Request("https://audio.example/jobs/"+accepted.id,{headers:{"Authorization":"Bearer worker-secret"}}),env,context() as any);
     const completed=await poll.json() as any;
-    expect(completed).toMatchObject({state:"succeeded",metadata:{provider:"stable-audio"}});
+    expect(completed).toMatchObject({state:"succeeded",metadata:{provider:"stable-audio"},output:{mimeType:"audio/mpeg",assetId:accepted.id}});
     expect(completed.output.url).toBe("https://audio.example/assets/"+accepted.id);
-    expect(fakeFetch).toHaveBeenCalledOnce();
+    expect(fakeFetch).toHaveBeenCalledTimes(2);
   });
 
   it("returns a clear setup error when no generation provider is configured",async()=>{
@@ -72,15 +77,20 @@ describe("NEXUS Cloudflare audio router",()=>{
     expect(completed.output.url).toContain("/assets/"+accepted.id+"-vocals");
   });
 
-  it("serves generated audio with cross-origin access for the editor app",async()=>{
+  it("keeps generated audio assets private behind the worker token",async()=>{
     const env=environment(),ctx=context();
-    vi.stubGlobal("fetch",vi.fn(async()=>new Response(new Uint8Array([7,8,9]),{status:200,headers:{"Content-Type":"audio/mpeg"}})));
+    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
+      return String(input).includes("/text-to-audio")
+        ? new Response(JSON.stringify({id:"stable-private-1"}),{status:202,headers:{"Content-Type":"application/json"}})
+        : new Response(new Uint8Array([7,8,9]),{status:200,headers:{"Content-Type":"audio/mpeg"}});
+    }));
     const acceptedResponse=await audioWorker.fetch(new Request("https://audio.example/jobs",{method:"POST",headers:{"Authorization":"Bearer worker-secret","Content-Type":"application/json"},body:JSON.stringify({engine:"audio",prompt:"Soft ambient texture",options:{provider:"stable-audio"}})}),env,ctx as any);
     const accepted=await acceptedResponse.json() as any;
     await Promise.all(ctx.tasks);
-    const asset=await audioWorker.fetch(new Request("https://audio.example/assets/"+accepted.id),env,context() as any);
+    const unauthorized=await audioWorker.fetch(new Request("https://audio.example/assets/"+accepted.id),env,context() as any);
+    expect(unauthorized.status).toBe(401);
+    const asset=await audioWorker.fetch(new Request("https://audio.example/assets/"+accepted.id,{headers:{"Authorization":"Bearer worker-secret"}}),env,context() as any);
     expect(asset.status).toBe(200);
-    expect(asset.headers.get("Access-Control-Allow-Origin")).toBe("*");
     expect(asset.headers.get("Content-Type")).toBe("audio/mpeg");
   });
 });
