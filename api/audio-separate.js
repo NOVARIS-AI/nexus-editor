@@ -26,8 +26,8 @@ async function readBody(req, limit) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method !== "POST") return res.status(405).json({ error: "Use POST to upload an audio file for stem separation." });
-  const base = workerBase(process.env.NEXUS_AUDIO_ENGINE_URL || "");
-  const token = process.env.NEXUS_AUDIO_ENGINE_TOKEN;
+  const base = workerBase(process.env.NEXUS_AUDIO_ENGINE_URL || process.env.NEXUS_ENGINE_WORKER_URL || "");
+  const token = process.env.NEXUS_AUDIO_ENGINE_TOKEN || process.env.NEXUS_ENGINE_WORKER_TOKEN;
   if (!base || !token) return res.status(503).json({ error: "The dedicated NEXUS audio worker is not configured." });
   const contentType = String(req.headers["content-type"] || "");
   if (!contentType.toLowerCase().startsWith("multipart/form-data;")) return res.status(400).json({ error: "Upload audio using multipart form data." });
