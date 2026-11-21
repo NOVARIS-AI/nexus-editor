@@ -83,7 +83,7 @@ import { detectReferenceWorkflow, buildReferenceContext, buildReferenceFusion } 
 import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
-import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth } from "./editor/engine-jobs";
+import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -546,7 +546,7 @@ export default function App() {
   const [engineReport, setEngineReport] = useState<string[]>([]);
   const [generationJobs, setGenerationJobs] = useState<(NexusEngineJob & { sceneTitle: string })[]>(() => loadSavedGenerationJobs());
   const [generationBusy, setGenerationBusy] = useState<string | null>(null);
-  const [engineAvailability, setEngineAvailability] = useState<{brain:{configured:boolean;model?:string};engines:Record<string,{configured:boolean;provider:string;fallback:string}>} | null>(null);
+  const [engineAvailability, setEngineAvailability] = useState<NexusEngineStatus | null>(null);
   const [workerHealth, setWorkerHealth] = useState<NexusWorkerHealth | null>(null);
   const [darkMode, setDarkMode] = useState(true);
   const [previewPlaying, setPreviewPlaying] = useState(false);
