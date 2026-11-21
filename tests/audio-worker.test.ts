@@ -87,6 +87,7 @@ describe("NEXUS Cloudflare audio router",()=>{
     const acceptedResponse=await audioWorker.fetch(new Request("https://audio.example/jobs",{method:"POST",headers:{"Authorization":"Bearer worker-secret","Content-Type":"application/json"},body:JSON.stringify({engine:"audio",prompt:"Soft ambient texture",options:{provider:"stable-audio"}})}),env,ctx as any);
     const accepted=await acceptedResponse.json() as any;
     await Promise.all(ctx.tasks);
+    await audioWorker.fetch(new Request("https://audio.example/jobs/"+accepted.id,{headers:{"Authorization":"Bearer worker-secret"}}),env,context() as any);
     const unauthorized=await audioWorker.fetch(new Request("https://audio.example/assets/"+accepted.id),env,context() as any);
     expect(unauthorized.status).toBe(401);
     const asset=await audioWorker.fetch(new Request("https://audio.example/assets/"+accepted.id,{headers:{"Authorization":"Bearer worker-secret"}}),env,context() as any);
