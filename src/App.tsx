@@ -84,7 +84,7 @@ import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
-import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, type NexusProductionRun } from "./editor/production-jobs";
+import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, updateProductionScene, sendProductionToReview, type NexusProductionRun } from "./editor/production-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -524,16 +524,30 @@ export default function App() {
     setProductionRuns(old => [run, ...old.filter(item => item.state !== "awaiting-approval").slice(0, 7)]);
   }
   function approveLatestProductionPlan() {
-    const pending = productionRuns.find(run => run.state === "awaiting-approval");
+    const pending = productionRuns.find(run => run.state === "awaiting-approval" && run.title === aiPlan?.title) || productionRuns.find(run => run.state === "awaiting-approval");
     if (pending) {
       try {
-        const approved = approveProductionPlan(pending);
-        setProductionRuns(old => old.map(run => run.id === pending.id ? approved : run));
-        setStatus("Production plan approved. Scene checkpoints are queued; actual generation starts only when a compatible worker is connected.");
+        const running = startProductionRun(approveProductionPlan(pending));
+        setProductionRuns(old => old.map(run => run.id === pending.id ? running : run));
+        setStatus("Production approved. Scene checkpoints are running; outputs are only marked ready after validation or explicit fallback.");
+        setAiWorkflowStage("editing");
+        void buildAIProjectTimeline(running.id);
+        return;
       } catch (error) { setStatus(error instanceof Error ? error.message : "Could not approve the production plan."); return; }
     }
     setAiWorkflowStage("editing");
-    buildAIProjectTimeline();
+    void buildAIProjectTimeline();
+  }
+  function checkpointProductionScene(runId: string | undefined, sceneId: string | undefined, patch: Parameters<typeof updateProductionScene>[2]) {
+    if (!runId || !sceneId) return;
+    setProductionRuns(old => old.map(run => {
+      if (run.id !== runId || run.state !== "running") return run;
+      try {
+        const updated = updateProductionScene(run, sceneId, patch);
+        const allFinished = updated.scenes.every(scene => scene.state === "succeeded" || scene.state === "skipped");
+        return allFinished ? sendProductionToReview(updated) : updated;
+      } catch { return run; }
+    }));
   }
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
   const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
@@ -2540,8 +2554,9 @@ export default function App() {
   function updateAIAssetNeed(id:string,patch:Partial<AIAssetChecklistItem>) {
     setAiAssetChecklist(old=>old.map(item=>item.id===id?{...item,...patch}:item));
   }
-  async function buildAIProjectTimeline() {
+  async function buildAIProjectTimeline(productionRunId?: string) {
     if (!aiPlan) return;
+    const productionRun = productionRuns.find(run => run.id === productionRunId);
     recordProjectHistory();
     setPage("editor"); setEditorView("workspace"); setAiWorkspaceOpen(true);
     setAiWorkflowStage("editing"); setActiveTool("media"); setToolPanelOpen(true);
@@ -2558,6 +2573,7 @@ export default function App() {
     let generatedImageCount = 0;
     const pendingWorkerImages: { scene: any; clipId: string; duration: number }[] = [];
     for (const [index, scene] of aiPlan.scenes.entries()) {
+      const productionScene = productionRun?.scenes[index];
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
       const mediaActionId=await beginAILiveAction("media","Finding media · "+scene.title,"Checking your supplied files and the media choice you approved.");
@@ -2592,6 +2608,7 @@ export default function App() {
         additions.push(chosen);
       }
       finishAILiveAction(mediaActionId,"done",chosen.name+" is ready for the scene.");
+      if (chosen.source?.type === "personal" || chosen.source?.type === "commons") checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "succeeded", progress: 100, outputMimeType: chosen.mimeType });
       if(additions.some(item=>item.id===chosen!.id)){
         setAssets(old=>old.some(item=>item.id===chosen!.id)?old:[...old,chosen!]);
         void saveMediaAsset(chosen!).catch(()=>setDraftSaveStatus("Some AI-created media could not be backed up on this device."));
@@ -2612,18 +2629,24 @@ export default function App() {
         const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
         if (engine === "image") {
           pendingWorkerImages.push({ scene, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
+          checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "image", progress: 0 });
         } else if (engine === "video") {
           try {
             const job = await submitEngineJob("video", scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", {
               sceneTitle: scene.title, projectName: aiPlan.title, duration: sourceDuration, aspectRatio, style: aiStyle,
               target: "replace-ai-scene-placeholder", sceneIndex: index, source: "nexus-project-aware-brain",
+              productionRunId: productionRun?.id, productionSceneId: productionScene?.id,
               negativePrompt: "watermarks, captions, logos, unreadable text, distorted anatomy"
             });
-            setGenerationJobs(old => [{ ...job, sceneTitle: "Scene · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
+            setGenerationJobs(old => [{ ...job, metadata: { ...(job.metadata || {}), productionRunId: productionRun?.id, productionSceneId: productionScene?.id }, sceneTitle: "Scene · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
+            checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "video", jobId: job.id, progress: job.progress });
             queuedGenerationCount += 1;
           } catch (error) {
+            checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: error instanceof Error ? error.message : "Video worker unavailable; editable native placeholder retained." });
             setEngineReport(old => [...old, "Video generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
           }
+        } else {
+          checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: "No compatible image or video worker is configured; an editable native scene placeholder was kept." });
         }
       }
       if (audioChecklistItem?.action !== "skip") {
@@ -2727,9 +2750,13 @@ export default function App() {
       const generationActionId=await beginAILiveAction("media","Generating scene · "+pending.scene.title,"The image worker is creating the approved visual and will replace the timeline placeholder when ready.");
       try {
         await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
+        const sceneIndex = aiPlan.scenes.findIndex(scene => scene.title === pending.scene.title);
+        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "succeeded", progress: 100, engine: "image" });
         queuedGenerationCount += 1;
         generatedImageCount += 1;
       } catch (error) {
+        const sceneIndex = aiPlan.scenes.findIndex(scene => scene.title === pending.scene.title);
+        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "skipped", progress: 100, error: error instanceof Error ? error.message : "Image generation unavailable; editable placeholder retained." });
         setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
       } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
