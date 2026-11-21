@@ -9,7 +9,20 @@ export type NexusEngineStatus = {
   capabilityDiscovery?:{meaning:string;verification:string};
 };
 const JOB_STATES = ["queued","running","succeeded","failed","cancelled"] as const;
-function parseEngineJob(value:unknown, expectedEngine?:NexusEngineJob["engine"]):NexusEngineJob {
+
+function validateOutputUrl(value: unknown): string {
+  if (typeof value !== "string" || !value.trim() || value.length > 4096) {
+    throw new Error("The NEXUS worker marked a job complete without returning a media output URL.");
+  }
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error("The NEXUS worker returned an invalid media output URL."); }
+  if (url.protocol !== "https:" || url.username || url.password) {
+    throw new Error("Generated media must be returned through a secure HTTPS output URL.");
+  }
+  return url.toString();
+}
+
+export function parseEngineJob(value:unknown, expectedEngine?:NexusEngineJob["engine"]):NexusEngineJob {
   if(!value || typeof value!=="object") throw new Error("The NEXUS worker returned an invalid job record.");
   const data=value as Record<string,unknown>;
   if(typeof data.id!=="string" || !data.id || data.id.length>180 || !JOB_STATES.includes(data.state as typeof JOB_STATES[number])) {
@@ -20,11 +33,12 @@ function parseEngineJob(value:unknown, expectedEngine?:NexusEngineJob["engine"])
     throw new Error("The NEXUS worker returned a job for the wrong engine.");
   }
   const output=data.output && typeof data.output==="object" ? data.output as Record<string,unknown> : undefined;
+  const outputUrl = data.state === "succeeded" ? validateOutputUrl(output?.url) : undefined;
   return {
     id:data.id, engine:engine as NexusEngineJob["engine"], state:data.state as NexusEngineJob["state"],
     progress:Math.max(0,Math.min(100,Number(data.progress)||0)),
     message:String(data.message||data.state).slice(0,500),
-    ...(output && typeof output.url==="string" ? {output:{url:output.url,mimeType:typeof output.mimeType==="string"?output.mimeType:undefined,assetId:typeof output.assetId==="string"?output.assetId:undefined}} : {}),
+    ...(outputUrl ? {output:{url:outputUrl,mimeType:typeof output?.mimeType==="string"?output.mimeType:undefined,assetId:typeof output?.assetId==="string"?output.assetId:undefined}} : output && typeof output.url==="string" ? {output:{url:output.url,mimeType:typeof output.mimeType==="string"?output.mimeType:undefined,assetId:typeof output.assetId==="string"?output.assetId:undefined}} : {}),
     ...(data.metadata && typeof data.metadata==="object" ? {metadata:data.metadata as Record<string,unknown>} : {}),
     ...(typeof data.error==="string" ? {error:data.error.slice(0,1000)} : {})
   };
@@ -55,9 +69,7 @@ export async function getEngineJob(engine:NexusEngineJob["engine"],id:string,sig
 
 const JOB_HISTORY_KEY = "nexus-editor-generation-jobs-v1";
 const MAX_SAVED_JOBS = 30;
-
 export type SavedNexusEngineJob = NexusEngineJob & { sceneTitle: string };
-
 export function loadSavedGenerationJobs(): SavedNexusEngineJob[] {
   try {
     const raw = localStorage.getItem(JOB_HISTORY_KEY);
@@ -71,11 +83,8 @@ export function loadSavedGenerationJobs(): SavedNexusEngineJob[] {
         ["queued", "running", "succeeded", "failed", "cancelled"].includes(item.state) &&
         typeof item.sceneTitle === "string")
     ).slice(0, MAX_SAVED_JOBS);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
-
 export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
   try {
     const safe = jobs
@@ -90,7 +99,5 @@ export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
         sceneTitle: String(sceneTitle || "Generated media").slice(0, 160)
       }));
     localStorage.setItem(JOB_HISTORY_KEY, JSON.stringify(safe));
-  } catch {
-    // Storage can be disabled or full; generation itself must remain usable.
-  }
+  } catch { /* Storage can be disabled or full; generation itself must remain usable. */ }
 }
