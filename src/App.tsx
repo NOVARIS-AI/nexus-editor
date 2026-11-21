@@ -84,6 +84,7 @@ import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
+import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, type NexusProductionRun } from "./editor/production-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -515,6 +516,25 @@ export default function App() {
   const [aiChatMessages, setAiChatMessages] = useState<{ role: "user" | "assistant"; text: string }[]>([{ role: "assistant", text: "Hi, I’m your NEXUS creative assistant. Ask me a question, tell me what you’re trying to make, or ask me to improve the edit. I’ll use your current project as context and guide you step by step." }]);
   const [aiPlan, setAiPlan] = useState<null | { title: string; duration: number; scenes: { title: string; visual: string; narration: string; searchTerms: string[]; fallback: string; duration?: number; audioCueType?: string }[]; sourcingNote: string }>(null);
   const [aiAssetChecklist, setAiAssetChecklist] = useState<AIAssetChecklistItem[]>([]);
+  const [productionRuns, setProductionRuns] = useState<NexusProductionRun[]>(() => loadProductionRuns());
+  const activeProductionRun = productionRuns[0] || null;
+  function syncAIProductionPlan(title: string, scenes: {title:string;visual:string;narration?:string;duration?:number}[]) {
+    if (!scenes.length) return;
+    const run = createProductionRun(title, scenes.map(scene => ({title:scene.title,visual:scene.visual,narration:scene.narration,duration:scene.duration})));
+    setProductionRuns(old => [run, ...old.filter(item => item.state !== "awaiting-approval").slice(0, 7)]);
+  }
+  function approveLatestProductionPlan() {
+    const pending = productionRuns.find(run => run.state === "awaiting-approval");
+    if (pending) {
+      try {
+        const approved = approveProductionPlan(pending);
+        setProductionRuns(old => old.map(run => run.id === pending.id ? approved : run));
+        setStatus("Production plan approved. Scene checkpoints are queued; actual generation starts only when a compatible worker is connected.");
+      } catch (error) { setStatus(error instanceof Error ? error.message : "Could not approve the production plan."); return; }
+    }
+    setAiWorkflowStage("editing");
+    buildAIProjectTimeline();
+  }
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
   const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
   async function beginAILiveAction(tool:string,label:string,detail:string) {
@@ -667,6 +687,7 @@ export default function App() {
   }, []);
   useEffect(() => { const controller = new AbortController(); getEngineStatus(controller.signal).then(setEngineAvailability).catch(() => setEngineAvailability(null)); checkNexusWorker(controller.signal).then(setWorkerHealth).catch(error => setWorkerHealth({ ok:false, status:"unavailable", message:error instanceof Error ? error.message : "Worker health check failed.", checkedAt:Date.now() })); return () => controller.abort(); }, []);
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
+  useEffect(() => { saveProductionRuns(productionRuns); }, [productionRuns]);
   useEffect(() => {
     const persistSnapshot = () => {
       const snapshot: LocalDraft = {
@@ -2735,6 +2756,7 @@ export default function App() {
       const match = /\b(\d+)\s*(seconds?|secs?|s)\b/i.exec(brief);
       const target = match ? Math.min(180,Math.max(10,Number(match[1]))) : 30;
       const plannedScenes = rawScenes.map((scene,index) => ({ title: String(scene.title || "Scene " + (index+1)).slice(0, 64), visual: String(scene.visual || "Supporting visual").slice(0, 600), narration: String(scene.narration || "").slice(0, 900), searchTerms: Array.isArray(scene.searchTerms) && scene.searchTerms.length ? scene.searchTerms.slice(0,4).map((term:string)=>String(term).slice(0,100)) : [String(scene.visual || brief).slice(0,120)], fallback: "Editable NEXUS scene card until a generation worker is configured", duration: target / rawScenes.length, audioCueType: String(scene.audioCueType || "").slice(0,48) }));
+      syncAIProductionPlan(brief.slice(0,72), plannedScenes);
       setAiPlan({title:brief.slice(0,72),duration:target,scenes:plannedScenes,sourcingNote:result.plan.userReferenceNeeded ? "A personal reference photo or video is needed to depict you accurately." : "NEXUS will search licensed media first; unavailable visuals remain editable placeholders."});
       setAiAssetChecklist(buildAIAssetChecklist(plannedScenes,assets));
       setAiWorkflowStage("review");
@@ -2756,6 +2778,7 @@ export default function App() {
       { title: "The payoff", visual: "A powerful final shot that resolves the story", narration: "End with the key message and a clear final thought.", searchTerms: [topic + " cinematic final shot", topic + " inspirational footage"], fallback: "Bold closing title card with animated shapes" }
     ];
     const scenes = sceneIdeas.map((scene, index) => ({ ...scene, title: scene.title, narration: scene.narration, visual: scene.visual, searchTerms: scene.searchTerms, duration: totalSeconds / sceneIdeas.length }));
+    syncAIProductionPlan(topic.charAt(0).toUpperCase() + topic.slice(1), scenes);
     setAiPlan({ title: topic.charAt(0).toUpperCase() + topic.slice(1), duration: totalSeconds, scenes, sourcingNote: assets.length ? "Your imported media can be analysed and matched to these scenes in the next creation step." : "No personal media detected. Search approved stock/public-domain sources first; if suitable reusable media is unavailable, use the listed editor-native fallback scenes. Wikimedia Commons search is available in the editor media panel." });
     setAiAssetChecklist(buildAIAssetChecklist(scenes,assets));
     setAiWorkflowStage("review");
@@ -3584,7 +3607,7 @@ export default function App() {
       </section>}
 
       {page === "ai" && <section className="page-content ai-studio-page">
-        <div className="page-title-row"><div><div className="eyebrow">STAGE 1 · IDEA & CREATIVE DIRECTION</div><h1>NEXUS AI Studio <span>✦</span></h1><p>Develop the idea, review every scene, and approve the plan before editing begins.</p></div><button className="outline-button" onClick={()=>{setAiPlan(null);setAiAssetChecklist([]);setAiWorkflowStage("idea");setAiChatMessages([{role:"assistant",text:"New idea ready. What would you like to create?"}]);setAiBrief("");}}>＋ New idea</button></div>
+        <div className="page-title-row"><div><div className="eyebrow">STAGE 1 · IDEA & CREATIVE DIRECTION</div><h1>NEXUS AI Studio <span>✦</span></h1><p>Develop the idea, review every scene, and approve the plan before editing begins.</p></div><button className="outline-button" onClick={()=>{setAiPlan(null);setAiAssetChecklist([]);setProductionRuns(old=>old.filter(run=>run.state!=="awaiting-approval"));setAiWorkflowStage("idea");setAiChatMessages([{role:"assistant",text:"New idea ready. What would you like to create?"}]);setAiBrief("");}}>＋ New idea</button></div>
         <div className="ai-live-steps"><div className={aiWorkflowStage==="editing"?"complete":"current"}><b>01</b><span>AI planning & approval</span><small>{aiWorkflowStage==="idea"?"Waiting for your idea":aiWorkflowStage==="planning"?"Building the first scene plan…":aiWorkflowStage==="review"?"Blueprint ready · changes welcome":"Approved · moving to editor"}</small></div><div className={aiWorkflowStage==="editing"?"current":"pending"}><b>02</b><span>Editing workspace</span><small>{aiWorkflowStage==="editing"?"Timeline created · edit your scenes":"Starts after plan approval"}</small></div><div className="pending"><b>03</b><span>Rendering & export</span><small>Next engine milestone · not yet enabled</small></div></div>
         <div className="ai-studio-layout">
           <div className="ai-studio-chat">
@@ -3600,6 +3623,7 @@ export default function App() {
                 else if(/shorter|shorten/.test(lower)){next={...next,duration:Math.max(10,Math.round(next.duration*.75))};response="Shortened the target duration. Review the updated blueprint.";}
                 else if(/longer|extend/.test(lower)){next={...next,duration:Math.min(180,Math.round(next.duration*1.25))};response="Extended the target duration. Review the updated blueprint.";}
                 else {const match=lower.match(/(\d+)\s*(seconds?|secs?)\b/);if(match){next={...next,duration:Math.min(180,Math.max(10,Number(match[1])))};response="Updated the target duration to "+next.duration+" seconds.";}}
+                syncAIProductionPlan(next.title, next.scenes);
                 setAiPlan(next);setAiAssetChecklist(buildAIAssetChecklist(next.scenes,assets));setAiChatMessages(old=>[...old,{role:"assistant",text:response}]);
               }
               setAiBrief("");
@@ -3621,10 +3645,10 @@ export default function App() {
                     <small>{item.reason} · {item.action==="skip"?"Will skip this asset":item.action==="generate"?(item.kind==="audio"?"NEXUS will request AI audio generation when connected":"NEXUS will request generated visual media"):item.action==="existing"?"Uses the selected project media":item.action==="source"?"NEXUS will search licensed online media":"NEXUS will search licensed media, then generate a fallback if needed"}</small>
                   </div>
                 </article>})}</div>
-                <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>{if(!aiPlan)return;const sceneIndex=aiPlan.scenes.length;const scene={title:"Additional scene",visual:"Describe the extra visual needed for this scene",narration:"",searchTerms:["additional scene"],fallback:"Editable NEXUS scene card",audioCueType:"cinematic background music"};setAiPlan({...aiPlan,scenes:[...aiPlan.scenes,scene]});setAiAssetChecklist(old=>[...old,{id:"manual-visual-"+Date.now(),sceneIndex,kind:"visual",title:scene.title,query:scene.visual,reason:"Added by you",action:"auto",assetId:""},{id:"manual-audio-"+Date.now(),sceneIndex,kind:"audio",title:scene.title+" · Audio",query:scene.audioCueType||scene.title+" background music",reason:"Audio requirement added with this scene",action:"auto",assetId:""}]);}}><Plus size={14}/> Add scene & requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
+                <div className="ai-asset-checklist-footer"><button className="outline-button" type="button" onClick={()=>{if(!aiPlan)return;const sceneIndex=aiPlan.scenes.length;const scene={title:"Additional scene",visual:"Describe the extra visual needed for this scene",narration:"",searchTerms:["additional scene"],fallback:"Editable NEXUS scene card",audioCueType:"cinematic background music"};syncAIProductionPlan(aiPlan.title,[...aiPlan.scenes,scene]);setAiPlan({...aiPlan,scenes:[...aiPlan.scenes,scene]});setAiAssetChecklist(old=>[...old,{id:"manual-visual-"+Date.now(),sceneIndex,kind:"visual",title:scene.title,query:scene.visual,reason:"Added by you",action:"auto",assetId:""},{id:"manual-audio-"+Date.now(),sceneIndex,kind:"audio",title:scene.title+" · Audio",query:scene.audioCueType||scene.title+" background music",reason:"Audio requirement added with this scene",action:"auto",assetId:""}]);}}><Plus size={14}/> Add scene & requirement</button><label className="outline-button ai-add-media">＋ Add media<input type="file" accept="image/*,video/*,audio/*" multiple onChange={event=>{void importAIMediaFiles(event.target.files);event.currentTarget.value="";}}/></label></div>
               </section>}
               {aiAssetChecklist.length===0&&<div className="ai-asset-checklist-ready"><CheckCircle2 size={16}/> Your current project media covers the planned scenes. You can still add extra media before building.</div>}
-              <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p><div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={()=>{setAiWorkflowStage("editing");buildAIProjectTimeline();}}>Approve & build timeline <ArrowRight size={15}/></button></div>
+              <p className="ai-studio-source-note">{aiPlan.sourcingNote}</p>{activeProductionRun&&<section className="ai-production-run"><div className="eyebrow">PRODUCTION CHECKPOINT</div><div className="ai-production-run-head"><b>{activeProductionRun.title}</b><span>{activeProductionRun.state.replaceAll("-"," ").toUpperCase()}</span></div><p>{activeProductionRun.state==="awaiting-approval"?"This plan is saved locally and waiting for your approval.":activeProductionRun.state==="queued"?"Approved. Scene jobs are checkpointed and waiting for a compatible generation worker.":activeProductionRun.state==="review"?"All scene outputs are ready for your review.":activeProductionRun.state==="completed"?"This production has been approved as complete.":"Production progress is saved on this device."}</p><div className="ai-production-run-scenes">{activeProductionRun.scenes.map((scene,index)=><div key={scene.id}><span>{String(index+1).padStart(2,"0")} · {scene.title}</span><small>{scene.state==="pending"?"Waiting":scene.state==="succeeded"?"Ready":scene.state==="failed"?"Needs retry":scene.state.toUpperCase()}</small></div>)}</div><small>Checkpoints preserve completed scenes; retries can target a single failed scene. No scene is marked generated until a worker returns a validated output.</small></section>}<div className="ai-studio-plan-actions"><button className="outline-button" onClick={()=>setAiChatMessages(old=>[...old,{role:"assistant",text:"Tell me the exact change you want. You can add/remove a scene, change the duration, or request a different direction."}])}>Request changes</button><button className="gradient-button" onClick={approveLatestProductionPlan}>Approve plan & build timeline <ArrowRight size={15}/></button></div>
             </>}
           </aside>
         </div>
