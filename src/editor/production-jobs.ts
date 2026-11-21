@@ -1,0 +1,166 @@
+export type ProductionRunState =
+  | "awaiting-approval" | "queued" | "running" | "paused"
+  | "review" | "completed" | "failed" | "cancelled";
+export type ProductionSceneState = "pending" | "queued" | "running" | "succeeded" | "failed" | "skipped";
+export type ProductionEngine = "image" | "video" | "audio" | "render" | "remotion" | "hyperframes" | "ffmpeg" | "ytdlp";
+
+export interface ProductionScene {
+  id: string;
+  title: string;
+  visual: string;
+  narration?: string;
+  duration: number;
+  state: ProductionSceneState;
+  progress: number;
+  attempts: number;
+  engine?: ProductionEngine;
+  jobId?: string;
+  outputUrl?: string;
+  outputMimeType?: string;
+  error?: string;
+  updatedAt: number;
+}
+export interface ProductionCheckpoint {
+  savedAt: number;
+  completedSceneIds: string[];
+  nextSceneId?: string;
+  approvedPlan: boolean;
+}
+export interface NexusProductionRun {
+  schemaVersion: 1;
+  id: string;
+  title: string;
+  state: ProductionRunState;
+  createdAt: number;
+  updatedAt: number;
+  approvedAt?: number;
+  activeSceneId?: string;
+  scenes: ProductionScene[];
+  checkpoint: ProductionCheckpoint;
+  error?: string;
+}
+export interface ProductionSceneInput {
+  id?: string;
+  title: string;
+  visual: string;
+  narration?: string;
+  duration?: number;
+}
+const now = () => Date.now();
+const makeId = () => typeof crypto !== "undefined" && "randomUUID" in crypto
+  ? crypto.randomUUID()
+  : "production-" + now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+
+export function createProductionRun(title: string, scenes: ProductionSceneInput[]): NexusProductionRun {
+  const timestamp = now();
+  const safeScenes = scenes.slice(0, 80).map((scene, index): ProductionScene => ({
+    id: String(scene.id || makeId()).slice(0, 180),
+    title: String(scene.title || "Scene " + (index + 1)).slice(0, 180),
+    visual: String(scene.visual || "").slice(0, 4000),
+    ...(scene.narration ? { narration: String(scene.narration).slice(0, 4000) } : {}),
+    duration: Math.max(1, Math.min(120, Number(scene.duration) || 5)),
+    state: "pending",
+    progress: 0,
+    attempts: 0,
+    updatedAt: timestamp
+  }));
+  if (!safeScenes.length) throw new Error("A production needs at least one scene.");
+  return {
+    schemaVersion: 1,
+    id: makeId(),
+    title: String(title || "Untitled production").slice(0, 180),
+    state: "awaiting-approval",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    scenes: safeScenes,
+    checkpoint: { savedAt: timestamp, completedSceneIds: [], nextSceneId: safeScenes[0].id, approvedPlan: false }
+  };
+}
+
+function touch(run: NexusProductionRun, patch: Partial<NexusProductionRun> = {}): NexusProductionRun {
+  return { ...run, ...patch, updatedAt: now() };
+}
+export function approveProductionPlan(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "awaiting-approval") throw new Error("Only a plan awaiting review can be approved.");
+  const timestamp = now();
+  return touch(run, { state: "queued", approvedAt: timestamp, checkpoint: { ...run.checkpoint, savedAt: timestamp, approvedPlan: true } });
+}
+export function startProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "queued" && run.state !== "paused") throw new Error("Only a queued or paused production can start.");
+  return touch(run, { state: "running", error: undefined });
+}
+export function pauseProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "running") throw new Error("Only a running production can be paused.");
+  return touch(run, { state: "paused", checkpoint: { ...run.checkpoint, savedAt: now() } });
+}
+export function sendProductionToReview(run: NexusProductionRun): NexusProductionRun {
+  if (run.scenes.some(scene => scene.state !== "succeeded" && scene.state !== "skipped")) throw new Error("Every scene must finish or be skipped before review.");
+  return touch(run, { state: "review", activeSceneId: undefined, checkpoint: { ...run.checkpoint, savedAt: now() } });
+}
+export function completeProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "review") throw new Error("A production must pass draft review before completion.");
+  return touch(run, { state: "completed" });
+}
+export function updateProductionScene(
+  run: NexusProductionRun,
+  sceneId: string,
+  update: Partial<Pick<ProductionScene, "state" | "progress" | "engine" | "jobId" | "outputUrl" | "outputMimeType" | "error">>
+): NexusProductionRun {
+  const scene = run.scenes.find(item => item.id === sceneId);
+  if (!scene) throw new Error("The requested production scene does not exist.");
+  if (run.state !== "running" && update.state !== "queued") throw new Error("Scene execution requires a running production.");
+  const state = update.state ?? scene.state;
+  const progress = state === "succeeded" ? 100 : Math.max(0, Math.min(100, Number(update.progress ?? scene.progress) || 0));
+  const updatedScenes = run.scenes.map(item => item.id === sceneId ? { ...item, ...update, state, progress, updatedAt: now() } : item);
+  const completedSceneIds = updatedScenes.filter(item => item.state === "succeeded").map(item => item.id);
+  const next = updatedScenes.find(item => item.state === "pending" || item.state === "queued" || item.state === "failed");
+  return touch(run, {
+    scenes: updatedScenes,
+    activeSceneId: state === "running" ? sceneId : run.activeSceneId,
+    checkpoint: { savedAt: now(), completedSceneIds, nextSceneId: next?.id, approvedPlan: run.checkpoint.approvedPlan },
+    ...(state === "failed" ? { error: update.error || "A scene failed. Retry that scene without rebuilding completed scenes." } : {})
+  });
+}
+export function retryProductionScene(run: NexusProductionRun, sceneId: string): NexusProductionRun {
+  if (run.state !== "running" && run.state !== "paused" && run.state !== "failed") throw new Error("This production is not in a retryable state.");
+  const scene = run.scenes.find(item => item.id === sceneId);
+  if (!scene || (scene.state !== "failed" && scene.state !== "skipped")) throw new Error("Only a failed or skipped scene can be retried.");
+  const scenes = run.scenes.map(item => item.id === sceneId
+    ? { ...item, state: "queued" as const, progress: 0, attempts: item.attempts + 1, jobId: undefined, outputUrl: undefined, outputMimeType: undefined, error: undefined, updatedAt: now() }
+    : item);
+  return touch(run, { state: "queued", scenes, error: undefined, activeSceneId: sceneId, checkpoint: { ...run.checkpoint, savedAt: now(), nextSceneId: sceneId } });
+}
+export function cancelProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state === "completed" || run.state === "cancelled") return run;
+  return touch(run, { state: "cancelled", checkpoint: { ...run.checkpoint, savedAt: now() } });
+}
+
+const STORAGE_KEY = "nexus-production-runs-v1";
+const MAX_RUNS = 12;
+export function loadProductionRuns(): NexusProductionRun[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((run): run is NexusProductionRun =>
+      Boolean(run && typeof run === "object" && run.schemaVersion === 1 &&
+        typeof run.id === "string" && typeof run.title === "string" &&
+        ["awaiting-approval", "queued", "running", "paused", "review", "completed", "failed", "cancelled"].includes(run.state) &&
+        Array.isArray(run.scenes) && run.scenes.length <= 80 &&
+        run.scenes.every((scene: ProductionScene) => scene && typeof scene.id === "string" &&
+          ["pending", "queued", "running", "succeeded", "failed", "skipped"].includes(scene.state)))
+    ).slice(0, MAX_RUNS);
+  } catch { return []; }
+}
+export function saveProductionRuns(runs: NexusProductionRun[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(runs.slice(0, MAX_RUNS).map(run => ({
+      ...run,
+      title: run.title.slice(0, 180),
+      scenes: run.scenes.slice(0, 80).map(scene => ({
+        ...scene, title: scene.title.slice(0, 180), visual: scene.visual.slice(0, 4000),
+        narration: scene.narration?.slice(0, 4000), progress: Math.max(0, Math.min(100, scene.progress)),
+        error: scene.error?.slice(0, 1000)
+      }))
+    }))));
+  } catch { /* Local checkpoints are best-effort; the active editor project remains untouched. */ }
+}
