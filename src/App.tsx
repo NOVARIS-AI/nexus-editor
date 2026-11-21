@@ -2405,7 +2405,7 @@ export default function App() {
       if(expectedKind!=="image"&&mediaDuration<=0) throw new Error("Generated media has no usable duration.");
       const created:MediaAsset={id:uid(),name:job.sceneTitle+" · NEXUS generated",kind:expectedKind,duration:expectedKind==="image"?5:mediaDuration,mimeType:file.type,file,objectUrl,source:{type:"generated",pageUrl:url,creator:"NEXUS AI"}};
       const extraStemAssets:MediaAsset[]=[];
-      const stemOutputs=job.engine==="audio"&&latest.metadata?.provider==="disband"&&Array.isArray(latest.metadata.stems)?latest.metadata.stems as Array<{name?:string;url?:string;mimeType?:string}>:[];
+      const stemOutputs=job.engine==="audio"&&latest.metadata?.provider==="disband"&&Array.isArray(latest.metadata.stems)?latest.metadata.stems as Array<{name?:string;url?:string;mimeType?:string;assetId?:string}>:[];
       for(const stem of stemOutputs){
         const stemUrl=stem.assetId?"/api/audio-assets?id="+encodeURIComponent(stem.assetId):stem.url;
         if(!stemUrl||stemUrl===url||(!stem.assetId&&!/^https:\/\//i.test(stemUrl))) continue;
