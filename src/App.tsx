@@ -340,7 +340,7 @@ function TimelineAudioWaveform({ asset, fallback }: { asset: MediaAsset; fallbac
   </span>;
 }
 
-async function readImportedMediaDuration(file: File, kind: "video" | "audio"): Promise<number> {
+async function readImportedMediaDuration(file: File, kind: "video" | "audio"): Promise<number | null> {
   const source = URL.createObjectURL(file);
   const probe = document.createElement(kind);
   probe.preload = "metadata";
@@ -356,11 +356,11 @@ async function readImportedMediaDuration(file: File, kind: "video" | "audio"): P
       probe.removeAttribute("src");
       probe.load();
       URL.revokeObjectURL(source);
-      resolve(Number.isFinite(duration) && duration > 0 ? duration : 5);
+      resolve(Number.isFinite(duration) && duration > 0 ? duration : null);
     };
-    const timer = window.setTimeout(() => finish(5), 12000);
+    const timer = window.setTimeout(() => finish(Number.NaN), 12000);
     probe.onloadedmetadata = () => finish(probe.duration);
-    probe.onerror = () => finish(5);
+    probe.onerror = () => finish(Number.NaN);
     probe.src = source;
     probe.load();
   });
@@ -1142,12 +1142,15 @@ export default function App() {
     const remaining = [...pendingProjectAssets];
     const picked = Array.from(files).filter(file => file.type.startsWith("video/") || file.type.startsWith("audio/") || file.type.startsWith("image/") || ["mp4","m4v","mov","webm","mkv","mp3","m4a","wav","ogg","aac","jpg","jpeg","png","webp","gif","bmp","heic","heif"].includes(file.name.split(".").pop()?.toLowerCase() || ""));
     if (!picked.length) { setStatus("Choose a supported photo, video or audio file."); return; }
+    const unreadableDurationNames: string[] = [];
     const added: MediaAsset[] = await Promise.all(picked.map(async file => {
       const extension = file.name.split(".").pop()?.toLowerCase() || "";
       const kind = file.type.startsWith("video/") || ["mp4","m4v","mov","webm","mkv"].includes(extension) ? "video" : file.type.startsWith("audio/") || ["mp3","m4a","wav","ogg","aac"].includes(extension) ? "audio" : "image";
       const matchIndex = remaining.findIndex(item => item.name === file.name && item.kind === kind);
       const saved = matchIndex >= 0 ? remaining.splice(matchIndex, 1)[0] : undefined;
-      const duration = saved?.duration || (kind === "image" ? 5 : await readImportedMediaDuration(file, kind));
+      const probedDuration = saved?.duration || (kind === "image" ? 5 : await readImportedMediaDuration(file, kind));
+      if (probedDuration === null) unreadableDurationNames.push(file.name);
+      const duration = probedDuration ?? 5;
       return { ...(saved || {}), id: saved?.id || uid(), name: file.name, kind, duration, mimeType: file.type, file, objectUrl: URL.createObjectURL(file) } as MediaAsset;
     }));
     setPendingProjectAssets(remaining);
@@ -1208,8 +1211,8 @@ export default function App() {
     }
     const lastImage = [...added].reverse().find(item => item.kind === "image");
     if (lastImage) setSelectedImageAssetId(lastImage.id);
-    if (added.some(item => item.kind !== "image" && item.duration === 5)) {
-      setStatus("Media imported. A file with unreadable duration was given a safe 5-second placeholder; if its preview stays blank, try H.264 MP4, WebM, MP3 or WAV.");
+    if (unreadableDurationNames.length) {
+      setStatus("Imported with a 5-second placeholder for unreadable duration: " + unreadableDurationNames.join(", ") + ". If preview stays blank, try H.264 MP4, WebM, MP3 or WAV.");
     }
     setPage("editor"); setEditorView("workspace"); setShowAttachmentPicker(false); setMediaImportTarget("timeline");
     if (pendingProjectAssets.length) {
