@@ -37,7 +37,7 @@ describe("private generated audio asset proxy", () => {
     await audioAssetsHandler({ method: "GET", query: { id: "1234567890abcdef1234567890abcdef" } } as any, res as any);
     expect(res.statusCode).toBe(200);
     expect(res.headers["Content-Type"]).toBe("audio/mpeg");
-    expect((res.body as Buffer).byteLength).toBe(3);
+    expect((res.body as Uint8Array).byteLength).toBe(3);
   });
 
   it("refuses a non-audio worker response", async () => {
