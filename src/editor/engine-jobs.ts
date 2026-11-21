@@ -1,6 +1,34 @@
 export type NexusJobState = "queued" | "running" | "succeeded" | "failed" | "cancelled";
 export type NexusEngineJob = { id:string; engine:"image"|"video"|"audio"|"render"|"remotion"|"hyperframes"|"ffmpeg"|"ytdlp"; state:NexusJobState; progress:number; message:string; output?:{url?:string;mimeType?:string;assetId?:string}; metadata?:Record<string,unknown>; error?:string };
 export type NexusWorkerHealth = { ok:boolean; status:"online"|"unavailable"; message:string; provider?:string; checkedAt:number };
+export type NexusEngineCapability = { configured:boolean; verified?:boolean; status?:"ready"|"configured-unverified"|"fallback"; provider:string; fallback:string; capabilities?:string[]; note?:string };
+export type NexusEngineStatus = {
+  brain:{configured:boolean;provider?:string|null;model?:string|null};
+  providers?:Record<string,unknown>;
+  engines:Record<string,NexusEngineCapability>;
+  capabilityDiscovery?:{meaning:string;verification:string};
+};
+const JOB_STATES = ["queued","running","succeeded","failed","cancelled"] as const;
+function parseEngineJob(value:unknown, expectedEngine?:NexusEngineJob["engine"]):NexusEngineJob {
+  if(!value || typeof value!=="object") throw new Error("The NEXUS worker returned an invalid job record.");
+  const data=value as Record<string,unknown>;
+  if(typeof data.id!=="string" || !data.id || data.id.length>180 || !JOB_STATES.includes(data.state as typeof JOB_STATES[number])) {
+    throw new Error("The NEXUS worker returned an invalid job id or state.");
+  }
+  const engine=String(data.engine||expectedEngine||"");
+  if(!["image","video","audio","render","remotion","hyperframes","ffmpeg","ytdlp"].includes(engine) || (expectedEngine && engine!==expectedEngine)) {
+    throw new Error("The NEXUS worker returned a job for the wrong engine.");
+  }
+  const output=data.output && typeof data.output==="object" ? data.output as Record<string,unknown> : undefined;
+  return {
+    id:data.id, engine:engine as NexusEngineJob["engine"], state:data.state as NexusEngineJob["state"],
+    progress:Math.max(0,Math.min(100,Number(data.progress)||0)),
+    message:String(data.message||data.state).slice(0,500),
+    ...(output && typeof output.url==="string" ? {output:{url:output.url,mimeType:typeof output.mimeType==="string"?output.mimeType:undefined,assetId:typeof output.assetId==="string"?output.assetId:undefined}} : {}),
+    ...(data.metadata && typeof data.metadata==="object" ? {metadata:data.metadata as Record<string,unknown>} : {}),
+    ...(typeof data.error==="string" ? {error:data.error.slice(0,1000)} : {})
+  };
+}
 export async function checkNexusWorker(signal?:AbortSignal):Promise<NexusWorkerHealth>{
  const response=await fetch("/api/nexus-worker",{method:"GET",signal,headers:{Accept:"application/json", "Cache-Control":"no-cache"}});
  const data=await response.json().catch(()=>({}));
@@ -16,13 +44,13 @@ export async function submitEngineJob(engine:NexusEngineJob["engine"],prompt:str
  const response=await fetch("/api/engine-jobs",{method:"POST",signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({engine,prompt,options})});
  const data=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(data.error||"NEXUS "+engine+" engine is not ready ("+response.status+").");
- return data as NexusEngineJob;
+ return parseEngineJob(data,engine);
 }
 export async function getEngineJob(engine:NexusEngineJob["engine"],id:string,signal?:AbortSignal):Promise<NexusEngineJob>{
  const response=await fetch("/api/engine-jobs?engine="+encodeURIComponent(engine)+"&id="+encodeURIComponent(id),{signal,headers:{Accept:"application/json"}});
  const data=await response.json().catch(()=>({}));
  if(!response.ok) throw new Error(data.error||"Could not check the generation job.");
- return data as NexusEngineJob;
+ return parseEngineJob(data,engine);
 }
 
 const JOB_HISTORY_KEY = "nexus-editor-generation-jobs-v1";
@@ -57,6 +85,7 @@ export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
         id, engine, state, progress: Math.max(0, Math.min(100, Number(progress) || 0)),
         message: String(message || "").slice(0, 500),
         ...(output?.url ? { output: { url: output.url, mimeType: output.mimeType, assetId: output.assetId } } : {}),
+        ...(job.metadata ? { metadata: JSON.parse(JSON.stringify(job.metadata).slice(0, 4000)) } : {}),
         ...(error ? { error: String(error).slice(0, 1000) } : {}),
         sceneTitle: String(sceneTitle || "Generated media").slice(0, 160)
       }));
