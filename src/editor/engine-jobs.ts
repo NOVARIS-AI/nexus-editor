@@ -85,7 +85,7 @@ export function saveGenerationJobs(jobs: SavedNexusEngineJob[]): void {
         id, engine, state, progress: Math.max(0, Math.min(100, Number(progress) || 0)),
         message: String(message || "").slice(0, 500),
         ...(output?.url ? { output: { url: output.url, mimeType: output.mimeType, assetId: output.assetId } } : {}),
-        ...(job.metadata ? { metadata: JSON.parse(JSON.stringify(job.metadata).slice(0, 4000)) } : {}),
+        ...(job.metadata && JSON.stringify(job.metadata).length <= 4000 ? { metadata: JSON.parse(JSON.stringify(job.metadata)) } : {}),
         ...(error ? { error: String(error).slice(0, 1000) } : {}),
         sceneTitle: String(sceneTitle || "Generated media").slice(0, 160)
       }));
