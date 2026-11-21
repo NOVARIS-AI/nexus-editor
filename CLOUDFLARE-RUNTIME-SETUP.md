@@ -80,6 +80,6 @@ The provider keys stay in the dedicated audio Worker. The main app receives only
 
 ### Audio job behaviour
 
-The AI Studio queues Stable Audio music/SFX jobs when the router is configured. The Voiceover tool queues ElevenLabs speech jobs. The Audio > Beats panel includes **Separate vocals & instruments**, which uploads the selected audio to Disband after the user explicitly starts the operation. Completed files are checked for audio MIME type, downloaded, imported into the project library, and placed on the timeline where applicable.
+The AI Studio queues Stable Audio music/SFX jobs when the router is configured. The Voiceover tool queues ElevenLabs speech jobs. The Audio > Beats panel includes **Separate vocals & instruments**, which uploads the selected audio to Disband after the user explicitly starts the operation. Completed files are checked for audio MIME type, downloaded through the authenticated server-side audio-asset proxy (the browser never receives the worker token), imported into the project library, and placed on the timeline where applicable.
 
 Disband accepts audio files up to 100 MB in this integration. The service processes the uploaded source audio; only upload files you have the right to process. Generated and sourced audio still needs a licence check for the intended use, especially commercial distribution.
