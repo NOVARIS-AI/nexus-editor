@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     }
     const mime = (upstream.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase();
     if (!mime.startsWith("audio/")) return res.status(502).json({ error: "The audio worker returned an unsupported media type." });
-    const bytes = Buffer.from(await upstream.arrayBuffer());
+    const bytes = new Uint8Array(await upstream.arrayBuffer());
     res.setHeader("Content-Type", mime);
     res.setHeader("Content-Length", String(bytes.byteLength));
     res.setHeader("Content-Disposition", 'inline; filename="nexus-audio-' + id + '"');
