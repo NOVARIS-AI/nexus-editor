@@ -42,7 +42,8 @@ async function refreshDisbandJob(job:Job,env:Env,publicBase:string):Promise<Job>
   return {...job,state:"succeeded",progress:100,message:"Audio separated into "+outputs.length+" editable stem(s).",output:{url:primary.url,mimeType:primary.mimeType,assetId:primary.assetId},metadata:{provider:"disband",stems:outputs}};
 }
 function storageConfig(env:Env){
-  const base=String(env.SUPABASE_URL||"").replace(/\\/$/,"");
+  const rawBase=String(env.SUPABASE_URL||"").trim();
+  const base=rawBase.endsWith("/")?rawBase.slice(0,-1):rawBase;
   if(!base||!env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase Storage is not configured on the NEXUS audio worker.");
   const bucket=String(env.SUPABASE_AUDIO_BUCKET||"nexus-audio-outputs").trim();
   if(!/^[a-z0-9][a-z0-9._-]{1,62}$/.test(bucket)) throw new Error("Supabase audio bucket name is invalid.");
