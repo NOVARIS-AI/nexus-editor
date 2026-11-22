@@ -1,0 +1,90 @@
+name: Deploy NEXUS Audio Router
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Provision configuration and deploy audio Worker
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      AUDIO_JOBS_KV_ID: ${{ vars.AUDIO_JOBS_KV_ID }}
+      NEXUS_AUDIO_WORKER_TOKEN: ${{ secrets.NEXUS_AUDIO_WORKER_TOKEN }}
+      ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+      ELEVENLABS_DEFAULT_VOICE_ID: ${{ secrets.ELEVENLABS_DEFAULT_VOICE_ID }}
+      STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
+      DISBAND_KEY: ${{ secrets.DISBAND_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN AUDIO_JOBS_KV_ID NEXUS_AUDIO_WORKER_TOKEN; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is missing. Add it to GitHub Secrets (or Variables for AUDIO_JOBS_KV_ID)."
+              exit 1
+            fi
+          done
+          if ! [[ "$AUDIO_JOBS_KV_ID" =~ ^[a-f0-9]{32}$ ]]; then
+            echo "::error::AUDIO_JOBS_KV_ID must be the 32-character ID of an existing Cloudflare KV namespace."
+            exit 1
+          fi
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            const path = "workers/audio/wrangler.toml";
+            const source = readFileSync(path, "utf8");
+            const id = process.env.AUDIO_JOBS_KV_ID;
+            if (!source.includes("REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID")) {
+              throw new Error("Expected KV namespace placeholder was not found.");
+            }
+            writeFileSync(path, source.replace("REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID", id));
+          '
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+
+      - name: Verify Cloudflare R2 bucket exists
+        working-directory: workers/audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          wrangler r2 bucket list --json > /tmp/r2-buckets.json
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const data = JSON.parse(readFileSync("/tmp/r2-buckets.json", "utf8"));
+            const buckets = Array.isArray(data) ? data : (data.buckets || data.result || []);
+            if (!buckets.some((bucket) => bucket.name === "nexus-audio-outputs")) {
+              throw new Error("R2 bucket nexus-audio-outputs is missing. Create it in Cloudflare R2 before deploying.");
+            }
+          '
+
+      - name: Upload encrypted Worker secrets
+        working-directory: workers/audio
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { writeFileSync } from "node:fs";
+            const names = ["NEXUS_AUDIO_WORKER_TOKEN","ELEVENLABS_API_KEY","ELEVENLABS_DEFAULT_VOICE_ID","STABILITY_API_KEY","DISBAND_KEY"];
+            const values = Object.fromEntries(names.filter((name) => process.env[name]).map((name) => [name, process.env[name]]));
+            writeFileSync("/tmp/nexus-audio-secrets.json", JSON.stringify(values));
+          '
+          wrangler secret bulk /tmp/nexus-audio-secrets.json
+
+      - name: Deploy audio Worker
+        working-directory: workers/audio
+        run: wrangler deploy
