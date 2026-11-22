@@ -1,14 +1,15 @@
 export interface Env {
   NEXUS_AUDIO_WORKER_TOKEN: string;
+  SUPABASE_URL: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
+  SUPABASE_AUDIO_BUCKET?: string;
   ELEVENLABS_API_KEY?: string;
   ELEVENLABS_DEFAULT_VOICE_ID?: string;
   STABILITY_API_KEY?: string;
   DISBAND_KEY?: string;
-  AUDIO_OUTPUTS: R2Store;
   AUDIO_JOBS: KVStore;
 }
 interface KVStore { get(key:string,type:"json"):Promise<any>; put(key:string,value:string,options?:{expirationTtl?:number}):Promise<void>; }
-interface R2Store { put(key:string,value:ArrayBuffer,options?:any):Promise<void>; list(options?:any):Promise<{objects:Array<{key:string}>}>; get(key:string):Promise<{writeHttpMetadata(headers:Headers):void;body:ReadableStream<Uint8Array>}|null>; }
 interface ExecutionContextLike { waitUntil(promise:Promise<unknown>):void; }
 type Job = { id:string; engine:"audio"; provider:string; state:"queued"|"running"|"succeeded"|"failed"; progress:number; message:string; createdAt:number; output?:{url:string;mimeType:string;assetId?:string}; metadata?:Record<string,unknown>; error?:string; externalId?:string; options?:Record<string,unknown>; prompt?:string };
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"Content-Type":"application/json; charset=utf-8","Cache-Control":"no-store"}});
@@ -40,9 +41,26 @@ async function refreshDisbandJob(job:Job,env:Env,publicBase:string):Promise<Job>
   const primary=outputs.find(item=>item.name==="vocals")||outputs[0];
   return {...job,state:"succeeded",progress:100,message:"Audio separated into "+outputs.length+" editable stem(s).",output:{url:primary.url,mimeType:primary.mimeType,assetId:primary.assetId},metadata:{provider:"disband",stems:outputs}};
 }
+function storageConfig(env:Env){
+  const base=String(env.SUPABASE_URL||"").replace(/\\/$/,"");
+  if(!base||!env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase Storage is not configured on the NEXUS audio worker.");
+  const bucket=String(env.SUPABASE_AUDIO_BUCKET||"nexus-audio-outputs").trim();
+  if(!/^[a-z0-9][a-z0-9._-]{1,62}$/.test(bucket)) throw new Error("Supabase audio bucket name is invalid.");
+  return {base,bucket,key:env.SUPABASE_SERVICE_ROLE_KEY};
+}
+async function ensureStorageBucket(env:Env){
+  const config=storageConfig(env);
+  const response=await fetch(config.base+"/storage/v1/bucket",{method:"POST",headers:{"Authorization":"Bearer "+config.key,"apikey":config.key,"Content-Type":"application/json"},body:JSON.stringify({id:config.bucket,name:config.bucket,public:false,file_size_limit:50*1024*1024})});
+  if(response.ok||response.status===409) return;
+  const detail=(await response.text()).slice(0,240);
+  throw new Error("Supabase Storage bucket setup failed (HTTP "+response.status+"): "+detail);
+}
 async function saveOutput(env:Env,id:string,bytes:ArrayBuffer,mimeType:string,ext:string,publicBase:string){
-  const key="audio/"+id+"."+ext;
-  await env.AUDIO_OUTPUTS.put(key,bytes,{httpMetadata:{contentType:mimeType,cacheControl:"private, max-age=3600"}});
+  const config=storageConfig(env);
+  await ensureStorageBucket(env);
+  const objectPath="audio/"+id+"."+ext;
+  const response=await fetch(config.base+"/storage/v1/object/"+encodeURIComponent(config.bucket)+"/"+objectPath.split("/").map(encodeURIComponent).join("/"),{method:"POST",headers:{"Authorization":"Bearer "+config.key,"apikey":config.key,"Content-Type":mimeType,"x-upsert":"true","Cache-Control":"private, max-age=3600"},body:bytes});
+  if(!response.ok) throw new Error("Supabase Storage upload failed (HTTP "+response.status+"): "+(await response.text()).slice(0,240));
   return {url:new URL("/assets/"+encodeURIComponent(id),publicBase).toString(),mimeType,assetId:id};
 }
 async function generate(job:Job,env:Env,publicBase:string):Promise<Job>{
@@ -92,7 +110,7 @@ export default {
   async fetch(request:Request,env:Env,ctx:ExecutionContextLike):Promise<Response>{
     const url=new URL(request.url),path=url.pathname;
     if(request.method==="OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GET,POST,OPTIONS","Access-Control-Allow-Headers":"Authorization,Content-Type","Access-Control-Max-Age":"86400"}});
-    if(path==="/health"&&request.method==="GET") return json({ok:true,service:"nexus-audio-router",providers:{elevenlabs:Boolean(env.ELEVENLABS_API_KEY),stableAudio:Boolean(env.STABILITY_API_KEY),disband:Boolean(env.DISBAND_KEY)}});
+    if(path==="/health"&&request.method==="GET") return json({ok:true,service:"nexus-audio-router",storage:{provider:"supabase-storage",configured:Boolean(env.SUPABASE_URL&&env.SUPABASE_SERVICE_ROLE_KEY),bucket:env.SUPABASE_AUDIO_BUCKET||"nexus-audio-outputs"},providers:{elevenlabs:Boolean(env.ELEVENLABS_API_KEY),stableAudio:Boolean(env.STABILITY_API_KEY),disband:Boolean(env.DISBAND_KEY)}});
     if(request.headers.get("Authorization")!=="Bearer "+env.NEXUS_AUDIO_WORKER_TOKEN) return json({error:"Unauthorized"},401);
     if(path==="/separations"&&request.method==="POST"){
       if(!env.DISBAND_KEY) return json({error:"Disband is not configured on the NEXUS audio worker."},503);
@@ -160,11 +178,13 @@ export default {
     }
     const asset=path.match(/^\/assets\/([a-zA-Z0-9_-]{8,100})$/);
     if(asset&&request.method==="GET"){
-      const objects=await env.AUDIO_OUTPUTS.list({prefix:"audio/"+asset[1]+"."});
-      const item=objects.objects[0]; if(!item)return json({error:"Audio output expired or not found."},404);
-      const object=await env.AUDIO_OUTPUTS.get(item.key); if(!object)return json({error:"Audio output not found."},404);
-      const headers=new Headers(); object.writeHttpMetadata(headers); headers.set("Cache-Control","private, max-age=3600"); headers.set("Access-Control-Allow-Origin","*"); headers.set("Access-Control-Expose-Headers","Content-Type, Content-Length"); headers.set("Content-Disposition",'attachment; filename="nexus-audio-'+asset[1]+'.mp3"');
-      return new Response(object.body,{headers});
+      const config=storageConfig(env);
+      const objectPath="audio/"+asset[1]+".mp3";
+      const response=await fetch(config.base+"/storage/v1/object/"+encodeURIComponent(config.bucket)+"/"+objectPath.split("/").map(encodeURIComponent).join("/"),{headers:{"Authorization":"Bearer "+config.key,"apikey":config.key}});
+      if(response.status===404) return json({error:"Audio output expired or not found."},404);
+      if(!response.ok) return json({error:"Supabase Storage download failed (HTTP "+response.status+")."},502);
+      const headers=new Headers(); headers.set("Content-Type",response.headers.get("Content-Type")||"audio/mpeg"); headers.set("Cache-Control","private, max-age=3600"); headers.set("Access-Control-Allow-Origin","*"); headers.set("Access-Control-Expose-Headers","Content-Type, Content-Length"); headers.set("Content-Disposition",'attachment; filename="nexus-audio-'+asset[1]+'.mp3"');
+      return new Response(response.body,{headers});
     }
     return json({error:"Not found"},404);
   }
