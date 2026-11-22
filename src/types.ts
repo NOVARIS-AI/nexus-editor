@@ -9,14 +9,14 @@ export interface TimelineClip {
   id: string; assetId: string; trackId: string; start: number;
   sourceIn: number; sourceOut: number; label: string;
   exposure?: number; temperature?: number; tint?: number; highlights?: number; shadows?: number; vignette?: number; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light"; maskShape?: "none" | "circle" | "rounded" | "horizontal" | "vertical" | "diamond" | "hexagon" | "star"; maskRadius?: number; gain?: number; pan?: number; muted?: boolean; highPassHz?: number; lowPassHz?: number; compression?: number; noiseGate?: number; fadeIn?: number; fadeOut?: number; speed?: number; speedCurve?: { position: number; speed: number }[]; chromaKeyEnabled?: boolean; chromaKeyColor?: string; chromaKeyTolerance?: number; chromaKeySoftness?: number; chromaKeySpill?: number; rotation?: number; brightness?: number; contrast?: number; saturation?: number; zoom?: number; offsetX?: number; offsetY?: number; filter?: string; opacity?: number; transitionIn?: number; transitionOut?: number; transitionStyle?: "fade" | "zoom" | "wipe" | "slide" | "blur"; fit?: "cover" | "contain"; flipHorizontal?: boolean; flipVertical?: boolean; keyframes?: ClipKeyframe[];
-  aiScene?: { title: string; visual: string; narration: string; sourceType: "personal" | "commons" | "generated" | "native-fallback" };
+  aiScene?: { productionSceneId?: string; title: string; visual: string; narration: string; sourceType: "personal" | "commons" | "generated" | "native-fallback" };
 }
 export interface TimelineTrack {
   id: string; name: string; kind: "video" | "audio" | "overlay"; muted: boolean; hidden: boolean;
   volume?: number; pan?: number; solo?: boolean; locked?: boolean; opacity?: number; blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
 }
 export interface TimelineTextLayer {
-  id: string; trackId: string; start: number; duration: number; text: string;
+  id: string; trackId: string; start: number; duration: number; text: string; productionSceneId?: string;
   blendMode?: "normal" | "multiply" | "screen" | "overlay" | "darken" | "lighten" | "soft-light" | "hard-light";
   color: string; fontSize: number; fontFamily: string; x?: number; y?: number; opacity?: number; rotation?: number; backgroundColor?: string; padding?: number; align?: "left" | "center" | "right"; shadow?: boolean; visible?: boolean; locked?: boolean; stackOrder?: number; groupId?: string; groupName?: string; animation?: "none" | "fade" | "pop";
 }
