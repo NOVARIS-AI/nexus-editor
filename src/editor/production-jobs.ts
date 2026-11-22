@@ -194,7 +194,7 @@ export function updateProductionScene(
   const next = updatedScenes.find(item => item.state === "pending" || item.state === "queued" || item.state === "failed");
   return touch(run, {
     scenes: updatedScenes,
-    activeSceneId: state === "running" ? sceneId : run.activeSceneId,
+    activeSceneId: state === "running" ? sceneId : run.activeSceneId === sceneId ? undefined : run.activeSceneId,
     checkpoint: { savedAt: now(), completedSceneIds, nextSceneId: next?.id, approvedPlan: run.checkpoint.approvedPlan },
     ...(state === "failed" ? { error: update.error || "A scene failed. Retry that scene without rebuilding completed scenes." } : {})
   });
@@ -286,10 +286,10 @@ export function resumeProductionRun(run: NexusProductionRun): NexusProductionRun
   if (run.scenes.every(scene => scene.state === "succeeded" || scene.state === "skipped")) {
     return sendProductionToReview(run);
   }
-  const next = run.scenes.find(scene => scene.state === "queued" || scene.state === "pending");
-  if (!next && run.scenes.some(scene => scene.state === "failed")) {
-    throw new Error("Retry the failed scene before resuming this production.");
+  if (run.scenes.some(scene => scene.state === "failed")) {
+    throw new Error("Retry every failed scene before resuming this production.");
   }
+  const next = run.scenes.find(scene => scene.state === "queued" || scene.state === "pending");
   return touch(run, {
     state: "queued",
     error: undefined,
@@ -300,7 +300,7 @@ export function resumeProductionRun(run: NexusProductionRun): NexusProductionRun
 
 /** Return the next scene in storyboard order; failed scenes require an explicit retry. */
 export function getNextProductionScene(run: NexusProductionRun): ProductionScene | undefined {
-  if (run.state !== "running") return undefined;
+  if (run.state !== "running" || run.scenes.some(scene => scene.state === "running")) return undefined;
   return run.scenes.find(scene => scene.state === "queued" || scene.state === "pending");
 }
 
@@ -311,6 +311,9 @@ export function beginProductionScene(run: NexusProductionRun, sceneId: string): 
   if (!scene) throw new Error("The requested production scene does not exist.");
   if (scene.state !== "pending" && scene.state !== "queued") {
     throw new Error("Only a pending or queued scene can begin execution.");
+  }
+  if (run.scenes.some(item => item.state === "running")) {
+    throw new Error("Finish or checkpoint the active scene before starting another scene.");
   }
   const timestamp = now();
   const scenes = run.scenes.map(item => item.id === sceneId
