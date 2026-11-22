@@ -47,7 +47,7 @@ describe("NEXUS Cloudflare audio router",()=>{
       return new Response("unexpected request",{status:500});
     });
     vi.stubGlobal("fetch",fakeFetch);
-    const env=environment(),ctx=context();
+    const env=environment({STABILITY_API_KEY:"stability-test-secret"}),ctx=context();
     const response=await audioWorker.fetch(new Request("https://audio.example/jobs",{method:"POST",headers:{"Authorization":"Bearer worker-secret","Content-Type":"application/json"},body:JSON.stringify({engine:"audio",prompt:"Warm cinematic background score",options:{provider:"stable-audio",task:"music",duration:12}})}),env,ctx as any);
     expect(response.status).toBe(202);
     const accepted=await response.json() as any;
@@ -95,7 +95,7 @@ describe("NEXUS Cloudflare audio router",()=>{
   });
 
   it("keeps generated audio assets private behind the worker token",async()=>{
-    const env=environment(),ctx=context();
+    const env=environment({STABILITY_API_KEY:"stability-test-secret"}),ctx=context();
     const storage=new MemoryStorage();
     vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
       const stored=await storage.fetch(input,init);if(stored)return stored;
