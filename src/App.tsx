@@ -2381,7 +2381,7 @@ export default function App() {
           setAiReply("Image generated, validated, imported and added to the editable timeline.");
         }
         setPage("editor"); setEditorView("workspace");
-        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image" });
+        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image", assetId: created.id, sourceType: "generated", outputMimeType: verified.mimeType });
       } else if(route.route==="image-motion-fallback") {
         await generateAnimatedSceneFromStill(scene,prompt);
         checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image" });
@@ -2671,7 +2671,11 @@ export default function App() {
         additions.push(chosen);
       }
       finishAILiveAction(mediaActionId,"done",chosen.name+" is ready for the scene.");
-      if (chosen.source?.type === "personal" || chosen.source?.type === "commons") checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "succeeded", progress: 100, outputMimeType: chosen.mimeType });
+      if (chosen.source?.type === "personal" || chosen.source?.type === "commons") checkpointProductionScene(productionRun?.id, productionScene?.id, {
+        state: "succeeded", progress: 100, outputMimeType: chosen.mimeType, assetId: chosen.id,
+        sourceType: chosen.source.type,
+        ...(chosen.source.type === "commons" ? { sourcePageUrl: chosen.source.pageUrl, sourceLicense: chosen.source.license, sourceAttribution: chosen.source.attribution, sourceCreator: chosen.source.creator } : {})
+      });
       if(additions.some(item=>item.id===chosen!.id)){
         setAssets(old=>old.some(item=>item.id===chosen!.id)?old:[...old,chosen!]);
         void saveMediaAsset(chosen!).catch(()=>setDraftSaveStatus("Some AI-created media could not be backed up on this device."));
