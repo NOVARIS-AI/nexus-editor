@@ -11512,3 +11512,24 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
 .ai-production-run-scenes button{flex:none;padding:5px 9px;border-radius:9px;border:1px solid rgba(151,132,255,.28);background:rgba(151,132,255,.10);color:inherit;font-size:10px;font-weight:700}
 .ai-production-run-scenes button:active{transform:translateY(1px)}
 .ai-production-run>.gradient-button{justify-self:start;min-height:38px;margin-top:2px}
+
+
+/* NEXUS AI Director · Creative Review Studio */
+.ai-creative-review{display:grid;gap:12px;margin-top:12px;padding:12px;border:1px solid rgba(171,146,255,.22);border-radius:14px;background:linear-gradient(145deg,rgba(129,92,210,.09),rgba(22,24,39,.3))}
+.ai-creative-review-head{display:grid;gap:4px}
+.ai-creative-review-head b{font-size:11px;letter-spacing:.12em;color:var(--nexus-accent,#bba8ff)}
+.ai-creative-review-head small,.ai-creative-review>small{font-size:10px;color:var(--muted);line-height:1.45}
+.ai-creative-review-card{display:grid;grid-template-columns:minmax(110px,.72fr) minmax(0,1.28fr);gap:12px;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.ai-creative-review-media{display:grid;place-items:center;min-height:100px;overflow:hidden;border-radius:9px;background:rgba(0,0,0,.22);color:var(--muted);font-size:9px;text-align:center}
+.ai-creative-review-media img,.ai-creative-review-media video{display:block;width:100%;max-height:180px;object-fit:cover;border-radius:8px}
+.ai-creative-review-media audio{width:100%;max-width:240px}
+.ai-creative-review-copy{display:grid;align-content:start;gap:7px;min-width:0}
+.ai-creative-review-copy>div:first-child{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ai-creative-review-copy>div:first-child b{font-size:12px}
+.ai-creative-review-copy>div:first-child small{flex:none;font-size:8px;letter-spacing:.07em;color:var(--nexus-accent,#bba8ff)}
+.ai-creative-review-copy p{margin:0;font-size:10px;line-height:1.5;color:var(--text-secondary,var(--muted))}
+.ai-creative-review-copy>small{font-size:9px;line-height:1.4;color:var(--muted)}
+.ai-creative-review-actions{display:flex;flex-wrap:wrap;gap:6px}
+.ai-creative-review-actions button{min-height:30px;padding:5px 9px;font-size:9px}
+.ai-production-run-scenes button:disabled{opacity:.35;cursor:not-allowed}
+@media(max-width:520px){.ai-creative-review-card{grid-template-columns:1fr}.ai-creative-review-media{min-height:130px}.ai-creative-review-media img,.ai-creative-review-media video{max-height:220px}}
