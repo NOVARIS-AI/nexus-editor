@@ -2875,15 +2875,9 @@ export default function App() {
       cursor += sourceDuration;
       if (productionPauseRequested.current) break;
     }
-    if (productionPauseRequested.current) {
-      setProductionRuns(old => old.map(run => {
-        if (run.id !== productionRunId || run.state !== "running") return run;
-        try { return pauseProductionRun(run); } catch { return run; }
-      }));
-      setStatus("Production paused safely after the current scene. Completed scenes and checkpoints are preserved.");
-    } else {
-      setStatus("NEXUS added "+newClips.length+" scene(s) live to the timeline with editable title layers. Use Undo to reverse the complete AI build.");
-    }
+    setStatus(productionPauseRequested.current
+      ? "Finishing the current scene's queued media work before saving the pause checkpoint."
+      : "NEXUS added "+newClips.length+" scene(s) live to the timeline with editable title layers. Use Undo to reverse the complete AI build.");
     setSelected(newClips[0]?.id || null);
     setPlayhead(newClips[0]?.start || 0);
     setActiveTool("edit"); setActiveSubtool("select"); setAiWorkflowStage("editing"); setPage("editor"); setEditorView("workspace");
@@ -2904,8 +2898,15 @@ export default function App() {
       } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
     setAiLiveAction(null); setActiveTool("edit"); setActiveSubtool("select"); setToolPanelOpen(false);
-    productionExecutorActive.current = false;
     const pausedAfterScene = productionPauseRequested.current;
+    if (pausedAfterScene && productionRunId) {
+      setProductionRuns(old => old.map(run => {
+        if (run.id !== productionRunId || run.state !== "running") return run;
+        try { return pauseProductionRun(run); } catch { return run; }
+      }));
+      setStatus("Production paused safely after the current scene. Completed scenes and checkpoints are preserved.");
+    }
+    productionExecutorActive.current = false;
     productionPauseRequested.current = false;
     setAiReply(pausedAfterScene
       ? "Production paused at a safe scene boundary. Resume when ready; completed scenes will be kept and skipped."
