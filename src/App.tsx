@@ -585,8 +585,12 @@ export default function App() {
   async function retryProductionSceneTask(runId: string, sceneId: string) {
     const run = productionRuns.find(item => item.id === runId);
     const scene = run?.scenes.find(item => item.id === sceneId);
-    const plannedScene = aiPlan?.scenes.find(item => item.title === scene?.title);
-    if (!run || !scene || !plannedScene) { setStatus("Open the matching AI Director plan before retrying this scene."); return; }
+    const plannedScene = scene ? (aiPlan?.scenes.find(item => item.title === scene.title) || {
+      title: scene.title, visual: scene.visual, narration: scene.narration || "",
+      searchTerms: scene.visual.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3),
+      duration: scene.duration
+    }) : undefined;
+    if (!run || !scene || !plannedScene) { setStatus("This production scene is unavailable for retry."); return; }
     try {
       const retried = startProductionRun(retryProductionScene(run, sceneId));
       setProductionRuns(old => old.map(item => item.id === runId ? retried : item));
