@@ -35,13 +35,36 @@ describe("NEXUS production checkpoints", () => {
     const running = startProductionRun(plan);
     const sceneId = running.scenes[0].id;
     expect(() => updateProductionScene(running, sceneId, { state: "succeeded" }))
-      .toThrow(/media output is attached/i);
+      .toThrow(/linked project asset is attached/i);
     expect(() => updateProductionScene(running, sceneId, {
       state: "succeeded", outputUrl: "http://cdn.example/scene.mp4"
     })).toThrow(/secure HTTPS/i);
     expect(() => updateProductionScene(running, sceneId, {
       state: "succeeded", outputUrl: "https://user:pass@cdn.example/scene.mp4"
     })).toThrow(/secure HTTPS/i);
+  });
+
+  it("accepts a linked generated asset and records full Commons provenance", () => {
+    const plan = approveProductionPlan(createProductionRun("Hybrid sourcing", [
+      { title: "Generated still", visual: "A generated image" },
+      { title: "Licensed shot", visual: "A public-domain photograph" }
+    ]));
+    const running = startProductionRun(plan);
+    const generated = updateProductionScene(running, running.scenes[0].id, {
+      state: "succeeded", assetId: "asset-generated-1", sourceType: "generated", outputMimeType: "image/png"
+    });
+    expect(generated.scenes[0].state).toBe("succeeded");
+    expect(generated.scenes[0].assetId).toBe("asset-generated-1");
+    expect(() => updateProductionScene(generated, generated.scenes[1].id, {
+      state: "succeeded", assetId: "asset-commons-1", sourceType: "commons"
+    })).toThrow(/source page, licence and attribution/i);
+    const sourced = updateProductionScene(generated, generated.scenes[1].id, {
+      state: "succeeded", assetId: "asset-commons-1", sourceType: "commons",
+      sourcePageUrl: "https://commons.wikimedia.org/wiki/File:Example.jpg",
+      sourceLicense: "CC BY 4.0", sourceAttribution: "Photo by Example", sourceCreator: "Example"
+    });
+    expect(sourced.scenes[1].sourceLicense).toBe("CC BY 4.0");
+    expect(sourced.scenes[1].sourceAttribution).toBe("Photo by Example");
   });
 
   it("retries only a failed scene and preserves successful scene outputs", () => {
