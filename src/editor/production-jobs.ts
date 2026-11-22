@@ -107,6 +107,9 @@ export function sendProductionToReview(run: NexusProductionRun): NexusProduction
 }
 export function completeProductionRun(run: NexusProductionRun): NexusProductionRun {
   if (run.state !== "review") throw new Error("A production must pass draft review before completion.");
+  if (run.scenes.some(scene => scene.state !== "succeeded" && scene.state !== "skipped")) {
+    throw new Error("Every production scene must finish or be skipped before draft completion.");
+  }
   const awaitingReview = run.scenes.filter(scene => scene.state === "succeeded" && scene.reviewStatus !== "approved");
   if (awaitingReview.length) throw new Error("Approve every completed scene in Creative Review before completing the draft.");
   return touch(run, { state: "completed" });
@@ -122,6 +125,9 @@ export function reviewProductionScene(
   if (run.state !== "review") throw new Error("Scene review is available only after production reaches draft review.");
   const scene = run.scenes.find(item => item.id === sceneId);
   if (!scene || scene.state !== "succeeded") throw new Error("Only a completed scene can be reviewed.");
+  if (decision === "approved" && scene.reviewStatus === "changes-requested") {
+    throw new Error("Regenerate this revised scene before approving it.");
+  }
   const scenes = run.scenes.map(item => item.id === sceneId
     ? { ...item, reviewStatus: decision, reviewNote: String(note).trim().slice(0, 1000), updatedAt: now() }
     : item);
