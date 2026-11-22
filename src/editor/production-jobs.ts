@@ -17,6 +17,12 @@ export interface ProductionScene {
   jobId?: string;
   outputUrl?: string;
   outputMimeType?: string;
+  assetId?: string;
+  sourceType?: "generated" | "commons" | "personal";
+  sourcePageUrl?: string;
+  sourceLicense?: string;
+  sourceAttribution?: string;
+  sourceCreator?: string;
   error?: string;
   updatedAt: number;
 }
@@ -104,20 +110,30 @@ export function completeProductionRun(run: NexusProductionRun): NexusProductionR
 export function updateProductionScene(
   run: NexusProductionRun,
   sceneId: string,
-  update: Partial<Pick<ProductionScene, "state" | "progress" | "engine" | "jobId" | "outputUrl" | "outputMimeType" | "error">>
+  update: Partial<Pick<ProductionScene, "state" | "progress" | "engine" | "jobId" | "outputUrl" | "outputMimeType" | "assetId" | "sourceType" | "sourcePageUrl" | "sourceLicense" | "sourceAttribution" | "sourceCreator" | "error">>
 ): NexusProductionRun {
   const scene = run.scenes.find(item => item.id === sceneId);
   if (!scene) throw new Error("The requested production scene does not exist.");
   if (run.state !== "running" && update.state !== "queued") throw new Error("Scene execution requires a running production.");
   const state = update.state ?? scene.state;
   if (state === "succeeded") {
-    if (typeof update.outputUrl !== "string" || !update.outputUrl.trim()) {
-      throw new Error("A scene cannot succeed until its generated media output is attached.");
-    }
-    let outputUrl: URL;
-    try { outputUrl = new URL(update.outputUrl); } catch { throw new Error("The scene output URL is invalid."); }
-    if (outputUrl.protocol !== "https:" || outputUrl.username || outputUrl.password) {
-      throw new Error("Scene media outputs must use a secure HTTPS URL.");
+    if (typeof update.outputUrl === "string" && update.outputUrl.trim()) {
+      let outputUrl: URL;
+      try { outputUrl = new URL(update.outputUrl); } catch { throw new Error("The scene output URL is invalid."); }
+      if (outputUrl.protocol !== "https:" || outputUrl.username || outputUrl.password) {
+        throw new Error("Scene media outputs must use a secure HTTPS URL.");
+      }
+    } else if (typeof update.assetId === "string" && update.assetId.trim() && update.sourceType) {
+      if (update.sourceType === "commons") {
+        if (!update.sourcePageUrl || !update.sourceLicense || !update.sourceAttribution) {
+          throw new Error("A sourced scene needs its source page, licence and attribution recorded.");
+        }
+        let sourcePage: URL;
+        try { sourcePage = new URL(update.sourcePageUrl); } catch { throw new Error("The source page URL is invalid."); }
+        if (sourcePage.protocol !== "https:" || sourcePage.username || sourcePage.password) throw new Error("Source pages must use secure HTTPS URLs.");
+      }
+    } else {
+      throw new Error("A scene cannot succeed until validated output media or a linked project asset is attached.");
     }
   }
   const progress = state === "succeeded" ? 100 : Math.max(0, Math.min(100, Number(update.progress ?? scene.progress) || 0));
