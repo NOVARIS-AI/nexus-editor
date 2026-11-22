@@ -179,11 +179,11 @@ export function updateProductionScene(
   });
 }
 export function retryProductionScene(run: NexusProductionRun, sceneId: string): NexusProductionRun {
-  if (run.state !== "running" && run.state !== "paused" && run.state !== "failed") throw new Error("This production is not in a retryable state.");
+  if (run.state !== "running" && run.state !== "paused" && run.state !== "failed" && run.state !== "review") throw new Error("This production is not in a retryable state.");
   const scene = run.scenes.find(item => item.id === sceneId);
-  if (!scene || (scene.state !== "failed" && scene.state !== "skipped")) throw new Error("Only a failed or skipped scene can be retried.");
+  if (!scene || (scene.state !== "failed" && scene.state !== "skipped" && !(run.state === "review" && scene.state === "succeeded" && scene.reviewStatus === "changes-requested"))) throw new Error("Only a failed, skipped or review-rejected scene can be retried.");
   const scenes = run.scenes.map(item => item.id === sceneId
-    ? { ...item, state: "queued" as const, progress: 0, attempts: item.attempts + 1, jobId: undefined, outputUrl: undefined, outputMimeType: undefined, assetId: undefined, sourceType: undefined, sourcePageUrl: undefined, sourceLicense: undefined, sourceAttribution: undefined, sourceCreator: undefined, error: undefined, updatedAt: now() }
+    ? { ...item, state: "queued" as const, progress: 0, attempts: item.attempts + 1, jobId: undefined, outputUrl: undefined, outputMimeType: undefined, assetId: undefined, sourceType: undefined, sourcePageUrl: undefined, sourceLicense: undefined, sourceAttribution: undefined, sourceCreator: undefined, error: undefined, reviewStatus: "pending" as const, reviewNote: undefined, updatedAt: now() }
     : item);
   return touch(run, { state: "queued", scenes, error: undefined, activeSceneId: sceneId, checkpoint: { ...run.checkpoint, savedAt: now(), nextSceneId: sceneId } });
 }
