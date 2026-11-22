@@ -109,6 +109,7 @@ describe("NEXUS production executor recovery", () => {
     expect(getNextProductionScene(claimed)).toBeUndefined();
     expect(() => beginProductionScene(claimed, claimed.scenes[1].id)).toThrow(/active scene/i);
     expect(() => beginProductionScene(claimed, first!.id)).toThrow(/pending or queued/i);
+    expect(() => beginProductionScene(claimed, claimed.scenes[1].id)).toThrow(/active scene/i);
   });
 
   it("recovers interrupted local work without resetting successful scenes", () => {
