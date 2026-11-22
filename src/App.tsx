@@ -840,6 +840,25 @@ export default function App() {
   useEffect(() => { saveGenerationJobs(generationJobs); }, [generationJobs]);
   useEffect(() => { saveProductionRuns(productionRuns); }, [productionRuns]);
   useEffect(() => {
+    if (aiPlan || !activeProductionRun) return;
+    const scenes = activeProductionRun.scenes.map(scene => ({
+      title: scene.title,
+      visual: scene.visual,
+      narration: scene.narration || "",
+      searchTerms: scene.visual.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3).slice(0, 8),
+      fallback: "Editable NEXUS scene card restored from the saved production checkpoint",
+      duration: scene.duration,
+      audioCueType: "cinematic background music"
+    }));
+    setAiPlan({
+      title: activeProductionRun.title,
+      duration: scenes.reduce((total, scene) => total + (scene.duration || 0), 0),
+      scenes,
+      sourcingNote: "Restored from this device's saved production checkpoint."
+    });
+    setAiAssetChecklist(buildAIAssetChecklist(scenes, assets));
+  }, [aiPlan, activeProductionRun?.id]);
+  useEffect(() => {
     const persistSnapshot = () => {
       const snapshot: LocalDraft = {
         version: 4, projectName, clips, textLayers, imageLayers,
