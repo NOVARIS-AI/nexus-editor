@@ -519,6 +519,7 @@ export default function App() {
   const [productionRuns, setProductionRuns] = useState<NexusProductionRun[]>(() => loadProductionRuns());
   const productionPauseRequested = useRef(false);
   const productionExecutorActive = useRef(false);
+  const [productionExecutorIdleTick, setProductionExecutorIdleTick] = useState(0);
   const activeProductionRun = productionRuns[0] || null;
   function syncAIProductionPlan(title: string, scenes: {title:string;visual:string;narration?:string;duration?:number}[]) {
     if (!scenes.length) return;
@@ -579,7 +580,7 @@ export default function App() {
       if (run.id !== runId || run.state !== "running") return run;
       try {
         const currentScene = run.scenes.find(scene => scene.id === sceneId);
-        const claimed = patch.state === "running" && currentScene && (currentScene.state === "pending" || currentScene.state === "queued")
+        const claimed = (patch.state === "running" || patch.state === "succeeded") && currentScene && (currentScene.state === "pending" || currentScene.state === "queued")
           ? beginProductionScene(run, sceneId)
           : run;
         const updated = updateProductionScene(claimed, sceneId, patch);
@@ -745,7 +746,7 @@ export default function App() {
     if (candidate && !productionExecutorActive.current && !productionPauseRequested.current) {
       continueProductionExecution(candidate.id);
     }
-  }, [productionRuns]);
+  }, [productionRuns, productionExecutorIdleTick]);
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
   const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
   async function beginAILiveAction(tool:string,label:string,detail:string) {
@@ -2797,7 +2798,7 @@ export default function App() {
   }
   async function buildAIProjectTimeline(productionRunId?: string, restoredPlan?: NonNullable<typeof aiPlan>, productionRunOverride?: NexusProductionRun) {
     const plan = restoredPlan || aiPlan;
-    if (!plan) return;
+    if (!plan || productionExecutorActive.current) return;
     productionExecutorActive.current = true;
     const checklist = restoredPlan ? buildAIAssetChecklist(plan.scenes, assets) : aiAssetChecklist.length ? aiAssetChecklist : buildAIAssetChecklist(plan.scenes, assets);
     const productionRun = productionRunOverride || productionRuns.find(run => run.id === productionRunId);
@@ -2816,6 +2817,7 @@ export default function App() {
     let queuedGenerationCount = 0;
     let generatedImageCount = 0;
     const pendingWorkerImages: { scene: any; clipId: string; duration: number }[] = [];
+    let yieldAfterScene = false;
     for (const [index, scene] of plan.scenes.entries()) {
       if (productionPauseRequested.current) break;
       const productionScene = productionRun?.scenes[index];
@@ -2880,6 +2882,7 @@ export default function App() {
         if (engine === "image") {
           pendingWorkerImages.push({ scene, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
           checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "image", progress: 0 });
+          yieldAfterScene = true;
         } else if (engine === "video") {
           try {
             const job = await submitEngineJob("video", scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", {
@@ -2891,9 +2894,11 @@ export default function App() {
             setGenerationJobs(old => [{ ...job, metadata: { ...(job.metadata || {}), productionRunId: productionRun?.id, productionSceneId: productionScene?.id }, sceneTitle: "Scene · " + scene.title }, ...old.filter(item => item.id !== job.id)]);
             checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "video", jobId: job.id, progress: job.progress });
             queuedGenerationCount += 1;
+            yieldAfterScene = true;
           } catch (error) {
             checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "failed", progress: 0, error: error instanceof Error ? error.message : "Video worker unavailable; retry this scene when the provider is ready." });
             setEngineReport(old => [...old, "Video generation not queued for " + scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
+            yieldAfterScene = true;
           }
         } else {
           checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: "No compatible image or video worker is configured; an editable native scene placeholder was kept." });
@@ -2992,7 +2997,7 @@ export default function App() {
         }
       }
       cursor += sourceDuration;
-      if (productionPauseRequested.current) break;
+      if (productionPauseRequested.current || yieldAfterScene) break;
     }
     setStatus(productionPauseRequested.current
       ? "Finishing the current scene's queued media work before saving the pause checkpoint."
@@ -3027,6 +3032,7 @@ export default function App() {
     }
     productionExecutorActive.current = false;
     productionPauseRequested.current = false;
+    setProductionExecutorIdleTick(value => value + 1);
     setAiReply(pausedAfterScene
       ? "The current scene has finished. NEXUS saved the pause checkpoint if more scenes remain; otherwise the draft is ready for review."
       : "Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + generatedImageCount + " missing scene image(s) were generated and imported" + (pendingWorkerImages.length > generatedImageCount ? "; some image requests could not complete and their editable placeholders remain." : "") + (queuedGenerationCount > generatedImageCount ? " " + (queuedGenerationCount - generatedImageCount) + " additional video job(s) were queued." : "") + (pendingWorkerImages.length === 0 ? " Missing visuals remain as editable native placeholders because no image worker was configured." : "") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
