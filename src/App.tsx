@@ -2671,10 +2671,10 @@ export default function App() {
         additions.push(chosen);
       }
       finishAILiveAction(mediaActionId,"done",chosen.name+" is ready for the scene.");
-      if (chosen.source?.type === "personal" || chosen.source?.type === "commons") checkpointProductionScene(productionRun?.id, productionScene?.id, {
+      if (chosen.source?.type === "personal" || chosen.source?.type === "commons" || checklistItem?.action === "existing") checkpointProductionScene(productionRun?.id, productionScene?.id, {
         state: "succeeded", progress: 100, outputMimeType: chosen.mimeType, assetId: chosen.id,
-        sourceType: chosen.source.type,
-        ...(chosen.source.type === "commons" ? { sourcePageUrl: chosen.source.pageUrl, sourceLicense: chosen.source.license, sourceAttribution: chosen.source.attribution, sourceCreator: chosen.source.creator } : {})
+        sourceType: chosen.source?.type === "commons" ? "commons" : "personal",
+        ...(chosen.source?.type === "commons" ? { sourcePageUrl: chosen.source.pageUrl, sourceLicense: chosen.source.license, sourceAttribution: chosen.source.attribution, sourceCreator: chosen.source.creator } : {})
       });
       if(additions.some(item=>item.id===chosen!.id)){
         setAssets(old=>old.some(item=>item.id===chosen!.id)?old:[...old,chosen!]);
@@ -2716,8 +2716,8 @@ export default function App() {
           checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "skipped", progress: 100, error: "No compatible image or video worker is configured; an editable native scene placeholder was kept." });
         }
       }
-      if (checklistItem?.action === "skip" || checklistItem?.action === "source" || checklistItem?.action === "existing") {
-        if (productionScene && productionScene.state === "pending") checkpointProductionScene(productionRun?.id, productionScene.id, { state: "skipped", progress: 100, error: "The approved choice keeps the selected source or native fallback without cloud generation." });
+      if (checklistItem?.action === "skip" || (checklistItem?.action === "source" && chosen.source?.type !== "commons")) {
+        if (productionScene && productionScene.state === "pending") checkpointProductionScene(productionRun?.id, productionScene.id, { state: "skipped", progress: 100, error: checklistItem?.action === "skip" ? "The asset was skipped by the approved plan." : "No reusable licensed source was found; the editable native fallback was kept." });
       }
       if (audioChecklistItem?.action !== "skip") {
         const audioActionId = await beginAILiveAction("audio", "Finding audio · " + scene.title, "Checking approved project audio, searching licensed sources, then using the connected NEXUS audio providers.");
