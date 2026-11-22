@@ -7,9 +7,7 @@ workers_dev = true
 binding = "AUDIO_JOBS"
 id = "REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID"
 
-[[r2_buckets]]
-binding = "AUDIO_OUTPUTS"
-bucket_name = "nexus-audio-outputs"
-
 [vars]
-# Provider API keys and worker auth token must be added with wrangler secret put.
+SUPABASE_AUDIO_BUCKET = "nexus-audio-outputs"
+# Supabase URL and service-role key are supplied as encrypted Worker secrets.
+# Audio objects are stored in a private Supabase Storage bucket; no R2 binding is required.
