@@ -249,3 +249,33 @@ describe("NEXUS Creative Review Studio", () => {
     expect(reorderProductionScene(moved, moved.scenes[0].id, -1).scenes[0].id).toBe(middle.id);
   });
 });
+
+
+describe("NEXUS Creative Review scene revisions", () => {
+  it("saves edited visual and narration and requires a new review after regeneration", () => {
+    const approved = approveProductionPlan(createProductionRun("Review edits", [
+      { title: "Opening", visual: "Original visual", narration: "Original narration" }
+    ]));
+    const running = startProductionRun(approved);
+    const done = updateProductionScene(running, running.scenes[0].id, {
+      state: "succeeded", assetId: "asset-1", sourceType: "generated"
+    });
+    const review = sendProductionToReview(done);
+    const revised = reviseProductionScene(review, review.scenes[0].id, {
+      visual: "A wide sunrise establishing shot",
+      narration: "Introduce the subject with a concise hook.",
+      reviewNote: "Use warmer lighting and slower movement."
+    });
+    expect(revised.scenes[0].visual).toBe("A wide sunrise establishing shot");
+    expect(revised.scenes[0].narration).toBe("Introduce the subject with a concise hook.");
+    expect(revised.scenes[0].reviewNote).toContain("warmer lighting");
+    expect(revised.scenes[0].reviewStatus).toBe("changes-requested");
+    expect(revised.scenes[0].assetId).toBe("asset-1");
+    expect(() => completeProductionRun(revised)).toThrow(/approve every completed scene/i);
+  });
+
+  it("rejects empty visual direction and edits outside review", () => {
+    const run = createProductionRun("Invalid review edit", [{ title: "Scene", visual: "Visual" }]);
+    expect(() => reviseProductionScene(run, run.scenes[0].id, { visual: "" })).toThrow(/visual direction/i);
+  });
+});
