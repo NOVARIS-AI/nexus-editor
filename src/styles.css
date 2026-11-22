@@ -11533,3 +11533,5 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
 .ai-creative-review-actions button{min-height:30px;padding:5px 9px;font-size:9px}
 .ai-production-run-scenes button:disabled{opacity:.35;cursor:not-allowed}
 @media(max-width:520px){.ai-creative-review-card{grid-template-columns:1fr}.ai-creative-review-media{min-height:130px}.ai-creative-review-media img,.ai-creative-review-media video{max-height:220px}}
+
+.ai-review-edit-field{display:grid;gap:6px;margin:10px 0;color:var(--muted);font-size:10px;font-weight:700}.ai-review-edit-field textarea{width:100%;min-height:64px;resize:vertical;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--text);padding:10px;font:500 11px/1.5 'DM Sans',sans-serif;outline:none}.ai-review-edit-field textarea:focus{border-color:#8b62ed;box-shadow:0 0 0 2px #8b62ed22}.ai-creative-review-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
