@@ -33,6 +33,7 @@ const safeJob = (body, requestedId, expectedEngine) => {
       }
     } catch { /* Ignore invalid worker output URLs. */ }
   }
+  if (state === "succeeded" && !output) return null;
   return {
     id, engine: expectedEngine, state,
     progress: Number.isFinite(Number(body.progress)) ? Math.max(0, Math.min(100, Number(body.progress))) : state === "succeeded" ? 100 : 0,
