@@ -2909,7 +2909,7 @@ export default function App() {
     productionExecutorActive.current = false;
     productionPauseRequested.current = false;
     setAiReply(pausedAfterScene
-      ? "Production paused at a safe scene boundary. Resume when ready; completed scenes will be kept and skipped."
+      ? "The current scene has finished. NEXUS saved the pause checkpoint if more scenes remain; otherwise the draft is ready for review."
       : "Your storyboard is now on the timeline as editable clips. Existing media was matched where possible; " + generatedImageCount + " missing scene image(s) were generated and imported" + (pendingWorkerImages.length > generatedImageCount ? "; some image requests could not complete and their editable placeholders remain." : "") + (queuedGenerationCount > generatedImageCount ? " " + (queuedGenerationCount - generatedImageCount) + " additional video job(s) were queued." : "") + (pendingWorkerImages.length === 0 ? " Missing visuals remain as editable native placeholders because no image worker was configured." : "") + " You can select, reorder, split or replace the clips. No finished video has been rendered.");
   }
   async function createAIProjectPlan(briefOverride?: string) {
