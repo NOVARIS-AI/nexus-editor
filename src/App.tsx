@@ -2820,9 +2820,9 @@ export default function App() {
       setAiReply("Generating scene image " + (generatedImageCount + 1) + " of " + pendingWorkerImages.length + " and importing it into your storyboard…");
       const generationActionId=await beginAILiveAction("media","Generating scene · "+pending.scene.title,"The image worker is creating the approved visual and will replace the timeline placeholder when ready.");
       try {
-        await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
+        const generatedAsset = await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
         const sceneIndex = aiPlan.scenes.findIndex(scene => scene.title === pending.scene.title);
-        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "succeeded", progress: 100, engine: "image" });
+        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "succeeded", progress: 100, engine: "image", assetId: generatedAsset.id, sourceType: "generated", outputMimeType: generatedAsset.mimeType });
         queuedGenerationCount += 1;
         generatedImageCount += 1;
       } catch (error) {
