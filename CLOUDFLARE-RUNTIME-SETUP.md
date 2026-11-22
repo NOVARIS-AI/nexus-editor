@@ -83,3 +83,32 @@ The provider keys stay in the dedicated audio Worker. The main app receives only
 The AI Studio queues Stable Audio music/SFX jobs when the router is configured. The Voiceover tool queues ElevenLabs speech jobs. The Audio > Beats panel includes **Separate vocals & instruments**, which uploads the selected audio to Disband after the user explicitly starts the operation. Completed files are checked for audio MIME type, downloaded through the authenticated server-side audio-asset proxy (the browser never receives the worker token), imported into the project library, and placed on the timeline where applicable.
 
 Disband accepts audio files up to 100 MB in this integration. The service processes the uploaded source audio; only upload files you have the right to process. Generated and sourced audio still needs a licence check for the intended use, especially commercial distribution.
+
+
+## AI Director production release gates
+
+The AI Director production pipeline is split into local editor work and optional remote providers. A feature branch or passing static build does not mean that remote media providers or the production Worker are live.
+
+### What the app can do locally
+
+- Build an editable storyboard on the real timeline, including scene clips, title layers and audio clips.
+- Keep scene checkpoints, attempts, review decisions and retry state in local project storage.
+- Pause at safe scene boundaries, recover interrupted local work, and preserve already completed scenes.
+- Run the browser render pipeline with export preflight, project-quality checks, cancellation, output validation and Android save/share support where the native bridge is installed.
+
+### Provider readiness
+
+- **Image:** Cloudflare Flux Schnell is an image-generation route, not a video-generation provider. Confirm the image Worker responds with a downloadable HTTPS image and a valid MIME type.
+- **Video:** a real prompt-to-video provider is optional. Configure `NEXUS_VIDEO_ENGINE_URL` and `NEXUS_VIDEO_ENGINE_TOKEN` only after the target Worker exists and its job API has been tested. The Worker must return a completed job with an HTTPS media URL and a truthful video MIME type. A generated still or animated timeline composition must not be labelled as AI-generated video.
+- **Audio:** the dedicated router is not deploy-ready while `workers/audio/wrangler.toml` still contains `REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID`. Create the KV namespace, replace that ID, create the R2 bucket, configure encrypted secrets, and deploy the audio Worker before adding its URL/token to the main app Worker.
+- **Render:** the current default export is rendered in the browser. Remotion, HyperFrames and FFmpeg are optional server-side routes and remain unavailable until their actual worker endpoints and tokens are configured.
+
+### Release verification sequence
+
+1. Keep feature work on its pull request until GitHub Actions regression tests, TypeScript checks and the production build all pass.
+2. Verify the main Worker health endpoint and engine status after runtime configuration. A configured flag is not proof that a provider can complete a real media job.
+3. Run a real image job, video job (only if a real video provider is configured), audio job and browser export. Confirm each returned file can be downloaded, decoded and played.
+4. Test the full AI Director flow on Android: approve plan, create scenes, wait for remote jobs, restart the app, recover checkpoints, retry one failed scene, review the draft, and export/share the final file.
+5. Only after those checks should the owner authorize merging and production deployment. Do not treat a Vercel preview check or an open pull request as a production release.
+
+Never copy provider secrets into the repository, project JSON, Android bundle, or `VITE_*` browser variables.
