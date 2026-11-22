@@ -14,7 +14,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      AUDIO_JOBS_KV_ID: ${{ vars.AUDIO_JOBS_KV_ID }}
+      AUDIO_JOBS_KV_ID: ${{ vars.AUDIO_JOBS_KV_ID || secrets.AUDIO_JOBS_KV_ID }}
       NEXUS_AUDIO_WORKER_TOKEN: ${{ secrets.NEXUS_AUDIO_WORKER_TOKEN }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -39,7 +39,7 @@ jobs:
           set -euo pipefail
           for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN AUDIO_JOBS_KV_ID NEXUS_AUDIO_WORKER_TOKEN SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
             if [ -z "${!name:-}" ]; then
-              echo "::error::$name is missing. Add it to GitHub Secrets (or Variables for AUDIO_JOBS_KV_ID)."
+              echo "::error::$name is missing. Add it to GitHub Actions Variables or Secrets."
               exit 1
             fi
           done
