@@ -718,7 +718,7 @@ export default function App() {
   function continueProductionExecution(runId: string) {
     const run = productionRuns.find(item => item.id === runId);
     if (!run || run.state !== "running" || productionExecutorActive.current || productionPauseRequested.current) return;
-    if (run.scenes.some(scene => scene.state === "running" && scene.jobId)) return;
+    if (run.scenes.some(scene => scene.state === "failed" || (scene.state === "running" && scene.jobId))) return;
     if (!run.scenes.some(scene => scene.state === "pending" || scene.state === "queued")) return;
     const scenes = run.scenes.map(scene => ({
       title: scene.title,
@@ -740,7 +740,7 @@ export default function App() {
   useEffect(() => {
     const candidate = productionRuns.find(run =>
       run.state === "running" &&
-      !run.scenes.some(scene => scene.state === "running" && Boolean(scene.jobId)) &&
+      !run.scenes.some(scene => scene.state === "failed" || (scene.state === "running" && Boolean(scene.jobId))) &&
       run.scenes.some(scene => scene.state === "pending" || scene.state === "queued")
     );
     if (candidate && !productionExecutorActive.current && !productionPauseRequested.current) {
