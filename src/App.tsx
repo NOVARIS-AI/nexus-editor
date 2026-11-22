@@ -84,7 +84,7 @@ import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
-import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, pauseProductionRun, resumeProductionRun, updateProductionScene, retryProductionScene, sendProductionToReview, completeProductionRun, type NexusProductionRun } from "./editor/production-jobs";
+import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, pauseProductionRun, resumeProductionRun, beginProductionScene, updateProductionScene, retryProductionScene, sendProductionToReview, completeProductionRun, type NexusProductionRun } from "./editor/production-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -578,7 +578,11 @@ export default function App() {
     setProductionRuns(old => old.map(run => {
       if (run.id !== runId || run.state !== "running") return run;
       try {
-        const updated = updateProductionScene(run, sceneId, patch);
+        const currentScene = run.scenes.find(scene => scene.id === sceneId);
+        const claimed = patch.state === "running" && currentScene && (currentScene.state === "pending" || currentScene.state === "queued")
+          ? beginProductionScene(run, sceneId)
+          : run;
+        const updated = updateProductionScene(claimed, sceneId, patch);
         const allFinished = updated.scenes.every(scene => scene.state === "succeeded" || scene.state === "skipped");
         return allFinished ? sendProductionToReview(updated) : updated;
       } catch { return run; }
