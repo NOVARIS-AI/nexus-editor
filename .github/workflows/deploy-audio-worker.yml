@@ -16,6 +16,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       AUDIO_JOBS_KV_ID: ${{ vars.AUDIO_JOBS_KV_ID }}
       NEXUS_AUDIO_WORKER_TOKEN: ${{ secrets.NEXUS_AUDIO_WORKER_TOKEN }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
       ELEVENLABS_DEFAULT_VOICE_ID: ${{ secrets.ELEVENLABS_DEFAULT_VOICE_ID }}
       STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
@@ -33,7 +35,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN AUDIO_JOBS_KV_ID NEXUS_AUDIO_WORKER_TOKEN; do
+          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN AUDIO_JOBS_KV_ID NEXUS_AUDIO_WORKER_TOKEN SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
             if [ -z "${!name:-}" ]; then
               echo "::error::$name is missing. Add it to GitHub Secrets (or Variables for AUDIO_JOBS_KV_ID)."
               exit 1
@@ -57,21 +59,6 @@ jobs:
       - name: Install Wrangler
         run: npm install --global wrangler@4
 
-      - name: Verify Cloudflare R2 bucket exists
-        working-directory: workers/audio
-        shell: bash
-        run: |
-          set -euo pipefail
-          wrangler r2 bucket list --json > /tmp/r2-buckets.json
-          node --input-type=module -e '
-            import { readFileSync } from "node:fs";
-            const data = JSON.parse(readFileSync("/tmp/r2-buckets.json", "utf8"));
-            const buckets = Array.isArray(data) ? data : (data.buckets || data.result || []);
-            if (!buckets.some((bucket) => bucket.name === "nexus-audio-outputs")) {
-              throw new Error("R2 bucket nexus-audio-outputs is missing. Create it in Cloudflare R2 before deploying.");
-            }
-          '
-
       - name: Upload encrypted Worker secrets
         working-directory: workers/audio
         shell: bash
@@ -79,7 +66,7 @@ jobs:
           set -euo pipefail
           node --input-type=module -e '
             import { writeFileSync } from "node:fs";
-            const names = ["NEXUS_AUDIO_WORKER_TOKEN","ELEVENLABS_API_KEY","ELEVENLABS_DEFAULT_VOICE_ID","STABILITY_API_KEY","DISBAND_KEY"];
+            const names = ["NEXUS_AUDIO_WORKER_TOKEN","SUPABASE_URL","SUPABASE_SERVICE_ROLE_KEY","ELEVENLABS_API_KEY","ELEVENLABS_DEFAULT_VOICE_ID","STABILITY_API_KEY","DISBAND_KEY"];
             const values = Object.fromEntries(names.filter((name) => process.env[name]).map((name) => [name, process.env[name]]));
             writeFileSync("/tmp/nexus-audio-secrets.json", JSON.stringify(values));
           '
