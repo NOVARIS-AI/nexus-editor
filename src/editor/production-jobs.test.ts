@@ -229,6 +229,17 @@ describe("NEXUS Creative Review Studio", () => {
     expect(() => completeProductionRun(updated)).toThrow(/approve every completed scene/i);
   });
 
+  it("reopens only a scene that the reviewer explicitly sent back for changes", () => {
+    const review = completedReviewRun();
+    const requested = reviewProductionScene(review, review.scenes[1].id, "changes-requested", "Replace the city shot.");
+    const retried = retryProductionScene(requested, requested.scenes[1].id);
+    expect(retried.state).toBe("queued");
+    expect(retried.scenes[1].state).toBe("queued");
+    expect(retried.scenes[1].reviewStatus).toBe("pending");
+    expect(retried.scenes[0].state).toBe("succeeded");
+    expect(retried.scenes[2].state).toBe("succeeded");
+  });
+
   it("reorders storyboard scenes without losing their asset references", () => {
     const review = completedReviewRun();
     const middle = review.scenes[1];
