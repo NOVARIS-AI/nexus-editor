@@ -654,6 +654,38 @@ export default function App() {
       setStatus(error instanceof Error ? error.message : "Could not resume this production.");
     }
   }
+  function continueProductionExecution(runId: string) {
+    const run = productionRuns.find(item => item.id === runId);
+    if (!run || run.state !== "running" || productionExecutorActive.current || productionPauseRequested.current) return;
+    if (run.scenes.some(scene => scene.state === "running" && scene.jobId)) return;
+    if (!run.scenes.some(scene => scene.state === "pending" || scene.state === "queued")) return;
+    const scenes = run.scenes.map(scene => ({
+      title: scene.title,
+      visual: scene.visual,
+      narration: scene.narration || "",
+      searchTerms: scene.visual.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3).slice(0, 8),
+      fallback: "Editable NEXUS scene card retained from the saved production checkpoint",
+      duration: scene.duration,
+      audioCueType: "cinematic background music"
+    }));
+    const restoredPlan: NonNullable<typeof aiPlan> = {
+      title: run.title,
+      duration: scenes.reduce((total, scene) => total + (scene.duration || 0), 0),
+      scenes,
+      sourcingNote: "Continuing automatically from the latest saved scene checkpoint."
+    };
+    void buildAIProjectTimeline(runId, restoredPlan, run);
+  }
+  useEffect(() => {
+    const candidate = productionRuns.find(run =>
+      run.state === "running" &&
+      !run.scenes.some(scene => scene.state === "running" && Boolean(scene.jobId)) &&
+      run.scenes.some(scene => scene.state === "pending" || scene.state === "queued")
+    );
+    if (candidate && !productionExecutorActive.current && !productionPauseRequested.current) {
+      continueProductionExecution(candidate.id);
+    }
+  }, [productionRuns]);
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
   const [aiLiveHistory,setAiLiveHistory]=useState<{id:string;tool:string;label:string;detail:string;state:"working"|"done"|"error"}[]>([]);
   async function beginAILiveAction(tool:string,label:string,detail:string) {
@@ -2700,7 +2732,7 @@ export default function App() {
     for (const [index, scene] of plan.scenes.entries()) {
       if (productionPauseRequested.current) break;
       const productionScene = productionRun?.scenes[index];
-      if (productionScene && (productionScene.state === "succeeded" || productionScene.state === "skipped")) continue;
+      if (productionScene && (productionScene.state === "succeeded" || productionScene.state === "skipped" || productionScene.state === "failed" || productionScene.state === "running")) continue;
       const sceneLength = scene.duration || defaultSceneLength;
       const terms = scene.searchTerms.join(" ").toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3);
       const mediaActionId=await beginAILiveAction("media","Finding media · "+scene.title,"Checking your supplied files and the media choice you approved.");
