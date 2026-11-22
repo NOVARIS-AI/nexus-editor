@@ -2819,7 +2819,7 @@ export default function App() {
     let cursor = timelineDuration(clips);
     let queuedGenerationCount = 0;
     let generatedImageCount = 0;
-    const pendingWorkerImages: { scene: any; clipId: string; duration: number }[] = [];
+    const pendingWorkerImages: { scene: any; sceneId?: string; sceneIndex: number; clipId: string; duration: number }[] = [];
     let yieldAfterScene = false;
     for (const [index, scene] of plan.scenes.entries()) {
       if (productionPauseRequested.current) break;
@@ -2883,7 +2883,7 @@ export default function App() {
       if (checklistItem?.action !== "skip" && checklistItem?.action !== "source" && checklistItem?.action !== "existing" && chosen.source?.attribution?.includes("Created inside NEXUS Editor")) {
         const engine: "image" | "video" | null = engineAvailability?.engines?.video?.configured ? "video" : engineAvailability?.engines?.image?.configured ? "image" : null;
         if (engine === "image") {
-          pendingWorkerImages.push({ scene, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
+          pendingWorkerImages.push({ scene, sceneId: productionScene?.id, sceneIndex: index, clipId: newClips[newClips.length - 1].id, duration: sourceDuration });
           checkpointProductionScene(productionRun?.id, productionScene?.id, { state: "running", engine: "image", progress: 0 });
           yieldAfterScene = true;
         } else if (engine === "video") {
@@ -3014,13 +3014,13 @@ export default function App() {
       const generationActionId=await beginAILiveAction("media","Generating scene · "+pending.scene.title,"The image worker is creating the approved visual and will replace the timeline placeholder when ready.");
       try {
         const generatedAsset = await generateImageIntoProject(pending.scene.visual + ". Create a clean, usable visual asset for this exact storyboard scene; no text, captions, logos or watermarks.", "Scene · " + pending.scene.title, undefined, pending.clipId, [...clips, ...newClips]);
-        const sceneIndex = plan.scenes.findIndex(scene => scene.title === pending.scene.title);
-        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "succeeded", progress: 100, engine: "image", assetId: generatedAsset.id, sourceType: "generated", outputMimeType: generatedAsset.mimeType });
+        const sceneIndex = pending.sceneIndex;
+        checkpointProductionScene(productionRun?.id, pending.sceneId || productionRun?.scenes[sceneIndex]?.id, { state: "succeeded", progress: 100, engine: "image", assetId: generatedAsset.id, sourceType: "generated", outputMimeType: generatedAsset.mimeType });
         queuedGenerationCount += 1;
         generatedImageCount += 1;
       } catch (error) {
-        const sceneIndex = plan.scenes.findIndex(scene => scene.title === pending.scene.title);
-        checkpointProductionScene(productionRun?.id, productionRun?.scenes[sceneIndex]?.id, { state: "failed", progress: 0, error: error instanceof Error ? error.message : "Image generation unavailable; retry this scene when the provider is ready." });
+        const sceneIndex = pending.sceneIndex;
+        checkpointProductionScene(productionRun?.id, pending.sceneId || productionRun?.scenes[sceneIndex]?.id, { state: "failed", progress: 0, error: error instanceof Error ? error.message : "Image generation unavailable; retry this scene when the provider is ready." });
         setEngineReport(old => [...old, "Image generation not completed for " + pending.scene.title + ": " + (error instanceof Error ? error.message : "worker unavailable")]);
       } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
