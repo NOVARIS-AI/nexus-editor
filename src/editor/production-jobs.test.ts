@@ -281,7 +281,13 @@ describe("NEXUS Creative Review scene revisions", () => {
   });
 
   it("rejects empty visual direction and edits outside review", () => {
-    const run = createProductionRun("Invalid review edit", [{ title: "Scene", visual: "Visual" }]);
-    expect(() => reviseProductionScene(run, run.scenes[0].id, { visual: "" })).toThrow(/visual direction/i);
+    const planned = approveProductionPlan(createProductionRun("Invalid review edit", [{ title: "Scene", visual: "Visual" }]));
+    const running = startProductionRun(planned);
+    const complete = updateProductionScene(running, running.scenes[0].id, {
+      state: "succeeded", assetId: "invalid-review-asset", sourceType: "generated"
+    });
+    const review = sendProductionToReview(complete);
+    expect(() => reviseProductionScene(review, review.scenes[0].id, { visual: "" })).toThrow(/visual direction/i);
+    expect(() => reviseProductionScene(running, running.scenes[0].id, { visual: "Changed" })).toThrow(/creative review/i);
   });
 });
