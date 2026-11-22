@@ -6,7 +6,11 @@ import {
   updateProductionScene,
   retryProductionScene,
   sendProductionToReview,
-  completeProductionRun
+  completeProductionRun,
+  beginProductionScene,
+  getNextProductionScene,
+  recoverInterruptedProductionRun,
+  resumeProductionRun
 } from "./production-jobs";
 
 describe("NEXUS production checkpoints", () => {
@@ -81,5 +85,77 @@ describe("NEXUS production checkpoints", () => {
     expect(retried.scenes[0].outputUrl).toBe("https://cdn.example/kept.mp4");
     expect(retried.scenes[1].state).toBe("queued");
     expect(retried.scenes[1].attempts).toBe(1);
+  });
+});
+
+
+describe("NEXUS production executor recovery", () => {
+  it("claims scenes in storyboard order and records attempts before execution", () => {
+    const approved = approveProductionPlan(createProductionRun("Sequential run", [
+      { title: "First", visual: "Opening" },
+      { title: "Second", visual: "Middle" }
+    ]));
+    const running = startProductionRun(approved);
+    const first = getNextProductionScene(running);
+    expect(first?.title).toBe("First");
+    const claimed = beginProductionScene(running, first!.id);
+    expect(claimed.scenes[0].state).toBe("running");
+    expect(claimed.scenes[0].attempts).toBe(1);
+    expect(getNextProductionScene(claimed)?.title).toBe("Second");
+    expect(() => beginProductionScene(claimed, first!.id)).toThrow(/pending or queued/i);
+  });
+
+  it("recovers interrupted local work without resetting successful scenes", () => {
+    const approved = approveProductionPlan(createProductionRun("Recoverable run", [
+      { title: "Completed", visual: "Keep output" },
+      { title: "Interrupted", visual: "Resume later" },
+      { title: "Waiting", visual: "Not started" }
+    ]));
+    const running = startProductionRun(approved);
+    const completed = updateProductionScene(running, running.scenes[0].id, {
+      state: "succeeded", outputUrl: "https://cdn.example/keep-this.mp4"
+    });
+    const interrupted = beginProductionScene(completed, completed.scenes[1].id);
+    const recovered = recoverInterruptedProductionRun(interrupted);
+    expect(recovered.state).toBe("paused");
+    expect(recovered.scenes[0].state).toBe("succeeded");
+    expect(recovered.scenes[0].outputUrl).toBe("https://cdn.example/keep-this.mp4");
+    expect(recovered.scenes[1].state).toBe("failed");
+    expect(recovered.scenes[1].error).toMatch(/interrupted/i);
+    expect(recovered.checkpoint.completedSceneIds).toEqual([recovered.scenes[0].id]);
+    expect(recovered.checkpoint.nextSceneId).toBe(recovered.scenes[1].id);
+  });
+
+  it("resumes only after failed scenes are explicitly retried", () => {
+    const approved = approveProductionPlan(createProductionRun("Resume run", [
+      { title: "First", visual: "One" },
+      { title: "Second", visual: "Two" }
+    ]));
+    const running = startProductionRun(approved);
+    const failed = updateProductionScene(running, running.scenes[0].id, { state: "failed", error: "Interrupted" });
+    const recovered = recoverInterruptedProductionRun(failed);
+    expect(() => resumeProductionRun(recovered)).toThrow(/retry the failed scene/i);
+    const retried = retryProductionScene(recovered, recovered.scenes[0].id);
+    const queued = resumeProductionRun(retried);
+    expect(queued.state).toBe("queued");
+    expect(queued.scenes[0].state).toBe("queued");
+    expect(queued.scenes[0].attempts).toBe(1);
+    const restarted = startProductionRun(queued);
+    const claimed = beginProductionScene(restarted, restarted.scenes[0].id);
+    expect(claimed.scenes[0].attempts).toBe(1);
+  });
+
+  it("keeps remote jobs with persisted IDs pollable after app restart", () => {
+    const approved = approveProductionPlan(createProductionRun("Remote run", [
+      { title: "Remote scene", visual: "Provider job" }
+    ]));
+    const running = startProductionRun(approved);
+    const active = updateProductionScene(running, running.scenes[0].id, {
+      state: "running", engine: "video", jobId: "remote-job-123"
+    });
+    const recovered = recoverInterruptedProductionRun(active);
+    expect(recovered.state).toBe("running");
+    expect(recovered.scenes[0].state).toBe("running");
+    expect(recovered.scenes[0].jobId).toBe("remote-job-123");
   });
 });
