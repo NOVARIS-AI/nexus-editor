@@ -128,6 +128,27 @@ export function reviewProductionScene(
   return touch(run, { scenes });
 }
 
+/** Save creative direction edits during review and require regeneration before approval. */
+export function reviseProductionScene(
+  run: NexusProductionRun,
+  sceneId: string,
+  changes: { visual?: string; narration?: string; reviewNote?: string }
+): NexusProductionRun {
+  if (run.state !== "review") throw new Error("Scene direction can only be edited during Creative Review.");
+  const scene = run.scenes.find(item => item.id === sceneId);
+  if (!scene || scene.state !== "succeeded") throw new Error("Only a completed scene can be revised.");
+  const visual = changes.visual === undefined ? scene.visual : String(changes.visual).trim().slice(0, 4000);
+  const narration = changes.narration === undefined ? scene.narration : String(changes.narration).trim().slice(0, 4000);
+  if (!visual) throw new Error("A scene needs a visual direction.");
+  const scenes = run.scenes.map(item => item.id === sceneId ? {
+    ...item, visual, narration,
+    reviewNote: changes.reviewNote === undefined ? item.reviewNote : String(changes.reviewNote).trim().slice(0, 1000),
+    reviewStatus: "changes-requested" as const,
+    updatedAt: now()
+  } : item);
+  return touch(run, { scenes });
+}
+
 /** Reorder storyboard scenes during draft review; generated assets remain attached to their scene IDs. */
 export function reorderProductionScene(run: NexusProductionRun, sceneId: string, direction: -1 | 1): NexusProductionRun {
   if (run.state !== "review") throw new Error("Storyboard order can be changed during draft review.");
