@@ -627,18 +627,29 @@ export default function App() {
     const reordered = reorderProductionScene(run, sceneId, direction);
     if (reordered === run) return;
     const sceneTitles = new Set(reordered.scenes.map(scene => scene.title));
-    const sceneClips = clips.filter(clip => clip.aiScene && sceneTitles.has(clip.aiScene.title));
-    if (sceneClips.length) {
-      const firstStart = Math.min(...sceneClips.map(clip => clip.start));
+    const visualSceneClips = clips.filter(clip => clip.aiScene && sceneTitles.has(clip.aiScene.title) && assets.find(asset => asset.id === clip.assetId)?.kind !== "audio");
+    if (visualSceneClips.length) {
+      const firstStart = Math.min(...visualSceneClips.map(clip => clip.start));
       let cursor = firstStart;
-      const updates = new Map<string, TimelineClip>();
+      const sceneStarts = new Map<string, { oldStart: number; newStart: number }>();
       for (const scene of reordered.scenes) {
-        const clip = sceneClips.find(item => item.aiScene?.title === scene.title);
+        const clip = visualSceneClips.find(item => item.aiScene?.title === scene.title);
         if (!clip) continue;
-        updates.set(clip.id, { ...clip, start: cursor });
+        sceneStarts.set(scene.title, { oldStart: clip.start, newStart: cursor });
         cursor += clipDuration(clip);
       }
-      applyClipChange(clips.map(clip => updates.get(clip.id) || clip), "Creative Review reordered the storyboard and its matching timeline scenes.");
+      const updates = new Map<string, TimelineClip>();
+      for (const clip of clips) {
+        const sceneTitle = clip.aiScene?.title;
+        const position = sceneTitle ? sceneStarts.get(sceneTitle) : undefined;
+        if (position) updates.set(clip.id, { ...clip, start: position.newStart });
+      }
+      applyClipChange(clips.map(clip => updates.get(clip.id) || clip), "Creative Review reordered the storyboard and its linked visual/audio timeline scenes.");
+      setTextLayers(old => old.map(layer => {
+        const match = reordered.scenes.find(scene => scene.title === layer.text);
+        const position = match ? sceneStarts.get(match.title) : undefined;
+        return position && Math.abs(layer.start - position.oldStart) < 0.05 ? { ...layer, start: position.newStart } : layer;
+      }));
     }
     setProductionRuns(old => old.map(item => item.id === runId ? reordered : item));
     setStatus("Storyboard order updated. Matching scene clips were repositioned on the timeline.");
@@ -2972,7 +2983,7 @@ export default function App() {
           }
         }
         if (audioAsset) {
-          const audioClip: TimelineClip = { id: uid(), assetId: audioAsset.id, trackId: "audio-1", start: cursor, sourceIn: 0, sourceOut: Math.max(0.1, Math.min(audioAsset.duration || sceneLength, sceneLength)), label: audioAsset.name, gain: 1, muted: false, fadeIn: 0.12, fadeOut: 0.2, speed: 1 };
+          const audioClip: TimelineClip = { id: uid(), assetId: audioAsset.id, trackId: "audio-1", start: cursor, sourceIn: 0, sourceOut: Math.max(0.1, Math.min(audioAsset.duration || sceneLength, sceneLength)), label: audioAsset.name, gain: 1, muted: false, fadeIn: 0.12, fadeOut: 0.2, speed: 1, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration || "", sourceType: audioAsset.source?.type === "commons" ? "commons" : audioAsset.source?.type === "personal" ? "personal" : "generated" } };
           setClips(old => [...old, audioClip]);
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
           finishAILiveAction(audioActionId, "done", audioAsset.name + " was added to the audio track at " + clock(cursor) + ".");
