@@ -152,7 +152,7 @@ export function retryProductionScene(run: NexusProductionRun, sceneId: string): 
   const scene = run.scenes.find(item => item.id === sceneId);
   if (!scene || (scene.state !== "failed" && scene.state !== "skipped")) throw new Error("Only a failed or skipped scene can be retried.");
   const scenes = run.scenes.map(item => item.id === sceneId
-    ? { ...item, state: "queued" as const, progress: 0, attempts: item.attempts + 1, jobId: undefined, outputUrl: undefined, outputMimeType: undefined, error: undefined, updatedAt: now() }
+    ? { ...item, state: "queued" as const, progress: 0, attempts: item.attempts + 1, jobId: undefined, outputUrl: undefined, outputMimeType: undefined, assetId: undefined, sourceType: undefined, sourcePageUrl: undefined, sourceLicense: undefined, sourceAttribution: undefined, sourceCreator: undefined, error: undefined, updatedAt: now() }
     : item);
   return touch(run, { state: "queued", scenes, error: undefined, activeSceneId: sceneId, checkpoint: { ...run.checkpoint, savedAt: now(), nextSceneId: sceneId } });
 }
@@ -261,7 +261,7 @@ export function beginProductionScene(run: NexusProductionRun, sceneId: string): 
   }
   const timestamp = now();
   const scenes = run.scenes.map(item => item.id === sceneId
-    ? { ...item, state: "running" as const, progress: 0, attempts: item.attempts + 1, error: undefined, updatedAt: timestamp }
+    ? { ...item, state: "running" as const, progress: 0, attempts: item.attempts + (item.state === "pending" ? 1 : 0), error: undefined, updatedAt: timestamp }
     : item);
   return touch(run, {
     scenes,
