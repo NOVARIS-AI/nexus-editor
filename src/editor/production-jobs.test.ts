@@ -7,6 +7,7 @@ import {
   retryProductionScene,
   sendProductionToReview,
   completeProductionRun,
+  pauseProductionRun,
   beginProductionScene,
   getNextProductionScene,
   recoverInterruptedProductionRun,
@@ -157,5 +158,27 @@ describe("NEXUS production executor recovery", () => {
     expect(recovered.state).toBe("running");
     expect(recovered.scenes[0].state).toBe("running");
     expect(recovered.scenes[0].jobId).toBe("remote-job-123");
+  });
+});
+
+
+describe("NEXUS production pause and resume", () => {
+  it("pauses at a checkpoint and resumes without resetting completed output", () => {
+    const approved = approveProductionPlan(createProductionRun("Pause-safe edit", [
+      { title: "Completed opening", visual: "Opening scene" },
+      { title: "Next scene", visual: "Next scene description" }
+    ]));
+    const running = startProductionRun(approved);
+    const checkpointed = updateProductionScene(running, running.scenes[0].id, {
+      state: "succeeded", outputUrl: "https://cdn.example/opening.mp4"
+    });
+    const paused = pauseProductionRun(checkpointed);
+    expect(paused.state).toBe("paused");
+    expect(paused.scenes[0].state).toBe("succeeded");
+    expect(paused.scenes[0].outputUrl).toBe("https://cdn.example/opening.mp4");
+    const resumed = startProductionRun(resumeProductionRun(paused));
+    expect(resumed.state).toBe("running");
+    expect(resumed.scenes[0].state).toBe("succeeded");
+    expect(getNextProductionScene(resumed)?.title).toBe("Next scene");
   });
 });
