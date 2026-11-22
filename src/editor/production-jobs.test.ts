@@ -11,7 +11,9 @@ import {
   beginProductionScene,
   getNextProductionScene,
   recoverInterruptedProductionRun,
-  resumeProductionRun
+  resumeProductionRun,
+  reviewProductionScene,
+  reorderProductionScene
 } from "./production-jobs";
 
 describe("NEXUS production checkpoints", () => {
@@ -30,7 +32,8 @@ describe("NEXUS production checkpoints", () => {
     const finished = updateProductionScene(second, second.scenes[1].id, { state: "succeeded", progress: 100, outputUrl: "https://cdn.example/scene-2.mp4" });
     const review = sendProductionToReview(finished);
     expect(review.state).toBe("review");
-    expect(completeProductionRun(review).state).toBe("completed");
+    const reviewed = review.scenes.reduce((current, scene) => reviewProductionScene(current, scene.id, "approved"), review);
+    expect(completeProductionRun(reviewed).state).toBe("completed");
   });
 
   it("refuses to mark a scene successful without a secure attached output", () => {
@@ -182,5 +185,56 @@ describe("NEXUS production pause and resume", () => {
     expect(resumed.state).toBe("running");
     expect(resumed.scenes[0].state).toBe("succeeded");
     expect(getNextProductionScene(resumed)?.title).toBe("Next scene");
+  });
+});
+
+
+describe("NEXUS Creative Review Studio", () => {
+  function completedReviewRun() {
+    const approved = approveProductionPlan(createProductionRun("Review studio", [
+      { title: "Opening", visual: "A calm sunrise" },
+      { title: "Middle", visual: "A busy city" },
+      { title: "Ending", visual: "A hopeful horizon" }
+    ]));
+    const running = startProductionRun(approved);
+    const complete = running.scenes.reduce((current, scene, index) =>
+      updateProductionScene(current, scene.id, {
+        state: "succeeded",
+        assetId: "review-asset-" + index,
+        sourceType: "generated",
+        outputMimeType: "image/png"
+      }), running);
+    return sendProductionToReview(complete);
+  }
+
+  it("requires every completed scene to be approved before final draft completion", () => {
+    const review = completedReviewRun();
+    expect(() => completeProductionRun(review)).toThrow(/approve every completed scene/i);
+    const first = reviewProductionScene(review, review.scenes[0].id, "approved");
+    expect(first.scenes[0].reviewStatus).toBe("approved");
+    expect(() => completeProductionRun(first)).toThrow(/approve every completed scene/i);
+    const allApproved = first.scenes.slice(1).reduce(
+      (current, scene) => reviewProductionScene(current, scene.id, "approved"), first
+    );
+    expect(completeProductionRun(allApproved).state).toBe("completed");
+  });
+
+  it("records change requests and reviewer notes without discarding generated assets", () => {
+    const review = completedReviewRun();
+    const target = review.scenes[1];
+    const updated = reviewProductionScene(review, target.id, "changes-requested", "Use a wider establishing shot.");
+    expect(updated.scenes[1].reviewStatus).toBe("changes-requested");
+    expect(updated.scenes[1].reviewNote).toBe("Use a wider establishing shot.");
+    expect(updated.scenes[1].assetId).toBe(target.assetId);
+    expect(() => completeProductionRun(updated)).toThrow(/approve every completed scene/i);
+  });
+
+  it("reorders storyboard scenes without losing their asset references", () => {
+    const review = completedReviewRun();
+    const middle = review.scenes[1];
+    const moved = reorderProductionScene(review, middle.id, -1);
+    expect(moved.scenes[0].id).toBe(middle.id);
+    expect(moved.scenes[0].assetId).toBe(middle.assetId);
+    expect(reorderProductionScene(moved, moved.scenes[0].id, -1).scenes[0].id).toBe(middle.id);
   });
 });
