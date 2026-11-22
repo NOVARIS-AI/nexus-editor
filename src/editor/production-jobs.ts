@@ -174,7 +174,7 @@ export function loadProductionRuns(): NexusProductionRun[] {
         Array.isArray(run.scenes) && run.scenes.length <= 80 &&
         run.scenes.every((scene: ProductionScene) => scene && typeof scene.id === "string" &&
           ["pending", "queued", "running", "succeeded", "failed", "skipped"].includes(scene.state)))
-    ).slice(0, MAX_RUNS);
+    ).slice(0, MAX_RUNS).map(recoverInterruptedProductionRun);
   } catch { return []; }
 }
 export function saveProductionRuns(runs: NexusProductionRun[]): void {
@@ -189,4 +189,88 @@ export function saveProductionRuns(runs: NexusProductionRun[]): void {
       }))
     }))));
   } catch { /* Local checkpoints are best-effort; the active editor project remains untouched. */ }
+}
+
+
+/**
+ * Reconcile a locally persisted run after a reload or app restart.
+ * Remote jobs with IDs remain pollable; in-flight local work becomes retryable.
+ * Successful scenes are never reset or regenerated.
+ */
+export function recoverInterruptedProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "running") return run;
+  const timestamp = now();
+  const scenes = run.scenes.map(scene => {
+    if (scene.state !== "running" || scene.jobId) return scene;
+    return {
+      ...scene,
+      state: "failed" as const,
+      error: scene.error || "This scene was interrupted before its result was checkpointed. Retry this scene to continue.",
+      updatedAt: timestamp
+    };
+  });
+  const hasPollableRemoteJob = scenes.some(scene => scene.state === "running" && Boolean(scene.jobId));
+  const allFinished = scenes.every(scene => scene.state === "succeeded" || scene.state === "skipped");
+  const next = scenes.find(scene => scene.state === "queued" || scene.state === "pending" || scene.state === "failed");
+  return touch(run, {
+    state: allFinished ? "review" : hasPollableRemoteJob ? "running" : "paused",
+    activeSceneId: hasPollableRemoteJob ? scenes.find(scene => scene.state === "running" && scene.jobId)?.id : undefined,
+    scenes,
+    checkpoint: {
+      savedAt: timestamp,
+      completedSceneIds: scenes.filter(scene => scene.state === "succeeded").map(scene => scene.id),
+      nextSceneId: next?.id,
+      approvedPlan: run.checkpoint.approvedPlan
+    }
+  });
+}
+
+/** Resume a paused run without discarding any completed scene output. */
+export function resumeProductionRun(run: NexusProductionRun): NexusProductionRun {
+  if (run.state !== "paused" && run.state !== "failed") {
+    throw new Error("Only a paused or failed production can be resumed.");
+  }
+  if (run.scenes.every(scene => scene.state === "succeeded" || scene.state === "skipped")) {
+    return sendProductionToReview(run);
+  }
+  const next = run.scenes.find(scene => scene.state === "queued" || scene.state === "pending");
+  if (!next && run.scenes.some(scene => scene.state === "failed")) {
+    throw new Error("Retry the failed scene before resuming this production.");
+  }
+  return touch(run, {
+    state: "queued",
+    error: undefined,
+    activeSceneId: undefined,
+    checkpoint: { ...run.checkpoint, savedAt: now(), nextSceneId: next?.id }
+  });
+}
+
+/** Return the next scene in storyboard order; failed scenes require an explicit retry. */
+export function getNextProductionScene(run: NexusProductionRun): ProductionScene | undefined {
+  if (run.state !== "running") return undefined;
+  return run.scenes.find(scene => scene.state === "queued" || scene.state === "pending");
+}
+
+/** Claim one scene for sequential execution and persist its attempt before work begins. */
+export function beginProductionScene(run: NexusProductionRun, sceneId: string): NexusProductionRun {
+  if (run.state !== "running") throw new Error("Scene execution requires a running production.");
+  const scene = run.scenes.find(item => item.id === sceneId);
+  if (!scene) throw new Error("The requested production scene does not exist.");
+  if (scene.state !== "pending" && scene.state !== "queued") {
+    throw new Error("Only a pending or queued scene can begin execution.");
+  }
+  const timestamp = now();
+  const scenes = run.scenes.map(item => item.id === sceneId
+    ? { ...item, state: "running" as const, progress: 0, attempts: item.attempts + 1, error: undefined, updatedAt: timestamp }
+    : item);
+  return touch(run, {
+    scenes,
+    activeSceneId: sceneId,
+    checkpoint: {
+      savedAt: timestamp,
+      completedSceneIds: scenes.filter(item => item.state === "succeeded").map(item => item.id),
+      nextSceneId: scenes.find(item => item.state === "pending" || item.state === "queued")?.id,
+      approvedPlan: run.checkpoint.approvedPlan
+    }
+  });
 }
