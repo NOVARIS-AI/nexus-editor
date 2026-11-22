@@ -24,6 +24,8 @@ export interface ProductionScene {
   sourceAttribution?: string;
   sourceCreator?: string;
   error?: string;
+  reviewStatus?: "pending" | "approved" | "changes-requested";
+  reviewNote?: string;
   updatedAt: number;
 }
 export interface ProductionCheckpoint {
@@ -105,7 +107,36 @@ export function sendProductionToReview(run: NexusProductionRun): NexusProduction
 }
 export function completeProductionRun(run: NexusProductionRun): NexusProductionRun {
   if (run.state !== "review") throw new Error("A production must pass draft review before completion.");
+  const awaitingReview = run.scenes.filter(scene => scene.state === "succeeded" && scene.reviewStatus !== "approved");
+  if (awaitingReview.length) throw new Error("Approve every completed scene in Creative Review before completing the draft.");
   return touch(run, { state: "completed" });
+}
+
+/** Record a human review decision without changing a scene's generated media. */
+export function reviewProductionScene(
+  run: NexusProductionRun,
+  sceneId: string,
+  decision: "approved" | "changes-requested",
+  note = ""
+): NexusProductionRun {
+  if (run.state !== "review") throw new Error("Scene review is available only after production reaches draft review.");
+  const scene = run.scenes.find(item => item.id === sceneId);
+  if (!scene || scene.state !== "succeeded") throw new Error("Only a completed scene can be reviewed.");
+  const scenes = run.scenes.map(item => item.id === sceneId
+    ? { ...item, reviewStatus: decision, reviewNote: String(note).trim().slice(0, 1000), updatedAt: now() }
+    : item);
+  return touch(run, { scenes });
+}
+
+/** Reorder storyboard scenes during draft review; generated assets remain attached to their scene IDs. */
+export function reorderProductionScene(run: NexusProductionRun, sceneId: string, direction: -1 | 1): NexusProductionRun {
+  if (run.state !== "review") throw new Error("Storyboard order can be changed during draft review.");
+  const index = run.scenes.findIndex(scene => scene.id === sceneId);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= run.scenes.length) return run;
+  const scenes = [...run.scenes];
+  [scenes[index], scenes[target]] = [scenes[target], scenes[index]];
+  return touch(run, { scenes, checkpoint: { ...run.checkpoint, savedAt: now(), nextSceneId: scenes.find(scene => scene.state !== "succeeded" && scene.state !== "skipped")?.id } });
 }
 export function updateProductionScene(
   run: NexusProductionRun,
@@ -185,7 +216,8 @@ export function saveProductionRuns(runs: NexusProductionRun[]): void {
       scenes: run.scenes.slice(0, 80).map(scene => ({
         ...scene, title: scene.title.slice(0, 180), visual: scene.visual.slice(0, 4000),
         narration: scene.narration?.slice(0, 4000), progress: Math.max(0, Math.min(100, scene.progress)),
-        error: scene.error?.slice(0, 1000)
+        error: scene.error?.slice(0, 1000),
+      reviewNote: scene.reviewNote?.slice(0, 1000)
       }))
     }))));
   } catch { /* Local checkpoints are best-effort; the active editor project remains untouched. */ }
