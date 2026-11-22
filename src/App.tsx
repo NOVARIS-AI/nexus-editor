@@ -518,6 +518,7 @@ export default function App() {
   const [aiAssetChecklist, setAiAssetChecklist] = useState<AIAssetChecklistItem[]>([]);
   const [productionRuns, setProductionRuns] = useState<NexusProductionRun[]>(() => loadProductionRuns());
   const productionPauseRequested = useRef(false);
+  const productionExecutorActive = useRef(false);
   const activeProductionRun = productionRuns[0] || null;
   function syncAIProductionPlan(title: string, scenes: {title:string;visual:string;narration?:string;duration?:number}[]) {
     if (!scenes.length) return;
@@ -565,7 +566,7 @@ export default function App() {
         setProductionRuns(old => old.map(run => run.id === pending.id ? running : run));
         setStatus("Production approved. Scene checkpoints are running; outputs are only marked ready after validation or explicit fallback.");
         setAiWorkflowStage("editing");
-        void buildAIProjectTimeline(running.id);
+        void buildAIProjectTimeline(running.id, undefined, running);
         return;
       } catch (error) { setStatus(error instanceof Error ? error.message : "Could not approve the production plan."); return; }
     }
@@ -599,6 +600,58 @@ export default function App() {
       await generateSceneMedia(plannedScene, engine, { runId, sceneId });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "This scene could not be retried.");
+    }
+  }
+  function requestProductionPause(runId: string) {
+    const run = productionRuns.find(item => item.id === runId);
+    if (!run || run.state !== "running") return;
+    const hasRemoteSceneInFlight = run.scenes.some(scene => scene.state === "running" && Boolean(scene.jobId));
+    if (hasRemoteSceneInFlight) {
+      setStatus("A remote scene job is still running. Let it finish before pausing so its result can be checkpointed safely.");
+      return;
+    }
+    if (productionExecutorActive.current) {
+      productionPauseRequested.current = true;
+      setStatus("Pause requested. NEXUS will finish the current scene and pause at the next safe checkpoint.");
+      return;
+    }
+    try {
+      setProductionRuns(old => old.map(item => item.id === runId ? pauseProductionRun(item) : item));
+      setStatus("Production paused. Completed scene outputs are preserved.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not pause this production.");
+    }
+  }
+  function resumeProductionExecution(runId: string) {
+    const run = productionRuns.find(item => item.id === runId);
+    if (!run) return;
+    try {
+      const queued = resumeProductionRun(run);
+      const running = startProductionRun(queued);
+      const scenes = run.scenes.map(scene => ({
+        title: scene.title,
+        visual: scene.visual,
+        narration: scene.narration || "",
+        searchTerms: scene.visual.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length > 3).slice(0, 8),
+        fallback: "Editable NEXUS scene card retained from the saved production checkpoint",
+        duration: scene.duration,
+        audioCueType: "cinematic background music"
+      }));
+      const restoredPlan: NonNullable<typeof aiPlan> = {
+        title: run.title,
+        duration: scenes.reduce((total, scene) => total + (scene.duration || 0), 0),
+        scenes,
+        sourcingNote: "Resumed from the saved production checkpoint. Completed scenes are preserved."
+      };
+      productionPauseRequested.current = false;
+      setProductionRuns(old => old.map(item => item.id === runId ? running : item));
+      setAiPlan(restoredPlan);
+      setAiAssetChecklist(buildAIAssetChecklist(scenes, assets));
+      setAiWorkflowStage("editing");
+      setAiReply("Resuming from the saved checkpoint. Completed scenes will not be generated again.");
+      void buildAIProjectTimeline(runId, restoredPlan, running);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not resume this production.");
     }
   }
   const [aiLiveAction,setAiLiveAction]=useState<{id:string;tool:string;label:string;detail:string}|null>(null);
@@ -2623,11 +2676,12 @@ export default function App() {
   function updateAIAssetNeed(id:string,patch:Partial<AIAssetChecklistItem>) {
     setAiAssetChecklist(old=>old.map(item=>item.id===id?{...item,...patch}:item));
   }
-  async function buildAIProjectTimeline(productionRunId?: string, restoredPlan?: NonNullable<typeof aiPlan>) {
+  async function buildAIProjectTimeline(productionRunId?: string, restoredPlan?: NonNullable<typeof aiPlan>, productionRunOverride?: NexusProductionRun) {
+    productionExecutorActive.current = true;
     const plan = restoredPlan || aiPlan;
     if (!plan) return;
     const checklist = aiAssetChecklist.length ? aiAssetChecklist : buildAIAssetChecklist(plan.scenes, assets);
-    const productionRun = productionRuns.find(run => run.id === productionRunId);
+    const productionRun = productionRunOverride || productionRuns.find(run => run.id === productionRunId);
     recordProjectHistory();
     setPage("editor"); setEditorView("workspace"); setAiWorkspaceOpen(true);
     setAiWorkflowStage("editing"); setActiveTool("media"); setToolPanelOpen(true);
@@ -2850,6 +2904,7 @@ export default function App() {
       } finally { finishAILiveAction(generationActionId,"done","Scene generation request finished; the project keeps its editable fallback if generation was unavailable."); setGenerationBusy(null); }
     }
     setAiLiveAction(null); setActiveTool("edit"); setActiveSubtool("select"); setToolPanelOpen(false);
+    productionExecutorActive.current = false;
     const pausedAfterScene = productionPauseRequested.current;
     productionPauseRequested.current = false;
     setAiReply(pausedAfterScene
