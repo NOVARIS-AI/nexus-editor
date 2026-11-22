@@ -84,7 +84,7 @@ import { understandDirectorPrompt } from "./editor/prompt-understander";
 import { rankSceneAssets } from "./editor/scene-matching";
 import { captureVisualSamples } from "./editor/visual-sampling";
 import { checkNexusWorker, getEngineJob, getEngineStatus, submitEngineJob, loadSavedGenerationJobs, saveGenerationJobs, type NexusEngineJob, type NexusWorkerHealth, type NexusEngineStatus } from "./editor/engine-jobs";
-import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, pauseProductionRun, resumeProductionRun, beginProductionScene, updateProductionScene, retryProductionScene, sendProductionToReview, completeProductionRun, type NexusProductionRun } from "./editor/production-jobs";
+import { approveProductionPlan, createProductionRun, loadProductionRuns, saveProductionRuns, startProductionRun, pauseProductionRun, resumeProductionRun, beginProductionScene, updateProductionScene, retryProductionScene, reviewProductionScene, reorderProductionScene, sendProductionToReview, completeProductionRun, type NexusProductionRun } from "./editor/production-jobs";
 import { isNativeAndroid, pickNativeMediaFiles, saveExportOnAndroid, saveProjectOnAndroid, extractAudioNative, transcodeNativeVideo } from "./editor/native-android";
 import type { FabricOperation } from "./editor/creative-fabric";
 import { CreatorSeoPanel } from "./editor/CreatorSeoPanel";
@@ -604,6 +604,51 @@ export default function App() {
       await generateSceneMedia(plannedScene, engine, { runId, sceneId });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "This scene could not be retried.");
+    }
+  }
+  function decideProductionSceneReview(runId: string, sceneId: string, decision: "approved" | "changes-requested") {
+    const run = productionRuns.find(item => item.id === runId);
+    if (!run) return;
+    const note = decision === "changes-requested"
+      ? (window.prompt("What should NEXUS change in this scene?", "Replace or improve this scene's visual.") || "Please improve this scene before final approval.")
+      : "";
+    try {
+      setProductionRuns(old => old.map(item => item.id === runId
+        ? reviewProductionScene(item, sceneId, decision, note)
+        : item));
+      setStatus(decision === "approved" ? "Scene approved in Creative Review." : "Scene sent back for changes. Regenerate it when ready.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not save the scene review.");
+    }
+  }
+  function moveReviewedScene(runId: string, sceneId: string, direction: -1 | 1) {
+    const run = productionRuns.find(item => item.id === runId);
+    if (!run || run.state !== "review") return;
+    const reordered = reorderProductionScene(run, sceneId, direction);
+    if (reordered === run) return;
+    const sceneTitles = new Set(reordered.scenes.map(scene => scene.title));
+    const sceneClips = clips.filter(clip => clip.aiScene && sceneTitles.has(clip.aiScene.title));
+    if (sceneClips.length) {
+      const firstStart = Math.min(...sceneClips.map(clip => clip.start));
+      let cursor = firstStart;
+      const updates = new Map<string, TimelineClip>();
+      for (const scene of reordered.scenes) {
+        const clip = sceneClips.find(item => item.aiScene?.title === scene.title);
+        if (!clip) continue;
+        updates.set(clip.id, { ...clip, start: cursor });
+        cursor += clipDuration(clip);
+      }
+      applyClipChange(clips.map(clip => updates.get(clip.id) || clip), "Creative Review reordered the storyboard and its matching timeline scenes.");
+    }
+    setProductionRuns(old => old.map(item => item.id === runId ? reordered : item));
+    setStatus("Storyboard order updated. Matching scene clips were repositioned on the timeline.");
+  }
+  function approveProductionDraft(runId: string) {
+    try {
+      setProductionRuns(old => old.map(run => run.id === runId ? completeProductionRun(run) : run));
+      setStatus("Creative Review approved. Your draft is ready for the final export checks.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Approve every completed scene before finishing the draft.");
     }
   }
   function requestProductionPause(runId: string) {
