@@ -2991,7 +2991,7 @@ export default function App() {
           }
         }
         if (audioAsset) {
-          const audioClip: TimelineClip = { id: uid(), assetId: audioAsset.id, trackId: "audio-1", start: cursor, sourceIn: 0, sourceOut: Math.max(0.1, Math.min(audioAsset.duration || sceneLength, sceneLength)), label: audioAsset.name, gain: 1, muted: false, fadeIn: 0.12, fadeOut: 0.2, speed: 1, aiScene: { title: scene.title, visual: scene.visual, narration: scene.narration || "", sourceType: audioAsset.source?.type === "commons" ? "commons" : audioAsset.source?.type === "personal" ? "personal" : "generated" } };
+          const audioClip: TimelineClip = { id: uid(), assetId: audioAsset.id, trackId: "audio-1", start: cursor, sourceIn: 0, sourceOut: Math.max(0.1, Math.min(audioAsset.duration || sceneLength, sceneLength)), label: audioAsset.name, gain: 1, muted: false, fadeIn: 0.12, fadeOut: 0.2, speed: 1, aiScene: { ...(productionScene ? { productionSceneId: productionScene.id } : {}), title: scene.title, visual: scene.visual, narration: scene.narration || "", sourceType: audioAsset.source?.type === "commons" ? "commons" : audioAsset.source?.type === "personal" ? "personal" : "generated" } };
           setClips(old => [...old, audioClip]);
           await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
           finishAILiveAction(audioActionId, "done", audioAsset.name + " was added to the audio track at " + clock(cursor) + ".");
