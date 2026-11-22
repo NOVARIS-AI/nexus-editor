@@ -106,7 +106,8 @@ describe("NEXUS production executor recovery", () => {
     const claimed = beginProductionScene(running, first!.id);
     expect(claimed.scenes[0].state).toBe("running");
     expect(claimed.scenes[0].attempts).toBe(1);
-    expect(getNextProductionScene(claimed)?.title).toBe("Second");
+    expect(getNextProductionScene(claimed)).toBeUndefined();
+    expect(() => beginProductionScene(claimed, claimed.scenes[1].id)).toThrow(/active scene/i);
     expect(() => beginProductionScene(claimed, first!.id)).toThrow(/pending or queued/i);
   });
 
@@ -139,17 +140,19 @@ describe("NEXUS production executor recovery", () => {
     const running = startProductionRun(approved);
     const failed = updateProductionScene(running, running.scenes[0].id, { state: "failed", error: "Interrupted" });
     const recovered = recoverInterruptedProductionRun(failed);
-    const resumed = startProductionRun(resumeProductionRun(recovered));
-    expect(resumed.state).toBe("running");
-    expect(resumed.scenes[0].state).toBe("failed");
-    expect(getNextProductionScene(resumed)?.title).toBe("Second");
-    const retried = retryProductionScene(resumed, resumed.scenes[0].id);
+    expect(() => resumeProductionRun(recovered)).toThrow(/retry every failed scene/i);
+    const retried = retryProductionScene(recovered, recovered.scenes[0].id);
     expect(retried.state).toBe("queued");
     expect(retried.scenes[0].state).toBe("queued");
     expect(retried.scenes[0].attempts).toBe(1);
     const restarted = startProductionRun(retried);
     const claimed = beginProductionScene(restarted, restarted.scenes[0].id);
     expect(claimed.scenes[0].attempts).toBe(1);
+    expect(getNextProductionScene(claimed)).toBeUndefined();
+    const firstDone = updateProductionScene(claimed, claimed.scenes[0].id, {
+      state: "succeeded", assetId: "retried-output", sourceType: "generated"
+    });
+    expect(getNextProductionScene(firstDone)?.title).toBe("Second");
   });
 
   it("keeps remote jobs with persisted IDs pollable after app restart", () => {
