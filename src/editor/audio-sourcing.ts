@@ -1,3 +1,4 @@
+import { isReusableMediaLicense, isSecureMediaUrl } from "./media-sourcing";
 export type SourcedAudioResult = {
   id: string; title: string; fileName: string; pageUrl: string; creator: string;
   license: string; licenseUrl: string; attribution: string; mimeType: string; downloadUrl: string;
@@ -20,14 +21,21 @@ export async function searchWikimediaCommonsAudio(query: string, signal?: AbortS
     const info = page.imageinfo?.[0], meta = info?.extmetadata || {};
     const mimeType = plain(meta.MIMEType?.value).toLowerCase();
     const license = plain(meta.LicenseShortName?.value);
-    if (!info?.url || !mimeType.startsWith("audio/") || !license) return [];
     const title = page.title.replace(/^File:/, "");
     const creator = plain(meta.Artist?.value);
+    const licenseUrl = plain(meta.LicenseUrl?.value);
+    const pageUrl = info?.descriptionurl ||
+      "https://commons.wikimedia.org/wiki/" + encodeURIComponent(page.title.replace(/ /g, "_"));
+    const attribution = plain(meta.Attribution?.value || meta.Credit?.value || creator);
+    const publicDomain = /public domain|cc0|cc zero/i.test(license);
+    if (!info?.url || !mimeType.startsWith("audio/") || !license ||
+      !isSecureMediaUrl(info.url) || !isSecureMediaUrl(pageUrl) ||
+      !isReusableMediaLicense(license, creator, licenseUrl)) return [];
+    const safeAttribution = attribution || (publicDomain ? "Public domain; source page retained for provenance." : "");
+    if (!safeAttribution) return [];
     return [{
-      id: String(page.pageid), title, fileName: title, pageUrl: info.descriptionurl ||
-        "https://commons.wikimedia.org/wiki/" + encodeURIComponent(page.title.replace(/ /g, "_")),
-      creator, license, licenseUrl: plain(meta.LicenseUrl?.value),
-      attribution: plain(meta.Attribution?.value || meta.Credit?.value || creator),
+      id: String(page.pageid), title, fileName: title, pageUrl,
+      creator, license, licenseUrl, attribution: safeAttribution,
       mimeType, downloadUrl: info.url
     }];
   });
