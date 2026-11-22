@@ -2286,7 +2286,7 @@ export default function App() {
     const lines=[result.ok&&!layerIssues.length?"Project and layer structure check passed.":"Project structure check found issues.","QUALITY SCORECARD · "+qualityState.errors+" errors · "+qualityState.warnings+" warnings · "+qualityState.info+" notes",...quality.map(item=>item.severity.toUpperCase()+" · "+item.title+": "+item.detail+(item.fix?" Fix: "+item.fix:"")),...result.issues,...layerIssues,"Timeline layers: "+clips.length+" clips · "+imageLayers.length+" image layers · "+textLayers.length+" text layers",hasExportableContent?"Renderable content is present.":"No exportable visual content is present."];
     setEngineReport(lines);setAiReply(lines.join(" "));
   }
-  async function generateAnimatedSceneFromStill(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, prompt:string) {
+  async function generateAnimatedSceneFromStill(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, prompt:string): Promise<string> {
     const generated = await generateNexusWorkerImage(prompt);
     const response = await fetch(generated.image);
     if (!response.ok) throw new Error("The generated scene image could not be downloaded.");
@@ -2333,7 +2333,7 @@ export default function App() {
       else applyClipChange([...clips, fallbackClip], "Generated image added as an editable motion scene.");
       setSelected(fallbackClip.id); setPlayhead(fallbackClip.start); setPage("editor"); setEditorView("workspace");
       setAiReply("Your visual is ready as an editable animated scene and has been added to the timeline.");
-      return;
+      return imageAsset.id;
     }
     if (!generatedVideo) throw new Error("The browser did not create an animated scene video.");
     const target = clips.find(item => item.aiScene?.title === scene.title);
@@ -2348,6 +2348,7 @@ export default function App() {
     else applyClipChange([...clips, generatedClip], "Generated animated scene added to the timeline.");
     setSelected(generatedClip.id); setPlayhead(generatedClip.start); setPage("editor"); setEditorView("workspace");
     setAiReply("Your visual is ready with editable motion and has been added to the timeline.");
+    return generatedVideo.id;
   }
   async function generateSceneMedia(scene: {title:string;visual:string;narration:string;searchTerms:string[];duration?:number}, engine:"image"|"video", production?: {runId:string;sceneId:string}) {
     const key=engine+":"+scene.title;
@@ -2383,8 +2384,8 @@ export default function App() {
         setPage("editor"); setEditorView("workspace");
         checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image", assetId: created.id, sourceType: "generated", outputMimeType: verified.mimeType });
       } else if(route.route==="image-motion-fallback") {
-        await generateAnimatedSceneFromStill(scene,prompt);
-        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image" });
+        const assetId = await generateAnimatedSceneFromStill(scene,prompt);
+        checkpointProductionScene(production?.runId, production?.sceneId, { state: "succeeded", progress: 100, engine: "image", assetId, sourceType: "generated", outputMimeType: "video/webm" });
       } else {
         const job=await submitEngineJob("video",prompt,{sceneTitle:scene.title,duration:scene.duration||5,aspectRatio:aiFormat,style:aiStyle,productionRunId:production?.runId,productionSceneId:production?.sceneId,negativePrompt:"watermarks, captions, logos, distorted anatomy"});
         setGenerationJobs(old=>[{...job,metadata:{...(job.metadata||{}),productionRunId:production?.runId,productionSceneId:production?.sceneId},sceneTitle:"Scene · "+scene.title},...old.filter(item=>item.id!==job.id)]);
