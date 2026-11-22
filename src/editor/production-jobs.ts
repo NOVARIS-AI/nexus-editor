@@ -110,6 +110,16 @@ export function updateProductionScene(
   if (!scene) throw new Error("The requested production scene does not exist.");
   if (run.state !== "running" && update.state !== "queued") throw new Error("Scene execution requires a running production.");
   const state = update.state ?? scene.state;
+  if (state === "succeeded") {
+    if (typeof update.outputUrl !== "string" || !update.outputUrl.trim()) {
+      throw new Error("A scene cannot succeed until its generated media output is attached.");
+    }
+    let outputUrl: URL;
+    try { outputUrl = new URL(update.outputUrl); } catch { throw new Error("The scene output URL is invalid."); }
+    if (outputUrl.protocol !== "https:" || outputUrl.username || outputUrl.password) {
+      throw new Error("Scene media outputs must use a secure HTTPS URL.");
+    }
+  }
   const progress = state === "succeeded" ? 100 : Math.max(0, Math.min(100, Number(update.progress ?? scene.progress) || 0));
   const updatedScenes = run.scenes.map(item => item.id === sceneId ? { ...item, ...update, state, progress, updatedAt: now() } : item);
   const completedSceneIds = updatedScenes.filter(item => item.state === "succeeded").map(item => item.id);
