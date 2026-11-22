@@ -13,6 +13,7 @@ import {
   recoverInterruptedProductionRun,
   resumeProductionRun,
   reviewProductionScene,
+  reviseProductionScene,
   reorderProductionScene
 } from "./production-jobs";
 
