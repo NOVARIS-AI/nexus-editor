@@ -22,7 +22,7 @@ describe("NEXUS production checkpoints", () => {
     const first = updateProductionScene(running, running.scenes[0].id, { state: "running", engine: "image" });
     const firstDone = updateProductionScene(first, first.scenes[0].id, { state: "succeeded", progress: 100, outputUrl: "https://cdn.example/scene-1.png" });
     const second = updateProductionScene(firstDone, firstDone.scenes[1].id, { state: "running", engine: "video" });
-    const finished = updateProductionScene(second, second.scenes[1].id, { state: "succeeded", progress: 100 });
+    const finished = updateProductionScene(second, second.scenes[1].id, { state: "succeeded", progress: 100, outputUrl: "https://cdn.example/scene-2.mp4" });
     const review = sendProductionToReview(finished);
     expect(review.state).toBe("review");
     expect(completeProductionRun(review).state).toBe("completed");
