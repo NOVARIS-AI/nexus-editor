@@ -28,6 +28,22 @@ describe("NEXUS production checkpoints", () => {
     expect(completeProductionRun(review).state).toBe("completed");
   });
 
+  it("refuses to mark a scene successful without a secure attached output", () => {
+    const plan = approveProductionPlan(createProductionRun("Output validation", [
+      { title: "Scene one", visual: "A generated visual" }
+    ]));
+    const running = startProductionRun(plan);
+    const sceneId = running.scenes[0].id;
+    expect(() => updateProductionScene(running, sceneId, { state: "succeeded" }))
+      .toThrow(/media output is attached/i);
+    expect(() => updateProductionScene(running, sceneId, {
+      state: "succeeded", outputUrl: "http://cdn.example/scene.mp4"
+    })).toThrow(/secure HTTPS/i);
+    expect(() => updateProductionScene(running, sceneId, {
+      state: "succeeded", outputUrl: "https://user:pass@cdn.example/scene.mp4"
+    })).toThrow(/secure HTTPS/i);
+  });
+
   it("retries only a failed scene and preserves successful scene outputs", () => {
     const plan = approveProductionPlan(createProductionRun("Short edit", [
       { title: "Keep this scene", visual: "Existing shot" },
