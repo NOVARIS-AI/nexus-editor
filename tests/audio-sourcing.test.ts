@@ -84,3 +84,24 @@ describe("licensed online audio sourcing", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 });
+
+
+describe("Wikimedia audio reuse safety", () => {
+  afterEach(() => { globalThis.fetch = originalFetch; vi.restoreAllMocks(); });
+
+  it("rejects non-commercial, no-derivatives and insecure audio sources", async () => {
+    globalThis.fetch = vi.fn(async () => commonsResponse({
+      "1": { pageid: 1, title: "File:NC.mp3", imageinfo: [{ url: "https://upload.wikimedia.org/nc.mp3", descriptionurl: "https://commons.wikimedia.org/wiki/File:NC.mp3", extmetadata: { MIMEType: { value: "audio/mpeg" }, LicenseShortName: { value: "CC BY-NC 4.0" }, Artist: { value: "Creator" }, LicenseUrl: { value: "https://creativecommons.org/licenses/by-nc/4.0/" } } }] },
+      "2": { pageid: 2, title: "File:ND.mp3", imageinfo: [{ url: "https://upload.wikimedia.org/nd.mp3", descriptionurl: "https://commons.wikimedia.org/wiki/File:ND.mp3", extmetadata: { MIMEType: { value: "audio/mpeg" }, LicenseShortName: { value: "CC BY-ND 4.0" }, Artist: { value: "Creator" }, LicenseUrl: { value: "https://creativecommons.org/licenses/by-nd/4.0/" } } }] },
+      "3": { pageid: 3, title: "File:HTTP.mp3", imageinfo: [{ url: "http://example.com/http.mp3", descriptionurl: "https://commons.wikimedia.org/wiki/File:HTTP.mp3", extmetadata: { MIMEType: { value: "audio/mpeg" }, LicenseShortName: { value: "Public domain" } } }] }
+    })) as unknown as typeof fetch;
+    await expect(searchWikimediaCommonsAudio("music")).resolves.toEqual([]);
+  });
+
+  it("requires creator and a secure license URL for attribution licenses", async () => {
+    globalThis.fetch = vi.fn(async () => commonsResponse({
+      "1": { pageid: 1, title: "File:No creator.mp3", imageinfo: [{ url: "https://upload.wikimedia.org/audio.mp3", descriptionurl: "https://commons.wikimedia.org/wiki/File:No_creator.mp3", extmetadata: { MIMEType: { value: "audio/mpeg" }, LicenseShortName: { value: "CC BY 4.0" }, LicenseUrl: { value: "https://creativecommons.org/licenses/by/4.0/" } } }] }
+    })) as unknown as typeof fetch;
+    await expect(searchWikimediaCommonsAudio("music")).resolves.toEqual([]);
+  });
+});
