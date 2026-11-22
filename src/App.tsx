@@ -2677,10 +2677,10 @@ export default function App() {
     setAiAssetChecklist(old=>old.map(item=>item.id===id?{...item,...patch}:item));
   }
   async function buildAIProjectTimeline(productionRunId?: string, restoredPlan?: NonNullable<typeof aiPlan>, productionRunOverride?: NexusProductionRun) {
-    productionExecutorActive.current = true;
     const plan = restoredPlan || aiPlan;
     if (!plan) return;
-    const checklist = aiAssetChecklist.length ? aiAssetChecklist : buildAIAssetChecklist(plan.scenes, assets);
+    productionExecutorActive.current = true;
+    const checklist = restoredPlan ? buildAIAssetChecklist(plan.scenes, assets) : aiAssetChecklist.length ? aiAssetChecklist : buildAIAssetChecklist(plan.scenes, assets);
     const productionRun = productionRunOverride || productionRuns.find(run => run.id === productionRunId);
     recordProjectHistory();
     setPage("editor"); setEditorView("workspace"); setAiWorkspaceOpen(true);
