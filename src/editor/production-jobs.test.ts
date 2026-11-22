@@ -276,6 +276,7 @@ describe("NEXUS Creative Review scene revisions", () => {
     expect(revised.scenes[0].reviewNote).toContain("warmer lighting");
     expect(revised.scenes[0].reviewStatus).toBe("changes-requested");
     expect(revised.scenes[0].assetId).toBe("asset-1");
+    expect(() => reviewProductionScene(revised, revised.scenes[0].id, "approved")).toThrow(/regenerate this revised scene/i);
     expect(() => completeProductionRun(revised)).toThrow(/approve every completed scene/i);
   });
 
