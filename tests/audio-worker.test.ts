@@ -6,14 +6,26 @@ class MemoryKV {
   async put(key:string,value:string){this.data.set(key,value);}
   async get(key:string,type:"json"){const value=this.data.get(key);return value&&type==="json"?JSON.parse(value):null;}
 }
-class MemoryR2 {
-  data = new Map<string,{bytes:ArrayBuffer;mime:string}>();
-  async put(key:string,value:ArrayBuffer,options:any){this.data.set(key,{bytes:value,mime:options?.httpMetadata?.contentType||"application/octet-stream"});}
-  async list(options:any){return {objects:[...this.data.keys()].filter(key=>key.startsWith(options.prefix)).map(key=>({key}))};}
-  async get(key:string){const value=this.data.get(key);if(!value)return null;return {writeHttpMetadata(headers:Headers){headers.set("Content-Type",value.mime);},body:new Response(value.bytes).body!};}
+class MemoryStorage {
+  uploads = new Map<string,{bytes:ArrayBuffer;mime:string}>();
+  async fetch(input:RequestInfo|URL,init?:RequestInit){
+    const url=String(input);
+    if(url.endsWith("/storage/v1/bucket")) return new Response("{}",{status:200});
+    if(url.includes("/storage/v1/object/")){
+      const key=url.split("/storage/v1/object/")[1];
+      if(init?.method==="POST"){
+        const body=init.body as ArrayBuffer;
+        this.uploads.set(key,{bytes:body,mime:new Headers(init.headers).get("Content-Type")||"application/octet-stream"});
+        return new Response("{}",{status:200});
+      }
+      const item=this.uploads.get(key);
+      return item?new Response(item.bytes,{status:200,headers:{"Content-Type":item.mime}}):new Response("not found",{status:404});
+    }
+    return null;
+  }
 }
 function environment(overrides:Record<string,unknown>={}) {
-  return {NEXUS_AUDIO_WORKER_TOKEN:"worker-secret",STABILITY_API_KEY:"stability-secret",AUDIO_JOBS:new MemoryKV(),AUDIO_OUTPUTS:new MemoryR2(),...overrides} as any;
+  return {NEXUS_AUDIO_WORKER_TOKEN:"worker-secret",SUPABASE_URL:"https://project.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"supabase-test-secret",AUDIO_JOBS:new MemoryKV(),...overrides} as any;
 }
 function context(){const tasks:Promise<unknown>[]=[];return {tasks,waitUntil(promise:Promise<unknown>){tasks.push(promise);}};}
 
@@ -25,8 +37,10 @@ describe("NEXUS Cloudflare audio router",()=>{
     expect(response.status).toBe(401);
   });
 
-  it("polls Stable Audio async jobs and stores private R2 output",async()=>{
-    const fakeFetch=vi.fn(async(input:RequestInfo|URL)=>{
+  it("polls Stable Audio async jobs and stores private Supabase Storage output",async()=>{
+    const storage=new MemoryStorage();
+    const fakeFetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const stored=await storage.fetch(input,init);if(stored)return stored;
       const url=String(input);
       if(url.includes("/text-to-audio")) return new Response(JSON.stringify({id:"stable-result-123"}),{status:202,headers:{"Content-Type":"application/json"}});
       if(url.includes("/results/stable-result-123")) return new Response(new Uint8Array([1,2,3,4]),{status:200,headers:{"Content-Type":"audio/mpeg"}});
@@ -43,7 +57,8 @@ describe("NEXUS Cloudflare audio router",()=>{
     const completed=await poll.json() as any;
     expect(completed).toMatchObject({state:"succeeded",metadata:{provider:"stable-audio"},output:{mimeType:"audio/mpeg",assetId:accepted.id}});
     expect(completed.output.url).toBe("https://audio.example/assets/"+accepted.id);
-    expect(fakeFetch).toHaveBeenCalledTimes(2);
+    expect([...storage.uploads.keys()].some(key=>key.includes("nexus-audio-outputs/audio/"))).toBe(true);
+    expect(fakeFetch.mock.calls.filter(call=>String(call[0]).includes("api.stability.ai")).length).toBe(2);
   });
 
   it("returns a clear setup error when no generation provider is configured",async()=>{
@@ -53,7 +68,9 @@ describe("NEXUS Cloudflare audio router",()=>{
   });
 
   it("submits a source file to Disband and imports returned vocal and instrumental stems",async()=>{
-    const fakeFetch=vi.fn(async(input:RequestInfo|URL)=>{
+    const storage=new MemoryStorage();
+    const fakeFetch=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const stored=await storage.fetch(input,init);if(stored)return stored;
       const url=String(input);
       if(url.includes("/v1/separations?")) return new Response(JSON.stringify({id:"sep_123",status:"queued"}),{status:202,headers:{"Content-Type":"application/json"}});
       if(url.endsWith("/v1/separations/sep_123")) return new Response(JSON.stringify({id:"sep_123",status:"ready",stems:{
@@ -79,7 +96,9 @@ describe("NEXUS Cloudflare audio router",()=>{
 
   it("keeps generated audio assets private behind the worker token",async()=>{
     const env=environment(),ctx=context();
-    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL)=>{
+    const storage=new MemoryStorage();
+    vi.stubGlobal("fetch",vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+      const stored=await storage.fetch(input,init);if(stored)return stored;
       return String(input).includes("/text-to-audio")
         ? new Response(JSON.stringify({id:"stable-private-1"}),{status:202,headers:{"Content-Type":"application/json"}})
         : new Response(new Uint8Array([7,8,9]),{status:200,headers:{"Content-Type":"audio/mpeg"}});
