@@ -1,6 +1,6 @@
 # NEXUS Editor — Public For You Platform (Hybrid Architecture)
 
-Status: **Architecture plan approved; implementation not started by this document.**
+Status: **Partially implemented.** The React feed/profile surfaces, Supabase client data layer, social migrations and moderation foundations exist. Secure video upload, Cloudflare Stream webhook lifecycle, end-to-end publishing and production playback still require live configuration and integration tests.
 
 This plan adds a public creator-discovery and publishing experience to the existing NEXUS Editor. It is additive: preserve the current editor, project format, AI Director, Creative Fabric, import/export workflows, theme system and existing generation routes. Do not rebuild the app or replace existing source.
 
@@ -11,7 +11,7 @@ Use a hybrid architecture with separate responsibilities:
 | Layer | Responsibility | Planned technology |
 |---|---|---|
 | Identity and application data | Accounts, profiles, follows, posts, comments, likes, saves, reports, feed metadata | Supabase Auth + Postgres with Row Level Security (RLS) |
-| Trusted application API | Authenticated mutations, validation, signed upload creation, webhooks, moderation actions and feed orchestration | Existing same-origin Vercel `/api/*` serverless routes |
+| Trusted application API | Authenticated mutations, validation, signed upload creation, webhooks, moderation actions and feed orchestration | Same-origin Cloudflare Worker routes under `/api/*` in cloudflare/nexus-app/worker.js |
 | Video storage and delivery | Direct video upload, encoding, adaptive playback, thumbnails and delivery | Cloudflare Stream |
 | Optional static media | Profile avatars and small static assets if needed | Supabase Storage initially; evaluate R2 only if usage justifies another service |
 | Client | Editor, publish flow, public feed, profiles and interactions | Existing React + TypeScript + Vite app |
@@ -20,9 +20,9 @@ The existing Cloudflare Worker at `nexus-studio-ai.schoolershubit5.workers.dev` 
 
 ### Current-repository audit
 
-- The app is React + TypeScript + Vite, with Vercel-style serverless handlers under `api/`.
+- The app is React + TypeScript + Vite, with same-origin handlers under `api/` adapted by the Cloudflare application Worker.
 - Existing API routes cover AI, generation and transcription; they do not currently provide a complete social identity/database layer.
-- `package.json` currently has no Supabase client dependency, and the inspected source paths do not contain a connected Supabase auth client.
+- The repository includes the Supabase client, a configured client in src/lib/supabase.ts, social data access in src/social/social-service.ts, and ordered migrations under supabase/migrations/. Live behavior still depends on applying those migrations and configuring the dedicated project.
 - Therefore, Supabase is a proposed new application-data service, not an existing confirmed NEXUS integration. Confirm the project/account and free-plan limits before provisioning or adding credentials.
 - Existing editor projects and media remain user-owned editor data. Publishing creates a separate post record and a managed video asset; it must not destructively move or rewrite the original project.
 
@@ -79,7 +79,7 @@ Keep a durable link between the published post and its source NEXUS project ID, 
 
 ## 5. Playback and For You feed
 
-- Use provider playback manifests/player URLs with adaptive bitrate. Do not proxy large video bytes through Vercel Functions.
+- Use provider playback manifests/player URLs with adaptive bitrate. Do not proxy large video bytes through the application Worker. Use signed direct-to-Cloudflare-Stream uploads and provider playback URLs.
 - Load one active video and a small number of adjacent preloads; pause and release media outside the viewport.
 - Use cursor/keyset pagination, not large offset scans. Return only public, ready, non-blocked posts.
 - Exclude blocked creators and posts hidden by the viewer; apply visibility rules server-side.
@@ -178,7 +178,7 @@ Public user-generated content requires safety operations before launch, not as a
 - Do not promise unlimited free storage, unlimited uploads or guaranteed reach.
 - Do not use scraped or unlicensed music.
 - Do not launch public uploads before reporting, moderation and takedown controls exist.
-- Do not deploy or alter the existing Vercel project during planning/implementation unless the user explicitly authorizes release.
+- Deploy only through the repository's Cloudflare Worker workflow after CI passes and the owner authorizes release; Vercel is not a hosting target.
 
 ## 11. Definition of done
 
