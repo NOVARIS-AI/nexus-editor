@@ -3,6 +3,7 @@ import cloudflareAiHandler from "../api/cloudflare-ai.js";
 import engineStatusHandler from "../api/engine-status.js";
 import healthHandler from "../api/health.js";
 import nexusWorkerHandler from "../api/nexus-worker.js";
+import aiDirectorHandler from "../api/ai-director.js";
 
 function makeResponse() {
   return {
@@ -55,6 +56,30 @@ describe("NEXUS native Cloudflare Workers AI binding", () => {
     expect(run).not.toHaveBeenCalled();
   });
 
+
+
+  it("runs AI Director planning on the native Workers AI binding", async () => {
+    const plan = {
+      summary: "A three-scene edit plan.",
+      scenes: [
+        { title: "Opening", visual: "Wide establishing shot", duration: 4, narration: "", searchTerms: ["opening shot"] },
+        { title: "Main point", visual: "Close detail shot", duration: 5, narration: "", searchTerms: ["detail"] },
+        { title: "Closing", visual: "Clean closing frame", duration: 3, narration: "", searchTerms: ["closing"] }
+      ],
+      editPlan: [], assetNeeds: [], userReferenceNeeded: false, engineTasks: []
+    };
+    const run = vi.fn(async () => ({ response: JSON.stringify(plan) }));
+    const res = makeResponse();
+    await aiDirectorHandler(
+      { method: "POST", body: { brief: "Make a short, clear video", context: {} } } as any,
+      res as any,
+      { AI: { run } }
+    );
+    expect(run).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect((res.body as any).provider).toBe("cloudflare-workers-ai-binding");
+    expect((res.body as any).plan.scenes).toHaveLength(3);
+  });
 
   it("uses the app's native AI binding for the image endpoint used by the editor", async () => {
     const run = vi.fn(async () => ({ image: "aGVsbG8=" }));
