@@ -1,8 +1,27 @@
+const directorBuckets = new Map();
+const allowDirectorRequest = (key, now = Date.now()) => {
+ const windowMs = 10 * 60_000, limit = 10;
+ const current = directorBuckets.get(key);
+ if (!current || now - current.startedAt >= windowMs) {
+  directorBuckets.set(key, { startedAt: now, count: 1 });
+  if (directorBuckets.size > 2000) for (const [id, value] of directorBuckets) if (now - value.startedAt >= windowMs) directorBuckets.delete(id);
+  return true;
+ }
+ if (current.count >= limit) return false;
+ current.count += 1;
+ return true;
+};
 export default async function handler(req,res,workerEnv = {}) {
  res.setHeader("Cache-Control","no-store");
  if(req.method!=="POST") return res.status(405).json({error:"Use POST."});
  const {brief,context={}}=req.body||{};
  if(typeof brief!=="string"||!brief.trim()||brief.length>12000) return res.status(400).json({error:"Provide a creative brief of up to 12,000 characters."});
+ const origin=req.headers?.origin;
+ let requestOrigin="";
+ try { requestOrigin=new URL(req.url).origin; } catch { /* Validate request content even when a host is not available. */ }
+ if(origin&&origin!==requestOrigin) return res.status(403).json({error:"This app origin is not allowed."});
+ const clientIp=String(req.headers?.["cf-connecting-ip"]||req.headers?.["x-forwarded-for"]||"unknown").split(",")[0].trim();
+ if(!allowDirectorRequest(clientIp)) return res.status(429).json({error:"AI Director is temporarily rate-limited for this network. Wait a few minutes before trying again."});
  const {NEXUS_AI_API_KEY:key,NEXUS_AI_BASE_URL:base,NEXUS_AI_MODEL:model,CLOUDFLARE_ACCOUNT_ID:cfAccount,CLOUDFLARE_API_TOKEN:cfToken,NEXUS_WORKER_URL:workerUrl,NEXUS_WORKER_TOKEN:workerToken}=process.env;
  const useOpenAI=Boolean(key&&base&&model);
  const useWorker=!useOpenAI&&Boolean(workerUrl&&workerToken);
