@@ -17,9 +17,9 @@ const capability = (configured, provider, fallback, capabilities, note) => ({
     ? "Secure endpoint credentials are present. Runtime support is not confirmed until the provider passes a health/capability check."
     : "No secure endpoint and token pair is configured; use the listed fallback.")
 });
-export default function handler(_req, res) {
+export default function handler(_req, res, workerEnv = {}) {
   res.setHeader("Cache-Control", "no-store");
-  const cloudflareConfigured = env("CLOUDFLARE_ACCOUNT_ID") && env("CLOUDFLARE_API_TOKEN");
+  const cloudflareConfigured = Boolean(workerEnv?.AI || (env("CLOUDFLARE_ACCOUNT_ID") && env("CLOUDFLARE_API_TOKEN")));
   const mediaWorkerConfigured = hasSecureWorkerPair("NEXUS_ENGINE_WORKER_URL", "NEXUS_ENGINE_WORKER_TOKEN");
   const workerConfigured = hasSecureWorkerPair("NEXUS_WORKER_URL", "NEXUS_WORKER_TOKEN");
   const cloudflareAvailable = cloudflareConfigured || workerConfigured;
@@ -56,11 +56,13 @@ export default function handler(_req, res) {
     providers: {
       cloudflareWorkersAI: {
         configured: cloudflareAvailable,
-        connection: workerConfigured ? "secure-worker-proxy" : cloudflareConfigured ? "direct-api" : "not-configured",
+        connection: workerEnv?.AI ? "native-workers-ai-binding" : workerConfigured ? "secure-worker-proxy" : cloudflareConfigured ? "direct-api" : "not-configured",
         textModel: process.env.NEXUS_CF_TEXT_MODEL || "@cf/meta/llama-3.2-1b-instruct",
         imageModel: process.env.NEXUS_CF_IMAGE_MODEL || "@cf/black-forest-labs/flux-1-schnell",
         capabilities: ["text", "image-proxy"],
-        note: workerConfigured
+        note: workerEnv?.AI
+          ? "Native Cloudflare Workers AI binding is available to this app Worker."
+          : workerConfigured
           ? "Cloudflare Worker credentials are configured. Confirm its health endpoint before relying on generation."
           : "Set NEXUS_WORKER_URL and NEXUS_WORKER_TOKEN in the app server runtime to connect the deployed Worker."
       }
