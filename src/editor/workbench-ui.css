@@ -1,0 +1,339 @@
+/* NEXUS AI workbench + editing toolbars — focused UI release layer.
+   Keeps the existing editor actions and Cloudflare worker integrations intact. */
+:root{
+  --nexus-ink:#111214;
+  --nexus-panel:#191a1d;
+  --nexus-panel-raised:#222328;
+  --nexus-line:#383a40;
+  --nexus-muted:#a4a6ad;
+  --nexus-copy:#f3f1f5;
+  --nexus-accent:#c6a4ff;
+  --nexus-accent-strong:#a77be8;
+  --nexus-accent-soft:rgba(198,164,255,.14);
+  --nexus-warm:#e7c69a;
+}
+.nexus-shell{
+  --bg:#111214!important;
+  --panel:#191a1d!important;
+  --panel2:#222328!important;
+  --line:#383a40!important;
+  --muted:#a4a6ad!important;
+  --text:#f3f1f5!important;
+  background:#111214!important;
+  color:#f3f1f5!important;
+}
+.nexus-shell .sidebar,
+.nexus-shell .top-header,
+.nexus-shell .editor-library,
+.nexus-shell .editor-center,
+.nexus-shell .editor-inspector,
+.nexus-shell .timeline-panel,
+.nexus-shell .editor-bottom-tools.nexus-tool-stack{
+  background:#17181b!important;
+  border-color:#35373d!important;
+}
+.nexus-shell .sidebar{background:#141518!important}
+.nexus-shell .nav-item.active{
+  background:linear-gradient(100deg,#4b365f,#2a2830)!important;
+  box-shadow:inset 0 0 0 1px #8e70b5!important;
+  color:#fff!important;
+}
+.nexus-shell .nav-item:hover{background:#25262b!important}
+.nexus-shell .cloud-card{background:#201d26!important;border-color:#51445f!important;color:#d2b8f5!important}
+.nexus-shell .editor-tool-dock{
+  background:#17181b!important;
+  border-color:#3a3b41!important;
+  gap:5px!important;
+  padding:5px 8px!important;
+  scrollbar-width:thin;
+  scrollbar-color:#665779 transparent;
+}
+.nexus-shell .editor-tool-dock button{
+  min-width:56px!important;
+  flex:0 0 56px!important;
+  padding:5px 3px!important;
+  border:1px solid transparent!important;
+  border-radius:10px!important;
+  color:#c5c4cb!important;
+  font-size:8px!important;
+  transition:background .16s ease,border-color .16s ease,color .16s ease,transform .16s ease;
+}
+.nexus-shell .editor-tool-dock button svg{width:18px!important;height:18px!important}
+.nexus-shell .editor-tool-dock button:hover{
+  background:#292a30!important;
+  border-color:#48434f!important;
+  color:#fff!important;
+}
+.nexus-shell .editor-tool-dock button.active,
+.nexus-shell .editor-tool-dock button[aria-pressed="true"]{
+  background:rgba(198,164,255,.14)!important;
+  border-color:rgba(198,164,255,.42)!important;
+  color:#e1caff!important;
+}
+.nexus-shell .nexus-subtool-ribbon{
+  background:#202125!important;
+  border-color:#393a40!important;
+  gap:7px!important;
+  padding:6px 10px!important;
+}
+.nexus-shell .nexus-subtool-ribbon button,
+.nexus-shell .nexus-context-controls button{
+  min-height:32px!important;
+  border:1px solid #45464d!important;
+  border-radius:9px!important;
+  background:#292a30!important;
+  color:#e6e3eb!important;
+  font-size:9px!important;
+}
+.nexus-shell .nexus-subtool-ribbon button:hover,
+.nexus-shell .nexus-context-controls button:hover{
+  border-color:#9b7dc1!important;
+  background:#34313a!important;
+}
+.nexus-shell .nexus-subtool-ribbon button.active,
+.nexus-shell .nexus-context-controls button.active{
+  background:rgba(198,164,255,.16)!important;
+  border-color:#a98bd0!important;
+  color:#eadbff!important;
+}
+.nexus-shell .nexus-context-controls{
+  background:#191a1d!important;
+  border-color:#383a40!important;
+}
+.nexus-shell .nexus-context-controls input:not([type=color]),
+.nexus-shell .nexus-context-controls select,
+.nexus-shell .nexus-context-controls input[type=color]{
+  background:#26272c!important;
+  border-color:#47484f!important;
+  color:#f5f2f7!important;
+}
+.nexus-shell .editor-status-line{background:#121315!important;color:#b0adb7!important}
+.nexus-shell .editor-status-line i{background:#8bc9a9!important}
+.nexus-shell .nexus-assistant-panel,
+.nexus-shell .nexus-assistant-window{
+  background:#191a1e!important;
+  border:1px solid #4b4653!important;
+  box-shadow:0 20px 70px #000b!important;
+}
+.nexus-shell .nexus-assistant-head{background:#222126!important;border-color:#45414b!important}
+.nexus-shell .nexus-assistant-tools-grid{background:#191a1e!important;border-color:#393a40!important}
+.nexus-shell .nexus-assistant-tools-grid button{
+  background:#25262b!important;
+  border-color:#45464d!important;
+  border-radius:10px!important;
+}
+.nexus-shell .nexus-assistant-tools-grid button:hover{background:#302d37!important;border-color:#a98bd0!important}
+.nexus-shell .nexus-assistant-tools-grid button svg{color:#c6a4ff!important}
+.nexus-shell .nexus-assistant-compose textarea{
+  background:#111214!important;border-color:#45464d!important;color:#f4f1f7!important;
+}
+.nexus-shell .nexus-assistant-orb{
+  background:radial-gradient(circle at 32% 25%,#f4eaff,#c6a4ff 24%,#76539c 58%,#27202f 100%)!important;
+  border:1px solid #e1caff!important;
+  box-shadow:0 0 0 5px #c6a4ff18,0 8px 34px #0009,0 0 25px #b18ae766!important;
+  color:#21172c!important;
+}
+.nexus-shell .ai-studio-page{
+  max-width:1540px!important;
+  padding:clamp(16px,2.8vw,34px)!important;
+  padding-bottom:42px!important;
+  color:#f3f1f5!important;
+}
+.nexus-shell .ai-studio-page .page-title-row{
+  padding:4px 0 16px!important;
+  border-bottom:1px solid #36373d!important;
+}
+.nexus-shell .ai-studio-page .page-title-row h1{
+  color:#f6f2f8!important;
+  font-size:clamp(25px,3vw,36px)!important;
+  letter-spacing:-.045em!important;
+}
+.nexus-shell .ai-studio-page .page-title-row h1 span{
+  color:#c6a4ff!important;text-shadow:0 0 20px #c6a4ff66!important;
+}
+.nexus-shell .ai-studio-page .page-title-row p{color:#aaa8b0!important;font-size:12px!important}
+.nexus-shell .ai-live-steps{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:9px!important;
+  margin:16px 0 18px!important;
+}
+.nexus-shell .ai-live-steps>div{
+  min-width:0!important;
+  border:1px solid #3c3d43!important;
+  border-radius:12px!important;
+  background:#1b1c20!important;
+  opacity:.72!important;
+}
+.nexus-shell .ai-live-steps>div.current{
+  opacity:1!important;
+  border-color:#a88bc9!important;
+  background:linear-gradient(135deg,#2a2530,#1c1d21)!important;
+  box-shadow:inset 0 0 0 1px #a88bc922!important;
+}
+.nexus-shell .ai-live-steps>div.complete{
+  opacity:1!important;border-color:#587966!important;background:#1c2421!important;
+}
+.nexus-shell .ai-live-steps>div b{background:#342b40!important;color:#e1ccff!important}
+.nexus-shell .ai-live-steps>div.complete b{background:#294638!important;color:#a6e2c2!important}
+.nexus-shell .ai-live-steps>div span{color:#f0edf3!important;font-size:11px!important}
+.nexus-shell .ai-live-steps>div small{color:#aaa7b0!important;font-size:9px!important}
+.nexus-shell .ai-studio-layout{
+  grid-template-columns:minmax(290px,.82fr) minmax(0,1.18fr)!important;
+  gap:14px!important;
+  align-items:stretch!important;
+}
+.nexus-shell .ai-studio-chat,
+.nexus-shell .ai-studio-plan{
+  background:#191a1e!important;
+  border:1px solid #3d3e45!important;
+  border-radius:14px!important;
+  box-shadow:0 14px 40px #0003!important;
+  backdrop-filter:none!important;
+}
+.nexus-shell .ai-studio-chat-head,
+.nexus-shell .ai-studio-plan-head{
+  min-height:64px!important;
+  padding:12px 14px!important;
+  background:#222328!important;
+  border-color:#3d3e45!important;
+}
+.nexus-shell .ai-studio-orb{
+  border:1px solid #b69bd7!important;
+  background:linear-gradient(145deg,#c6a4ff,#684c82)!important;
+  color:#21192b!important;
+}
+.nexus-shell .ai-studio-chat-head b,
+.nexus-shell .ai-studio-plan-head h2{color:#f4f0f6!important}
+.nexus-shell .ai-studio-chat-head small,
+.nexus-shell .ai-studio-hint{color:#a9a6af!important}
+.nexus-shell .ai-studio-stage{
+  background:#29272e!important;border-color:#4a4651!important;color:#d3c4e5!important;
+}
+.nexus-shell .ai-studio-messages{background:#151619!important;max-height:390px!important}
+.nexus-shell .ai-studio-message{
+  background:#222328!important;border-color:#3d3e45!important;border-radius:12px!important;
+}
+.nexus-shell .ai-studio-message.user{background:#30283a!important;border-color:#68557c!important}
+.nexus-shell .ai-studio-message p{color:#f0edf3!important;line-height:1.6!important}
+.nexus-shell .ai-studio-compose{
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+  gap:8px!important;background:#1b1c20!important;border-color:#3d3e45!important;
+}
+.nexus-shell .ai-studio-compose textarea{
+  min-height:88px!important;resize:vertical!important;
+  background:#111214!important;border:1px solid #494a51!important;
+  border-radius:11px!important;color:#f5f2f7!important;
+}
+.nexus-shell .ai-studio-compose button{
+  min-width:84px!important;border-radius:10px!important;
+  background:linear-gradient(135deg,#9d7bc2,#6e5688)!important;
+  color:#fff!important;
+}
+.nexus-shell .ai-studio-empty{color:#b6b2bd!important}
+.nexus-shell .ai-studio-empty p,
+.nexus-shell .ai-studio-empty span{color:#aaa7b0!important}
+.nexus-shell .ai-studio-scenes{max-height:640px!important;background:#151619!important}
+.nexus-shell .ai-studio-scenes article{
+  background:#202125!important;border-color:#3e3f46!important;
+  border-radius:12px!important;padding:10px!important;
+}
+.nexus-shell .ai-studio-scenes article:hover{border-color:#9a7cba!important}
+.nexus-shell .ai-studio-scene-title b{color:#f4f0f6!important}
+.nexus-shell .ai-studio-scenes p{color:#d5d1da!important}
+.nexus-shell .ai-studio-scenes p strong,
+.nexus-shell .ai-studio-scenes small{color:#aaa7b0!important}
+.nexus-shell .ai-studio-plan-meta span{
+  background:#24252a!important;border-color:#44454b!important;color:#d0cbd4!important;
+}
+.nexus-shell .ai-asset-checklist{
+  margin:12px!important;border:1px solid #46414e!important;
+  border-radius:12px!important;background:#1b1c20!important;
+}
+.nexus-shell .ai-asset-need{
+  background:#222328!important;border-color:#42434a!important;border-radius:11px!important;
+}
+.nexus-shell .ai-asset-need textarea,
+.nexus-shell .ai-asset-need select{
+  background:#111214!important;border-color:#484950!important;color:#f3f0f6!important;
+}
+.nexus-shell .ai-asset-need small,
+.nexus-shell .ai-asset-checklist-head p{color:#aaa7b0!important}
+.nexus-shell .ai-production-run,
+.nexus-shell .ai-creative-review{background:#202125!important;border-color:#44454b!important}
+.nexus-shell .ai-studio-disclaimer{color:#aaa7b0!important}
+.nexus-shell button:focus-visible,
+.nexus-shell input:focus-visible,
+.nexus-shell textarea:focus-visible,
+.nexus-shell select:focus-visible{
+  outline:2px solid #c6a4ff!important;outline-offset:2px!important;
+}
+@media(max-width:900px){
+  .nexus-shell .ai-studio-layout{grid-template-columns:minmax(0,1fr)!important}
+  .nexus-shell .ai-studio-chat{order:0}
+  .nexus-shell .ai-studio-plan{order:1}
+}
+@media(max-width:700px){
+  .nexus-shell .ai-studio-page{padding:14px 11px 28px!important}
+  .nexus-shell .ai-studio-page .page-title-row{align-items:flex-start!important;gap:10px!important}
+  .nexus-shell .ai-studio-page .page-title-row h1{font-size:25px!important}
+  .nexus-shell .ai-studio-page .page-title-row p{max-width:34ch;font-size:10px!important;line-height:1.5}
+  .nexus-shell .ai-live-steps{
+    display:grid!important;grid-template-columns:1fr!important;gap:6px!important;margin:12px 0!important;
+  }
+  .nexus-shell .ai-live-steps>div{
+    grid-template-columns:28px minmax(0,1fr)!important;
+    padding:8px 10px!important;min-height:52px!important;
+  }
+  .nexus-shell .ai-live-steps>div b{width:26px!important;height:26px!important;border-radius:8px!important}
+  .nexus-shell .ai-live-steps>div span{font-size:10px!important}
+  .nexus-shell .ai-live-steps>div small{font-size:8px!important}
+  .nexus-shell .ai-studio-layout{gap:10px!important}
+  .nexus-shell .ai-studio-chat,.nexus-shell .ai-studio-plan{border-radius:12px!important}
+  .nexus-shell .ai-studio-messages{min-height:170px!important;max-height:280px!important;padding:10px!important}
+  .nexus-shell .ai-studio-compose{grid-template-columns:minmax(0,1fr) 64px!important;padding:9px!important}
+  .nexus-shell .ai-studio-compose textarea{min-height:82px!important;font-size:12px!important}
+  .nexus-shell .ai-studio-compose button{min-width:64px!important;padding:0 8px!important}
+  .nexus-shell .ai-studio-scenes{max-height:none!important;padding:9px!important}
+  .nexus-shell .ai-studio-scenes article{grid-template-columns:92px minmax(0,1fr)!important;gap:9px!important}
+  .nexus-shell .ai-studio-scene-visual{width:92px!important}
+  .nexus-shell .ai-asset-need{grid-template-columns:64px minmax(0,1fr)!important}
+  .nexus-shell .ai-asset-need-thumb{width:64px!important;height:64px!important}
+  body>nav.nexus-mobile-tool-dock{
+    height:calc(72px + env(safe-area-inset-bottom))!important;
+    min-height:calc(72px + env(safe-area-inset-bottom))!important;
+    max-height:calc(72px + env(safe-area-inset-bottom))!important;
+    gap:4px!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;
+    background:rgba(20,21,24,.98)!important;border-top:1px solid #48444f!important;
+    box-shadow:0 -10px 30px #000b!important;
+    scroll-snap-type:x proximity!important;
+  }
+  body>nav.nexus-mobile-tool-dock button{
+    flex:0 0 62px!important;min-width:62px!important;min-height:54px!important;
+    border:1px solid transparent!important;border-radius:10px!important;
+    color:#c8c4ce!important;font-size:9px!important;scroll-snap-align:start!important;
+  }
+  body>nav.nexus-mobile-tool-dock button svg{width:19px!important;height:19px!important}
+  body>nav.nexus-mobile-tool-dock button.active{
+    background:rgba(198,164,255,.16)!important;border-color:#a98bd0!important;
+    color:#e7d7ff!important;
+  }
+  body>.nexus-mobile-tool-sheet{
+    bottom:calc(72px + env(safe-area-inset-bottom))!important;
+    max-height:50dvh!important;min-height:180px!important;
+    padding:12px 12px calc(12px + env(safe-area-inset-bottom))!important;
+    background:rgba(25,26,30,.99)!important;border-color:#4b4653!important;
+    border-radius:16px 16px 0 0!important;
+    box-shadow:0 -18px 48px #000c!important;
+  }
+  body>.nexus-mobile-tool-sheet button{
+    border-radius:9px!important;background:#292a30!important;border-color:#474850!important;
+    color:#eeeaf2!important;
+  }
+  body>.nexus-mobile-tool-sheet button.active{
+    background:rgba(198,164,255,.16)!important;border-color:#a98bd0!important;color:#eadcff!important;
+  }
+  .nexus-shell .nexus-assistant-tools-grid{max-height:240px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .nexus-shell *{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
