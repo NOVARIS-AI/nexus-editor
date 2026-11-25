@@ -60,6 +60,8 @@ describe("NEXUS native Cloudflare Workers AI binding", () => {
     expect((status.body as any).providers.cloudflareWorkersAI.configured).toBe(true);
     expect((status.body as any).providers.cloudflareWorkersAI.connection).toBe("native-workers-ai-binding");
     expect((status.body as any).brain.configured).toBe(true);
+    expect((status.body as any).engines.image.configured).toBe(true);
+    expect((status.body as any).engines.video.configured).toBe(false);
 
     const health = makeResponse();
     await healthHandler({ method: "GET" } as any, health as any, { AI: { run: vi.fn() } });
