@@ -84,7 +84,7 @@ export default async function handler(req, res, workerEnv = {}) {
     }
     if (task === "image") {
       const image = typeof payload?.image === "string" ? payload.image : "";
-      if (!/^data:image\\/(png|jpeg|webp);base64,/i.test(image) || image.length > 12_000_000) return json(res, 502, { error: "The Worker returned an invalid or oversized image. Nothing was imported." });
+      if (!/^data:image\/(png|jpeg|webp);base64,/i.test(image) || image.length > 12_000_000) return json(res, 502, { error: "The Worker returned an invalid or oversized image. Nothing was imported." });
       return json(res, 200, { task, provider: payload.provider || "cloudflare-workers-ai", model: payload.model, mimeType: payload.mimeType || "image/png", image });
     }
     if (typeof payload?.response !== "string" || !payload.response.trim()) return json(res, 502, { error: "The Worker returned no usable text response." });
