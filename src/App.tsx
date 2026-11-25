@@ -47,6 +47,7 @@ import {
 } from "lucide-react";
 import type { ClipKeyframe, MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "./types";
 import { AudioAssetBrowser } from "./editor/AudioAssetBrowser";
+import GameStudio from "./editor/GameStudio";
 import { PixiEffectPreview } from "./editor/PixiEffectPreview";
 import { LiveCameraStudio } from "./editor/LiveCameraStudio";
 import { LiveFootageCleanupStudio } from "./editor/LiveFootageCleanupStudio";
@@ -112,7 +113,7 @@ function buildAIAssetChecklist(scenes:Array<{title:string;visual:string;searchTe
     return needs;
   });
 }
-type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "appeals" | "editor" | "projects" | "templates" | "ai" | "settings";
+type Page = "home" | "for-you" | "profile" | "notifications" | "saved" | "moderation" | "appeals" | "editor" | "projects" | "templates" | "ai" | "settings" | "games";
 const uid = () => crypto.randomUUID();
 type EditorHistorySnapshot = { clips: TimelineClip[]; imageLayers: TimelineImageLayer[]; textLayers: TimelineTextLayer[]; tracks: TimelineTrack[] };
 import { readRecoverableDraft, writeRecoverableDraft, type LocalDraft } from "./editor/project-recovery";
@@ -372,7 +373,7 @@ export default function App() {
   const [page, setPage] = useState<Page>(() => {
     try {
       const saved = localStorage.getItem("nexus-last-page");
-      return saved && ["home","for-you","profile","notifications","saved","moderation","appeals","editor","projects","templates","ai","settings"].includes(saved)
+      return saved && ["home","for-you","profile","notifications","saved","moderation","appeals","editor","projects","templates","ai","settings","games"].includes(saved)
         ? saved as Page : "home";
     } catch { return "home"; }
   });
@@ -3854,11 +3855,12 @@ export default function App() {
   const nav = [
     { id: "home" as Page, label: "Home", icon: Home },
     { id: "editor" as Page, label: "Editor", icon: Clapperboard },
+    { id: "games" as Page, label: "Game Studio", icon: Gamepad2 },
     { id: "for-you" as Page, label: "For You", icon: Compass },
     { id: "templates" as Page, label: "Templates", icon: Grid2X2 },
     { id: "profile" as Page, label: "My Profile", icon: UserCircle }
   ];
-  const pageTitle = nav.find(n => n.id === page)?.label || ({ editor: "Editor Studio", notifications: "Notifications", saved: "Saved videos", moderation: "Moderation Centre", appeals: "My Appeals", settings: "Settings", projects: "Projects", ai: "AI Studio" } as Partial<Record<Page,string>>)[page] || "Home";
+  const pageTitle = nav.find(n => n.id === page)?.label || ({ editor: "Editor Studio", notifications: "Notifications", saved: "Saved videos", moderation: "Moderation Centre", appeals: "My Appeals", settings: "Settings", projects: "Projects", ai: "AI Studio", games: "Game Studio" } as Partial<Record<Page,string>>)[page] || "Home";
   const recent = ["My Vlog Edit", "Tech Review", "Birthday Bash"];
   const templates = CREATIVE_TEMPLATES;
   const effectItems = NEXUS_VIDEO_EFFECTS;
@@ -4247,6 +4249,8 @@ export default function App() {
 
       {page === "projects" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">YOUR CREATIONS</div><h1>My projects</h1><p>All your creative work, in one place.</p></div><button className="gradient-button" onClick={() => { setProjectName("Untitled Project"); setClips([]); setAssets([]); setPage("editor"); setEditorView("workspace"); }}><Plus size={16}/> New project</button></div><div className="project-filter"><button className="filter-active">All projects</button><button>Videos</button><button>Drafts</button><span>{recent.length} projects</span></div><div className="project-grid">{recent.filter(n => n.toLowerCase().includes(search.toLowerCase())).map((name, i) => <button className="project-tile" key={name} onClick={() => { setProjectName(name); setPage("editor"); setEditorView("workspace"); }}><div className={"recent-art art-" + i}><span>PROJECT / 0{i + 1}</span></div><div><b>{name}</b><small>Local project · {i === 0 ? "Today" : i === 1 ? "Yesterday" : "2 days ago"}</small></div></button>)}</div></section>}
 
+      {page === "games" && <GameStudio />}
+
       {page === "templates" && <section className="page-content"><div className="page-title-row"><div><div className="eyebrow">A LITTLE CREATIVE INSPIRATION</div><h1>Explore templates</h1><p>Choose a starting point for your next story.</p></div></div><div className="category-tabs">{["All", "Lifestyle", "Gaming", "Business", "Product", "Education", "Creator", "Events", "Sports"].map(c => <button key={c} className={templateCategory === c ? "tab-active" : ""} onClick={() => setTemplateCategory(c)}>{c}</button>)}</div><div className="template-grid">{filteredTemplates.map(t => <button className="template-card" key={t.name} onClick={() => setSelectedTemplate(t)}><div className={"template-art " + t.color} style={{background:t.gradient}}><span className="template-play"><Play size={18} fill="currentColor"/></span><small>{t.length}</small></div><div><b>{t.name}</b><small>{t.type} · {t.ratio} · {t.filter}</small></div></button>)}</div></section>}
 
 
@@ -4273,7 +4277,7 @@ export default function App() {
         </div>
       </section></div>}
       {publishFlowOpen && <Suspense fallback={<div className="nexus-ai-inline">Opening publish workspace…</div>}><PublishFlow projectName={projectName} onClose={()=>setPublishFlowOpen(false)} onRenderVideo={async()=>{const blob=await startVideoExport({returnBlob:true});if(!blob)return null;const extension=blob.type.toLowerCase().includes("mp4")?"mp4":"webm";return new File([blob],makeExportFilename(projectName,extension),{type:blob.type||(extension==="mp4"?"video/mp4":"video/webm")});}} /></Suspense>}
-      {<nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"editor",label:"Editor",icon:Clapperboard},{id:"for-you",label:"For You",icon:Compass},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);setAiWorkspaceOpen(false);if(item.id==="editor")setEditorView("dashboard");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
+      {<nav className="nexus-mobile-nav" aria-label="Main navigation">{[{id:"home",label:"Home",icon:Home},{id:"editor",label:"Editor",icon:Clapperboard},{id:"games",label:"Games",icon:Gamepad2},{id:"for-you",label:"For You",icon:Compass},{id:"templates",label:"Templates",icon:Grid2X2},{id:"profile",label:"My Profile",icon:UserCircle}].map(item=>{const Icon=item.icon;return <button key={item.id} className={page===item.id?"active":""} onClick={()=>{setPage(item.id as Page);setAiWorkspaceOpen(false);if(item.id==="editor")setEditorView("dashboard");}}><Icon size={19}/><span>{item.label}</span></button>;})}</nav>}
       <footer className="app-footer"><span>© VELTRONIX NEXUS</span><span>CREATE · EDIT · INSPIRE</span></footer>
     </main>
   </div>;
