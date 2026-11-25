@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import cloudflareAiHandler from "../api/cloudflare-ai.js";
 import engineStatusHandler from "../api/engine-status.js";
 import healthHandler from "../api/health.js";
+import nexusWorkerHandler from "../api/nexus-worker.js";
 
 function makeResponse() {
   return {
@@ -52,6 +53,28 @@ describe("NEXUS native Cloudflare Workers AI binding", () => {
     );
     expect(res.statusCode).toBe(400);
     expect(run).not.toHaveBeenCalled();
+  });
+
+
+  it("uses the app's native AI binding for the image endpoint used by the editor", async () => {
+    const run = vi.fn(async () => ({ image: "aGVsbG8=" }));
+    const res = makeResponse();
+    await nexusWorkerHandler(
+      { method: "POST", headers: {}, body: { task: "image", prompt: "A luminous violet glass sculpture" } } as any,
+      res as any,
+      { AI: { run } }
+    );
+    expect(run).toHaveBeenCalledWith("@cf/black-forest-labs/flux-1-schnell", { prompt: "A luminous violet glass sculpture" });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as any).image).toBe("data:image/png;base64,aGVsbG8=");
+  });
+
+  it("reports the native Workers AI binding as a healthy NEXUS worker", async () => {
+    const res = makeResponse();
+    await nexusWorkerHandler({ method: "GET", headers: {} } as any, res as any, { AI: { run: vi.fn() } });
+    expect(res.statusCode).toBe(200);
+    expect((res.body as any).ok).toBe(true);
+    expect((res.body as any).mode).toBe("native-workers-ai-binding");
   });
 
   it("reports the native binding as configured in engine discovery and health", async () => {
