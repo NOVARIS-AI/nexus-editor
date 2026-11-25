@@ -14,14 +14,19 @@ export default function handler(_req, res, workerEnv = {}) {
     audioEngine: present("NEXUS_AUDIO_ENGINE_URL") && present("NEXUS_AUDIO_ENGINE_TOKEN"),
     renderEngine: present("NEXUS_RENDER_ENGINE_URL") && present("NEXUS_RENDER_ENGINE_TOKEN")
   };
-  const required = ["supabasePublic", "supabasePublicKey", "supabaseServiceRole", "groqTranscription"];
+  const required = ["cloudflareAi"];
   const ready = required.every((key) => checks[key]);
+  const accountFeaturesConfigured = checks.supabasePublic && checks.supabasePublicKey;
+  const trustedPublishingConfigured = accountFeaturesConfigured && checks.supabaseServiceRole && checks.stream;
   res.setHeader("Cache-Control", "no-store");
   return res.status(200).json({
     ok: true,
     service: "nexus-studio-app",
     hosting: "cloudflare-workers",
     appCoreConfigured: ready,
+    accountFeaturesConfigured,
+    trustedPublishingConfigured,
+    onlineTranscriptionConfigured: checks.groqTranscription,
     checks,
     missingCore: required.filter((key) => !checks[key])
   });
