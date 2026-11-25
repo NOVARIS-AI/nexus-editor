@@ -20,7 +20,7 @@ Updated: 2026-11-05
 - The current feed renderer uses a designed visual card for community post metadata. It is not yet a video player and does not claim to play uploaded videos.
 - The existing publish wizard is still a preparation/review flow; it does not create a public post or upload media.
 - Profile sheets are lightweight previews, not complete creator profile pages.
-- No Vercel deployment, Supabase secret-key use, or database migration was performed in this change.
+- No deployment, Supabase secret-key use, or database migration was performed by the client integration change.
 
 ## Runtime requirements
 
@@ -29,3 +29,8 @@ The app build must receive `VITE_SUPABASE_URL` and either `VITE_SUPABASE_PUBLISH
 ## Verification status
 
 Source changes were committed to the GitHub repository. A local TypeScript/build check and live browser/database integration test have not been run, so this is implementation-complete at source level but not yet verified at runtime.
+
+
+## Cloudflare deployment boundary
+
+The app and same-origin API routes are hosted by the NEXUS Cloudflare Worker. Supabase remains the identity/database provider; Cloudflare Stream is a separate video upload and playback provider. Do not configure Vercel routes or proxy video bytes through the app Worker.
