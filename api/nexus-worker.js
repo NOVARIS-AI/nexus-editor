@@ -39,7 +39,9 @@ export default async function handler(req, res, workerEnv = {}) {
   if (!workerEnv?.AI?.run && (!base || !token)) return json(res, 503, { error: "The NEXUS Cloudflare Workers AI binding is unavailable and no secured fallback worker is configured." });
   const origin = req.headers.origin;
   const allowedOrigin = process.env.NEXUS_APP_ORIGIN;
-  if (origin && allowedOrigin && origin !== allowedOrigin) return json(res, 403, { error: "This app origin is not allowed." });
+  let requestOrigin = "";
+  try { requestOrigin = new URL(req.url).origin; } catch { /* The route still validates the task and provider below. */ }
+  if (origin && origin !== requestOrigin && (!allowedOrigin || origin !== allowedOrigin)) return json(res, 403, { error: "This app origin is not allowed." });
 
   // Validate the task before applying task-specific rate limits.
   // The previous order referenced task before declaration and threw a ReferenceError.
@@ -47,7 +49,7 @@ export default async function handler(req, res, workerEnv = {}) {
   if (!["text", "image"].includes(task)) return json(res, 400, { error: "Task must be text or image." });
   if (!cleanPrompt(prompt)) return json(res, 400, { error: "Provide a prompt of up to 12,000 characters." });
 
-  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  const forwarded = String(req.headers["cf-connecting-ip"] || req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const clientKey = forwarded || String(req.headers["x-real-ip"] || "unknown");
   if (!allowRequest(clientKey, task)) return json(res, 429, { error: task === "image" ? "Image generation is limited to 3 requests per 10 minutes for this network." : "Text generation is limited to 12 requests per 10 minutes for this network." });
 
