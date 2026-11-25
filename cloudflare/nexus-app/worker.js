@@ -99,7 +99,7 @@ function makeResponse() {
   return res;
 }
 
-async function invoke(handler, request, url, overrides = {}) {
+async function invoke(handler, request, url, overrides = {}, workerEnv = {}) {
   const req = makeRequest(request, url, overrides);
   if (overrides.rawBody !== true && request.body && (request.headers.get("content-type") || "").toLowerCase().includes("application/json")) {
     try { req.body = await request.clone().json(); }
@@ -107,7 +107,7 @@ async function invoke(handler, request, url, overrides = {}) {
   }
   const res = makeResponse();
   try {
-    await handler(req, res);
+    await handler(req, res, workerEnv);
     return res.toResponse();
   } catch (error) {
     return Response.json({ error: "The NEXUS service could not complete this request." }, { status: 500, headers: { "cache-control": "no-store" } });
@@ -131,7 +131,7 @@ export default {
       }
     }
 
-    if (handler) return invoke(handler, request, url, { ...overrides, rawBody: pathname === "/api/transcribe" });
+    if (handler) return invoke(handler, request, url, { ...overrides, rawBody: pathname === "/api/transcribe" }, env);
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return new Response("Not found", { status: 404 });
   },
