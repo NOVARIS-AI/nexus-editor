@@ -66,5 +66,8 @@ describe("NEXUS native Cloudflare Workers AI binding", () => {
     const health = makeResponse();
     await healthHandler({ method: "GET" } as any, health as any, { AI: { run: vi.fn() } });
     expect((health.body as any).checks.cloudflareAi).toBe(true);
+    expect((health.body as any).appCoreConfigured).toBe(true);
+    expect((health.body as any).missingCore).toEqual([]);
+    expect((health.body as any).trustedPublishingConfigured).toBe(false);
   });
 });
