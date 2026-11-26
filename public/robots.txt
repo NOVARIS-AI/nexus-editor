@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /private/
-Sitemap: https://nexuseditor-omega.vercel.app/sitemap.xml
+Sitemap: https://nexus-studio-app.schoolershubit5.workers.dev/sitemap.xml

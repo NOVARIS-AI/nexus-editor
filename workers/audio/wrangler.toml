@@ -1,0 +1,13 @@
+name = "nexus-audio-router"
+main = "src/index.ts"
+compatibility_date = "2026-11-20"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "AUDIO_JOBS"
+id = "REPLACE_WITH_AUDIO_JOBS_KV_NAMESPACE_ID"
+
+[vars]
+SUPABASE_AUDIO_BUCKET = "nexus-audio-outputs"
+# Supabase URL and service-role key are supplied as encrypted Worker secrets.
+# Audio objects are stored in a private Supabase Storage bucket; no R2 binding is required.

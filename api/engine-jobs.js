@@ -17,11 +17,12 @@ const workerBase = (value) => {
     return url.toString().replace(/\/$/, "");
   } catch { return null; }
 };
-const safeJob = (body, requestedId) => {
+const safeJob = (body, requestedId, expectedEngine) => {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const id = typeof body.id === "string" ? body.id : requestedId;
   const state = String(body.state || body.status || "").toLowerCase();
   if (!id || id.length > 180 || !states.has(state)) return null;
+  if (body.engine && body.engine !== expectedEngine) return null;
   const rawOutput = body.output && typeof body.output === "object" ? body.output : {};
   let output;
   if (typeof rawOutput.url === "string") {
@@ -32,8 +33,9 @@ const safeJob = (body, requestedId) => {
       }
     } catch { /* Ignore invalid worker output URLs. */ }
   }
+  if (state === "succeeded" && !output) return null;
   return {
-    id, state,
+    id, engine: expectedEngine, state,
     progress: Number.isFinite(Number(body.progress)) ? Math.max(0, Math.min(100, Number(body.progress))) : state === "succeeded" ? 100 : 0,
     message: String(body.message || state).slice(0, 500),
     ...(output ? { output } : {}),
@@ -53,7 +55,7 @@ export default async function handler(req, res) {
       const upstream = await fetch(base + "/jobs/" + encodeURIComponent(id), { headers: { Authorization: "Bearer " + token, Accept: "application/json" }, signal: AbortSignal.timeout(20000) });
       const body = await upstream.json().catch(() => null);
       if (!upstream.ok) return json(res, upstream.status >= 500 ? 502 : upstream.status, { error: String(body?.error || "The NEXUS worker could not return this job.").slice(0, 500) });
-      const job = safeJob(body, id);
+      const job = safeJob(body, id, engine);
       if (!job) return json(res, 502, { error: "The worker returned an invalid job status. Expected id, state, progress and optional HTTPS output." });
       return json(res, 200, job);
     } catch { return json(res, 502, { error: "The NEXUS worker timed out or could not be reached." }); }
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
     });
     const body = await upstream.json().catch(() => null);
     if (!upstream.ok) return json(res, upstream.status >= 500 ? 502 : upstream.status, { error: String(body?.error || "The NEXUS worker rejected this job.").slice(0, 500) });
-    const job = safeJob(body);
+    const job = safeJob(body, undefined, requestedEngine);
     if (!job) return json(res, 502, { error: "The worker accepted the request but returned an invalid job record. Expected id, state, progress and optional HTTPS output." });
     return json(res, 202, job);
   } catch { return json(res, 502, { error: "The NEXUS worker timed out or could not be reached. The project is unchanged; use the configured fallback." }); }
