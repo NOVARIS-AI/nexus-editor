@@ -11906,3 +11906,89 @@ body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-grid>label>input
     font-size:10px!important;
   }
 }
+
+/* Single active adjustment control, with a horizontal CapCut-style parameter rail. */
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-mobile-sheet-body{gap:10px!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-active-control{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:10px!important;
+  width:100%!important;
+  padding:13px!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.035)!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head>div{
+  display:grid!important;
+  gap:3px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head small{
+  color:#a8a6b6!important;
+  font-size:9px!important;
+  letter-spacing:.12em!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head b{
+  color:#fff!important;
+  font-size:13px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head strong{
+  color:#c8adff!important;
+  font-size:14px!important;
+  font-variant-numeric:tabular-nums!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-active-control>input[type="range"]{width:100%!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-quick-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-quick-actions button{
+  min-height:32px!important;
+  padding:6px 11px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#e8e5ef!important;
+  font-size:10px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip{
+  display:flex!important;
+  flex-direction:row!important;
+  gap:8px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 1px 8px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip::-webkit-scrollbar{display:none}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button{
+  display:flex!important;
+  flex:0 0 66px!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  min-height:62px!important;
+  padding:7px 4px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:11px!important;
+  background:rgba(255,255,255,.035)!important;
+  color:#c7c3d0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button.active{
+  border-color:rgba(188,156,255,.7)!important;
+  background:rgba(150,111,220,.18)!important;
+  color:#fff!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button>span{font-size:20px!important;line-height:1!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button>small{font-size:9px!important;white-space:nowrap!important}
