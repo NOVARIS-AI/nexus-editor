@@ -11614,3 +11614,381 @@ body>.nexus-mobile-tool-sheet:not(.is-closed) textarea{
  .nexus-shell .nexus-creative-featured-row{grid-auto-columns:102px}
  .nexus-shell .nexus-creative-intro>div>b{font-size:15px}
 }
+
+
+/* CapCut-inspired tool drawer: fixed header + independently scrolling content. */
+body>.nexus-mobile-tool-sheet:not(.is-closed){
+  display:flex!important;
+  flex-direction:column!important;
+  flex-wrap:nowrap!important;
+  height:min(42vh,420px)!important;
+  height:min(42dvh,420px)!important;
+  max-height:min(42dvh,420px)!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:0!important;
+  gap:0!important;
+  box-sizing:border-box!important;
+  overscroll-behavior:contain!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-sheet-drag-handle{
+  flex:0 0 12px!important;
+  height:12px!important;
+  min-height:12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0!important;
+  margin:0!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-head{
+  position:relative!important;
+  inset:auto!important;
+  z-index:5!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  min-height:48px!important;
+  padding:10px 16px!important;
+  margin:0!important;
+  border:0!important;
+  border-bottom:1px solid #262936!important;
+  border-radius:0!important;
+  background:#121318!important;
+  box-shadow:none!important;
+  box-sizing:border-box!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-head>div{
+  display:flex!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-head b{
+  display:block!important;
+  font-size:14px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+  color:#f5f3fa!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-head>button{
+  position:static!important;
+  inset:auto!important;
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  min-width:58px!important;
+  min-height:32px!important;
+  padding:6px 10px!important;
+  border:1px solid rgba(255,255,255,.13)!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.06)!important;
+  color:#f4f1fa!important;
+  font-size:11px!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-body{
+  position:relative!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  min-height:0!important;
+  width:100%!important;
+  max-height:none!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  padding:12px 16px calc(18px + env(safe-area-inset-bottom))!important;
+  gap:12px!important;
+  box-sizing:border-box!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  scrollbar-width:thin!important;
+}
+body>.nexus-mobile-tool-sheet:not(.is-closed)>.nexus-mobile-sheet-body>*{
+  flex:0 0 auto;
+  min-width:0;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intro,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intro{
+  padding:2px 0 6px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intro>div>b,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intro>div>b{
+  font-size:14px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intro small,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intro small{
+  display:none!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-pixi-panel,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-pixi-panel{
+  flex:0 0 auto!important;
+  margin:0 0 6px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-featured,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-featured{
+  padding:0 0 8px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-featured-row,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-featured-row{
+  grid-auto-columns:84px!important;
+  gap:7px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:8px!important;
+  padding:5px 1px 14px!important;
+  overflow:visible!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:5px!important;
+  min-width:0!important;
+  padding:5px!important;
+  border-radius:11px!important;
+  overflow:hidden!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid .nexus-creative-art,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid .nexus-creative-art{
+  display:block!important;
+  width:100%!important;
+  min-height:0!important;
+  aspect-ratio:1/1!important;
+  border-radius:9px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-art>em,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-art>em,
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>small,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>small{
+  display:none!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b{
+  display:block!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding:0 2px!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+  font-size:11px!important;
+  line-height:1.3!important;
+  font-weight:600!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:8px!important;
+  padding-top:10px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip{
+  order:0!important;
+  flex:0 0 auto!important;
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:3px 1px 9px!important;
+  scrollbar-width:none!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip>button,
+body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip>button{
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity{
+  order:1!important;
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  width:100%!important;
+  margin:0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity>input{
+  width:100%!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:start!important;
+  gap:10px!important;
+  width:100%!important;
+  min-width:0!important;
+  overflow:visible!important;
+  padding:0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls>section:first-child,
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls>section:nth-child(2),
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls>label:first-of-type{
+  grid-column:1/-1!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls label{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  gap:6px!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  font-size:11px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls textarea{
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:84px!important;
+  box-sizing:border-box!important;
+  resize:vertical!important;
+  white-space:pre-wrap!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls input:not([type="checkbox"]):not([type="range"]),
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls select{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls>label:nth-of-type(n+2){
+  grid-column:span 1!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls .nexus-effect-group{
+  min-width:0!important;
+  margin:0!important;
+  padding:12px!important;
+  border-radius:12px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-grid{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:12px!important;
+  width:100%!important;
+  padding:0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-grid>label{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  gap:8px!important;
+  width:100%!important;
+  margin:0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-grid>label>input[type="range"]{
+  grid-column:1/-1!important;
+  width:100%!important;
+}
+@media(max-width:520px){
+  body>.nexus-mobile-tool-sheet:not(.is-closed){
+    height:min(42dvh,390px)!important;
+    max-height:min(42dvh,390px)!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b{
+    font-size:10px!important;
+  }
+}
+
+/* Single active adjustment control, with a horizontal CapCut-style parameter rail. */
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-mobile-sheet-body{gap:10px!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-active-control{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  gap:10px!important;
+  width:100%!important;
+  padding:13px!important;
+  border:1px solid rgba(255,255,255,.1)!important;
+  border-radius:13px!important;
+  background:rgba(255,255,255,.035)!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head>div{
+  display:grid!important;
+  gap:3px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head small{
+  color:#a8a6b6!important;
+  font-size:9px!important;
+  letter-spacing:.12em!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head b{
+  color:#fff!important;
+  font-size:13px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head strong{
+  color:#c8adff!important;
+  font-size:14px!important;
+  font-variant-numeric:tabular-nums!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-active-control>input[type="range"]{width:100%!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-quick-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-quick-actions button{
+  min-height:32px!important;
+  padding:6px 11px!important;
+  border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:9px!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#e8e5ef!important;
+  font-size:10px!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip{
+  display:flex!important;
+  flex-direction:row!important;
+  gap:8px!important;
+  width:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:2px 1px 8px!important;
+  scrollbar-width:none!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip::-webkit-scrollbar{display:none}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button{
+  display:flex!important;
+  flex:0 0 66px!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:5px!important;
+  min-height:62px!important;
+  padding:7px 4px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:11px!important;
+  background:rgba(255,255,255,.035)!important;
+  color:#c7c3d0!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button.active{
+  border-color:rgba(188,156,255,.7)!important;
+  background:rgba(150,111,220,.18)!important;
+  color:#fff!important;
+}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button>span{font-size:20px!important;line-height:1!important}
+body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button>small{font-size:9px!important;white-space:nowrap!important}
