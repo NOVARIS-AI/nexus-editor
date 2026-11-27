@@ -12004,3 +12004,29 @@ body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>butto
 .nexus-shell .nexus-effect-thumb[data-visual-effect="Sparkle"]::before{content:"✦  ✧     ✦";position:absolute;inset:0;z-index:2;display:grid;place-items:center;color:white;font-size:22px;letter-spacing:12px;text-shadow:0 0 12px white,0 0 22px #a9dcff}
 .nexus-shell .nexus-effect-thumb[data-visual-effect="Shake"]>img{animation:nexus-thumb-shake .45s ease-in-out infinite alternate}
 @keyframes nexus-thumb-shake{from{transform:translateX(-2px) rotate(-.6deg)}to{transform:translateX(2px) rotate(.6deg)}}
+
+
+/* Expanded NEXUS creative browser: library tabs and distinct visual reference treatments. */
+.nexus-shell .nexus-creative-library-tabs{display:flex;gap:7px;align-items:center;overflow-x:auto;padding:2px 1px 7px;scrollbar-width:none}
+.nexus-shell .nexus-creative-library-tabs::-webkit-scrollbar{display:none}
+.nexus-shell .nexus-creative-library-tabs>button{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:8px 12px;border:1px solid var(--nx-line,rgba(255,255,255,.12));border-radius:10px;background:rgba(255,255,255,.035);color:var(--nx-muted,#aaa);font-size:10px;font-weight:650}
+.nexus-shell .nexus-creative-library-tabs>button.active{border-color:var(--accent-a,#a923ed);background:color-mix(in srgb,var(--accent-a,#a923ed) 20%,transparent);color:var(--nx-text,#fff)}
+.nexus-shell .nexus-creative-library-tabs>button small{display:grid;place-items:center;min-width:20px;height:19px;padding:0 5px;border-radius:99px;background:rgba(255,255,255,.09);color:inherit;font-size:8px}
+.nexus-shell .nexus-creative-browser .is-hidden{display:none!important}
+.nexus-shell .nexus-creative-asset-grid>button{cursor:pointer}
+.nexus-shell .nexus-creative-asset-grid>button:focus-visible{outline:2px solid var(--accent-a,#a923ed);outline-offset:2px}
+.nexus-shell .nexus-effect-thumb[data-visual-category]::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.34}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Glitch"]::after,.nexus-shell .nexus-effect-thumb[data-visual-category*="Digital"]::after{background:repeating-linear-gradient(0deg,transparent 0 8px,rgba(255,30,130,.5) 9px 10px,transparent 11px 15px),linear-gradient(90deg,rgba(0,220,255,.28),transparent 35%,rgba(255,0,90,.25))}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Light"]::after{background:radial-gradient(ellipse at 75% 20%,rgba(255,244,190,.95),transparent 35%),linear-gradient(120deg,transparent 38%,rgba(255,225,160,.35),transparent 65%)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Motion"]::after{background:repeating-linear-gradient(110deg,transparent 0 16px,rgba(255,255,255,.18) 18px 20px,transparent 22px 34px)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Film"]::after{background:radial-gradient(ellipse,transparent 48%,rgba(0,0,0,.48)),repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 1px,transparent 2px 5px)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Particles"]::after{background-image:radial-gradient(circle at 20% 25%,white 0 1px,transparent 2px),radial-gradient(circle at 72% 35%,white 0 2px,transparent 3px),radial-gradient(circle at 52% 75%,white 0 1px,transparent 2px),radial-gradient(circle at 88% 82%,white 0 2px,transparent 3px)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Focus"]::after{background:radial-gradient(ellipse,transparent 32%,rgba(0,0,0,.58) 100%)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Stylized"]::after{background:linear-gradient(135deg,rgba(255,0,190,.28),transparent 45%,rgba(0,220,255,.3))}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Transform"]::after{background:repeating-conic-gradient(from 0deg at 50% 50%,rgba(255,255,255,.16) 0 8deg,transparent 9deg 24deg)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Texture"]::after{background:repeating-linear-gradient(45deg,rgba(255,255,255,.13) 0 1px,transparent 1px 5px)}
+.nexus-shell .nexus-effect-thumb[data-visual-category*="Distortion"]::after{background:repeating-radial-gradient(ellipse at 50% 50%,transparent 0 8px,rgba(255,255,255,.17) 9px 10px,transparent 11px 17px)}
+.nexus-shell .nexus-effect-thumb>img{z-index:0}
+.nexus-shell .nexus-effect-thumb>em{z-index:3}
+.nexus-shell .nexus-creative-selected{z-index:4}
+@media(max-width:520px){.nexus-shell .nexus-creative-library-tabs>button{padding:7px 10px;font-size:9px}}
