@@ -12012,7 +12012,7 @@ body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>butto
 .nexus-shell .nexus-creative-library-tabs>button{display:flex;align-items:center;gap:7px;flex:0 0 auto;padding:8px 12px;border:1px solid var(--nx-line,rgba(255,255,255,.12));border-radius:10px;background:rgba(255,255,255,.035);color:var(--nx-muted,#aaa);font-size:10px;font-weight:650}
 .nexus-shell .nexus-creative-library-tabs>button.active{border-color:var(--accent-a,#a923ed);background:color-mix(in srgb,var(--accent-a,#a923ed) 20%,transparent);color:var(--nx-text,#fff)}
 .nexus-shell .nexus-creative-library-tabs>button small{display:grid;place-items:center;min-width:20px;height:19px;padding:0 5px;border-radius:99px;background:rgba(255,255,255,.09);color:inherit;font-size:8px}
-.nexus-shell .nexus-creative-browser .is-hidden{display:none!important}
+.nexus-shell .nexus-creative-transition-group.is-hidden{display:none!important}
 .nexus-shell .nexus-creative-asset-grid>button{cursor:pointer}
 .nexus-shell .nexus-creative-asset-grid>button:focus-visible{outline:2px solid var(--accent-a,#a923ed);outline-offset:2px}
 .nexus-shell .nexus-effect-thumb[data-visual-category]::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.34}
