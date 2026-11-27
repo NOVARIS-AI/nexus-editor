@@ -298,25 +298,54 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const animated = animatedValues(clip, time);
       ctx.globalAlpha = Math.max(0, Math.min(1, animated.opacity * transitionAlpha * (track?.opacity ?? 1)));
       const filter = FILTER_CSS[clip.filter || "Original"] || "none";
+      const visualEffect = clip.visualEffect || "none";
+      const effectIntensity = Math.max(0, Math.min(100, clip.visualEffectIntensity ?? 100)) / 100;
+      const effectBlur = visualEffect === "Blur" ? 5 * effectIntensity : 0;
       const transitionBlur = transitionStyle === "blur" ? (1-transitionProgress)*12 : 0;
       const exposure = clip.exposure ?? 0, temperature = clip.temperature ?? 0, tint = clip.tint ?? 0, highlights = clip.highlights ?? 0, shadows = clip.shadows ?? 0;
       const gradedBrightness = Math.max(.2, Math.min(2.5, (clip.brightness ?? 100) / 100 * Math.pow(2, exposure) * (1 + shadows / 650 - highlights / 900)));
       const gradedContrast = Math.max(.4, Math.min(2, (clip.contrast ?? 100) / 100 * (1 + highlights / 450 - shadows / 700)));
-      ctx.filter = [filter, `brightness(${gradedBrightness})`, `contrast(${gradedContrast})`, `saturate(${(clip.saturation ?? 100)/100})`, temperature ? `sepia(${Math.abs(temperature)/260})` : "", temperature ? `hue-rotate(${-temperature*.28}deg)` : "", tint ? `hue-rotate(${tint*.32}deg)` : "", transitionBlur ? `blur(${transitionBlur}px)` : ""].filter(Boolean).join(" ");
+      ctx.filter = [filter, `brightness(${gradedBrightness})`, `contrast(${gradedContrast})`, `saturate(${(clip.saturation ?? 100)/100})`, temperature ? `sepia(${Math.abs(temperature)/260})` : "", temperature ? `hue-rotate(${-temperature*.28}deg)` : "", tint ? `hue-rotate(${tint*.32}deg)` : "", (transitionBlur + effectBlur) ? `blur(${transitionBlur + effectBlur}px)` : ""].filter(Boolean).join(" ");
       if (transitionStyle === "wipe") {
         const reveal = Math.max(.001, Math.min(1, transitionProgress));
         ctx.beginPath(); ctx.rect(0,0,canvas.width*reveal,canvas.height); ctx.clip();
       }
       const zoomBoost = transitionStyle === "zoom" ? (0.82 + 0.18 * inProgress) * (0.82 + 0.18 * outProgress) : 1;
       const slideOffset = transitionStyle === "slide" ? ((1-inProgress) - (1-outProgress)) * canvas.width * .16 : 0;
-      ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100 + slideOffset, canvas.height/2 + canvas.height*animated.offsetY/100);
+      const shakeX = visualEffect === "Shake" ? Math.sin(time * 42) * 8 * effectIntensity : 0;
+      const shakeY = visualEffect === "Shake" ? Math.cos(time * 37) * 6 * effectIntensity : 0;
+      ctx.translate(canvas.width/2 + canvas.width*animated.offsetX/100 + slideOffset + shakeX, canvas.height/2 + canvas.height*animated.offsetY/100 + shakeY);
       const maskShape = clip.maskShape || "none";
       if (maskShape !== "none") { ctx.beginPath(); if (maskShape === "circle") ctx.arc(0, 0, Math.min(dw, dh) / 2, 0, Math.PI * 2); else if (maskShape === "rounded") { const radius = Math.min(dw, dh) * Math.max(0, Math.min(50, clip.maskRadius ?? 12)) / 100; ctx.roundRect(-dw/2, -dh/2, dw, dh, radius); } else if (maskShape === "horizontal") ctx.rect(-dw/2, -dh*.25, dw, dh*.5); else if (maskShape === "vertical") ctx.rect(-dw*.25, -dh/2, dw*.5, dh); else if (maskShape === "diamond") { ctx.moveTo(0,-dh/2); ctx.lineTo(dw/2,0); ctx.lineTo(0,dh/2); ctx.lineTo(-dw/2,0); ctx.closePath(); } else if (maskShape === "hexagon") { ctx.moveTo(-dw*.25,-dh/2); ctx.lineTo(dw*.25,-dh/2); ctx.lineTo(dw/2,0); ctx.lineTo(dw*.25,dh/2); ctx.lineTo(-dw*.25,dh/2); ctx.lineTo(-dw/2,0); ctx.closePath(); } else if (maskShape === "star") { for(let point=0;point<10;point++){const angle=-Math.PI/2+point*Math.PI/5;const radius=point%2===0?Math.min(dw,dh)*.5:Math.min(dw,dh)*.22;const px=Math.cos(angle)*radius,py=Math.sin(angle)*radius;if(point===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}ctx.closePath();} ctx.clip(); }
       ctx.rotate(animated.rotation*Math.PI/180);
       ctx.scale((animated.zoom/100)*zoomBoost*(clip.flipHorizontal?-1:1),(animated.zoom/100)*zoomBoost*(clip.flipVertical?-1:1));
       ctx.drawImage(source, -dw/2, -dh/2, dw, dh);
-      const vignette = Math.max(0, Math.min(100, clip.vignette ?? 0));
+      const vignette = Math.max(0, Math.min(100, visualEffect === "Vignette" ? Math.max(clip.vignette ?? 0, 48 * effectIntensity) : (clip.vignette ?? 0)));
       if (vignette > 0) { const radius = Math.hypot(dw, dh) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-dw/2, -dh/2, dw, dh); }
+      if (visualEffect === "Retro DV") {
+        ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.globalAlpha = .16 * effectIntensity;
+        ctx.fillStyle = "#17202b";
+        for (let y = -dh/2; y < dh/2; y += 4) ctx.fillRect(-dw/2, y, dw, 1);
+        ctx.restore();
+      }
+      if (visualEffect === "Glitch") {
+        ctx.save(); ctx.globalAlpha = .2 * effectIntensity;
+        const bandY = Math.abs(Math.sin(time * 17)) * dh * .7 - dh * .35;
+        ctx.fillStyle = "#ff315d"; ctx.fillRect(-dw/2, bandY, dw, Math.max(2, dh*.012));
+        ctx.fillStyle = "#38e8ff"; ctx.fillRect(-dw/2, bandY + dh*.018, dw, Math.max(2, dh*.008));
+        ctx.restore();
+      }
+      if (visualEffect === "Chromatic Aberration") {
+        ctx.save(); ctx.globalAlpha = .16 * effectIntensity;
+        ctx.fillStyle = "#ff315d"; ctx.fillRect(-dw/2, -dh/2, Math.max(2,dw*.012), dh);
+        ctx.fillStyle = "#26e8ff"; ctx.fillRect(dw/2-Math.max(2,dw*.012), -dh/2, Math.max(2,dw*.012), dh);
+        ctx.restore();
+      }
+      if (visualEffect === "Sparkle") {
+        ctx.save(); ctx.globalAlpha = .82 * effectIntensity; ctx.strokeStyle = "#fff7cf"; ctx.lineWidth = Math.max(1, Math.min(dw,dh)*.004);
+        for (let i=0;i<7;i++) { const x = Math.sin(i*91.7+1.3)*dw*.42, y = Math.cos(i*47.3+2.1)*dh*.4; const pulse = .5 + .5*Math.sin(time*3+i*1.7); const r = (3+pulse*7)*effectIntensity; ctx.beginPath(); ctx.moveTo(x-r,y); ctx.lineTo(x+r,y); ctx.moveTo(x,y-r); ctx.lineTo(x,y+r); ctx.stroke(); }
+        ctx.restore();
+      }
       ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
