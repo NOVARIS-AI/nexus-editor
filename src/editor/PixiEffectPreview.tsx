@@ -37,7 +37,8 @@ function buildFilters(PIXI: PixiModule, name: string) {
   if (/blur|soft focus|dream blur|defocus|bokeh/.test(key)) {
     filters.push(new PIXI.BlurFilter({ strength: /strong|heavy|deep/.test(key) ? 7 : 3, quality: 2, kernelSize: 5 }));
   }
-  if (/grain|noise|film|analog|vhs|dust|static/.test(key)) {
+  if (/glitch|retro dv|chromatic aberration/.test(key)) { filters.push(new PIXI.NoiseFilter({ noise: /glitch/.test(key) ? 0.22 : 0.08, seed: 0.42 })); }
+  if (/grain|noise|film|analog|vhs|dust|static|retro dv/.test(key)) {
     filters.push(new PIXI.NoiseFilter({ noise: /heavy|strong|rough|static/.test(key) ? 0.28 : 0.12, seed: 0.42 }));
   }
   if (/sharpen|crisp|detail|clarity/.test(key)) {
