@@ -12221,7 +12221,3 @@ body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser {
   50% { translate: 2px -1px }
   75% { translate: -1px -2px }
 }
-  25% { transform: translate(-2px,1px) }
-  50% { transform: translate(2px,-1px) }
-  75% { transform: translate(-1px,-2px) }
-}
