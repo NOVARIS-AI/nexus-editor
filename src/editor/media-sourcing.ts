@@ -32,10 +32,10 @@ export function isReusableMediaLicense(license: string, creator: string, license
   return attributionLicense && Boolean(creator.trim()) && isSecureMediaUrl(licenseUrl);
 }
 
-export async function searchWikimediaCommons(query: string, signal?: AbortSignal): Promise<SourcedMediaResult[]> {
+export async function searchWikimediaCommons(query: string, signal?: AbortSignal, limit = 10): Promise<SourcedMediaResult[]> {
   const params = new URLSearchParams({
     action: "query", generator: "search", gsrsearch: query,
-    gsrnamespace: "6", gsrlimit: "10", prop: "imageinfo", iiprop: "url|extmetadata",
+    gsrnamespace: "6", gsrlimit: String(Math.max(1, Math.min(50, Math.floor(limit)))), prop: "imageinfo", iiprop: "url|extmetadata",
     iiurlwidth: "640", format: "json", origin: "*"
   });
   const response = await fetch("https://commons.wikimedia.org/w/api.php?" + params.toString(), { signal, headers: { Accept: "application/json" } });
