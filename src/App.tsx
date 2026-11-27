@@ -42,7 +42,7 @@ import {
   Activity, UserCircle, ArrowDownToLine, ArrowLeft, ArrowRight, Bell, Bookmark, Check, ChevronDown, Clapperboard,
   Cloud, Command, Compass, Film, Gamepad2, Folder, FolderOpen, Grid2X2, HelpCircle,
   Home, Image as ImageIcon, Layers, Music2, Play, Pause, Plus, Search, Settings,
-  SlidersHorizontal, Sparkles, Scissors, Trash2, Upload, WandSparkles, X, Copy, Magnet,
+  SlidersHorizontal, Sparkles, Star, Scissors, Trash2, Upload, WandSparkles, X, Copy, Magnet,
   Volume2, Crop, Type, Sticker, ImagePlus, Gauge, Share2, CheckCircle2, RotateCcw, Palette, AudioLines, GitBranch, ShieldCheck, Undo2, Redo2, Diamond, Camera, Lock, Unlock, Pencil
 } from "lucide-react";
 import type { ClipKeyframe, MediaAsset, TimelineClip, TimelineImageLayer, TimelineTextLayer, TimelineTrack } from "./types";
