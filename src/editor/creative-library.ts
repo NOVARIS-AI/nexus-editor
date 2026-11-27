@@ -234,31 +234,15 @@ export const CREATIVE_EFFECTS = [
 ] as const;
 
 
-// NEXUS effect presets are 120 distinct, editable clip looks. They use the
-// same filter and clip-adjustment properties as the live preview and export.
-type NexusEffectPatch = { filter: string; brightness: number; contrast: number; saturation: number; vignette: number; exposure?: number };
-type NexusEffectBase = { name: string; category: string; patch: Partial<NexusEffectPatch> & { filter: string } };
-const EXTRA_EFFECT_RECIPES: NexusEffectBase[] = [
-  {name:"Velvet Night",category:"Cinematic",patch:{filter:"Midnight Cinema",brightness:88,contrast:128,saturation:82,vignette:32}},
-  {name:"Porcelain Portrait",category:"Portrait",patch:{filter:"Soft Ivory",brightness:108,contrast:92,saturation:88,vignette:5}},
-  {name:"Emerald Editorial",category:"Color",patch:{filter:"Emerald Pop",brightness:102,contrast:118,saturation:132,vignette:12}},
-  {name:"Analog Sunset",category:"Film",patch:{filter:"Expired Negative",brightness:104,contrast:96,saturation:112,vignette:22}},
-  {name:"Luxury Showcase",category:"Product",patch:{filter:"Luxury Detail",brightness:106,contrast:122,saturation:110,vignette:8}}
+// Real visual effects are separate from colour-grade filters. These effects
+// have dedicated preview and export rendering paths.
+type NexusEffectPatch = { filter: string; brightness: number; contrast: number; saturation: number; vignette: number };
+export const NEXUS_VIDEO_EFFECTS: Array<{name:"Blur"|"Vignette"|"Glitch"|"Retro DV"|"Chromatic Aberration"|"Shake"|"Sparkle";category:string;patch:NexusEffectPatch}> = [
+  {name:"Blur",category:"Focus",patch:{filter:"Original",brightness:100,contrast:100,saturation:100,vignette:0}},
+  {name:"Vignette",category:"Lens",patch:{filter:"Original",brightness:100,contrast:100,saturation:100,vignette:48}},
+  {name:"Glitch",category:"Digital",patch:{filter:"Original",brightness:100,contrast:108,saturation:112,vignette:0}},
+  {name:"Retro DV",category:"Vintage",patch:{filter:"Original",brightness:98,contrast:108,saturation:82,vignette:12}},
+  {name:"Chromatic Aberration",category:"Lens",patch:{filter:"Original",brightness:100,contrast:104,saturation:108,vignette:0}},
+  {name:"Shake",category:"Motion",patch:{filter:"Original",brightness:100,contrast:100,saturation:100,vignette:0}},
+  {name:"Sparkle",category:"Light",patch:{filter:"Original",brightness:104,contrast:102,saturation:110,vignette:0}}
 ];
-const NEXUS_EFFECT_BASES: NexusEffectBase[] = [
-  ...CREATIVE_EFFECTS.map((item,index)=>({...item,category:["Cinematic","Film","Portrait","Product","Creative"][index%5]})),
-  ...EXTRA_EFFECT_RECIPES
-].slice(0,30);
-const NEXUS_EFFECT_VARIANTS = [
-  {label:"Soft",brightness:104,contrast:96,saturation:96,vignette:6},
-  {label:"Punch",brightness:100,contrast:118,saturation:122,vignette:10},
-  {label:"Glow",brightness:110,contrast:94,saturation:112,vignette:4},
-  {label:"Deep",brightness:92,contrast:124,saturation:88,vignette:20}
-] as const;
-export const NEXUS_VIDEO_EFFECTS: Array<{name:string;category:string;patch:NexusEffectPatch}> = Array.from({length:120},(_,index)=>{
-  const base=NEXUS_EFFECT_BASES[index%NEXUS_EFFECT_BASES.length];
-  const variant=NEXUS_EFFECT_VARIANTS[Math.floor(index/NEXUS_EFFECT_BASES.length)];
-  const patch:NexusEffectPatch={...base.patch,filter:base.patch.filter,brightness:variant.brightness,contrast:variant.contrast,saturation:variant.saturation,vignette:variant.vignette};
-  const variantNumber=Math.floor(index/NEXUS_EFFECT_BASES.length);
-  return {name:variantNumber===0?base.name:base.name+" · "+variant.label,category:base.category,patch};
-});
