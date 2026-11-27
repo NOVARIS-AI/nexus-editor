@@ -12114,3 +12114,102 @@ body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>butto
   position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;
   background:transparent;pointer-events:none;
 }
+
+
+/* Creative library portal fix: tool drawers are rendered directly under body,
+   so their thumbnail styles must not depend on the in-app .nexus-shell ancestor. */
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head {
+  display:flex!important; align-items:center!important; justify-content:space-between!important;
+  gap:10px!important; min-width:0!important; padding:2px 1px 4px!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head>div,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head>div {
+  display:grid!important; gap:3px!important; min-width:0!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head b,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head b {
+  color:#f5f2fb!important; font-size:13px!important; font-weight:750!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head small,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head small {
+  color:#aaa7b8!important; font-size:9px!important; line-height:1.35!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head>span,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head>span {
+  flex:0 0 auto!important; color:#c9b2ff!important; font-size:10px!important; font-weight:700!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-reference-note,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-reference-note {
+  display:flex!important; flex-wrap:wrap!important; align-items:center!important; gap:6px 9px!important;
+  padding:7px 9px!important; border:1px solid rgba(190,157,255,.16)!important;
+  border-radius:9px!important; background:rgba(160,125,220,.07)!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-reference-note>span,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-reference-note>span {
+  color:#d2baff!important; font-size:8px!important; font-weight:800!important; letter-spacing:.1em!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-reference-note>small,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-reference-note>small {
+  flex:1 1 100%!important; color:#aaa7b8!important; font-size:9px!important; line-height:1.4!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb {
+  position:relative!important; display:block!important; isolation:isolate!important;
+  width:100%!important; min-width:0!important; min-height:0!important;
+  aspect-ratio:1/1!important; overflow:hidden!important; border-radius:9px!important;
+  background:linear-gradient(135deg,#28243b,#54406e 50%,#175b66)!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb>img,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb>img,
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb>video,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb>video {
+  position:absolute!important; inset:0!important; z-index:0!important;
+  display:block!important; width:100%!important; height:100%!important;
+  min-width:0!important; min-height:0!important; max-width:none!important; max-height:none!important;
+  object-fit:cover!important; object-position:center!important; border:0!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb>video,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb>video {
+  z-index:1!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb::after,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb::after {
+  content:""!important; position:absolute!important; inset:0!important; z-index:2!important;
+  pointer-events:none!important; background:linear-gradient(180deg,rgba(5,7,14,.02),rgba(5,7,14,.22))!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb>em,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb>em {
+  position:absolute!important; z-index:3!important; left:5px!important; bottom:5px!important;
+  display:none!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-selected,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-selected {
+  position:absolute!important; z-index:4!important; right:5px!important; top:5px!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button {
+  min-width:0!important; min-height:0!important; align-items:stretch!important;
+  justify-content:flex-start!important; padding:5px!important; gap:5px!important;
+  border:1px solid rgba(255,255,255,.1)!important; border-radius:11px!important;
+  background:rgba(255,255,255,.045)!important; color:#f5f2fb!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button.active,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button.active {
+  border-color:#c4a5ff!important; box-shadow:0 0 0 1px rgba(196,165,255,.7)!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b {
+  display:block!important; width:100%!important; min-width:0!important; padding:0 2px!important;
+  overflow:hidden!important; text-overflow:ellipsis!important; white-space:nowrap!important;
+  text-align:center!important; color:#f5f2fb!important; font-size:10px!important; line-height:1.3!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>small,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>small {
+  display:none!important;
+}
+body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser,
+body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser {
+  display:flex!important; flex-direction:column!important; gap:8px!important;
+  min-width:0!important; width:100%!important; overflow:visible!important;
+}
