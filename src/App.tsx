@@ -1058,7 +1058,7 @@ export default function App() {
         const images = results.filter(item => item.mediaKind === "image").map(item => item.thumbnailUrl);
         const videos = results.filter(item => item.mediaKind === "video" && /video\/(webm|mp4)/i.test(item.mimeType)).map(item => item.downloadUrl);
         return [key, { images, videos }] as const;
-      } catch { return [key, []] as const; }
+      } catch { return [key, { images: [], videos: [] }] as const; }
     })).then(results => {
       if (controller.signal.aborted) return;
       setCreativeReferenceImages(current => ({ ...current, ...Object.fromEntries(results.map(([key, value]) => [key, value.images])) }));
