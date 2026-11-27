@@ -3972,7 +3972,7 @@ export default function App() {
     const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">'+artwork+'</svg>';
     const file = new File([svg], "nexus-overlay-" + name.toLowerCase().replace(/[^a-z0-9]+/g,"-") + ".svg", {type:"image/svg+xml"});
     const asset: MediaAsset = {id:uid(),name:file.name,kind:"image",duration:Math.max(5,duration),mimeType:file.type,file,objectUrl:URL.createObjectURL(file),source:{type:"generated",creator:"Original NEXUS overlay artwork",attribution:"Created in NEXUS Editor"}};
-    const layer: TimelineImageLayer = {id:uid(),assetId:asset.id,trackId:"image-1",start:Math.max(0,playhead),duration:Math.max(5,duration),x:50,y:50,scale:1,rotation:0,opacity:light?.72:film?.48:.68,visible:true,locked:false,fit:"contain",blendMode:light||snow?"screen":"normal"};
+    const layer: TimelineImageLayer = {id:uid(),assetId:asset.id,trackId:"image-1",start:Math.max(0,playhead),duration:Math.max(5,duration),x:50,y:50,scale:1,rotation:0,opacity:light ? .72 : film ? .48 : .68,visible:true,locked:false,fit:"contain",blendMode:light||snow?"screen":"normal"};
     recordProjectHistory();
     setAssets(old=>[...old,asset]);
     setImageLayers(old=>[...old,layer]);
