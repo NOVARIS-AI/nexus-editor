@@ -5,11 +5,12 @@ const build = (kind: CreativeCatalogItem["kind"], groups: Record<string, string[
 
 // Visual catalogue only: items without a renderer are labelled as catalogue previews in the UI.
 export const NEXUS_EFFECT_CATALOG = build("effect", {
+  "Core Effects": ["Blur","Vignette","Glitch","Retro DV","Chromatic Aberration","Shake","Sparkle"],
   "Glitch & Digital": ["RGB Split","Digital Glitch","VHS Distortion","Signal Interference","Pixel Sort","Data Moshing","Scan Distortion","Static Burst","Digital Shake","Bit Crush","Channel Shift","Corrupt Frame","Databend","Error Screen"],
   "Light & Lens": ["Lens Flare","Anamorphic Flare","Light Leak","Film Burn","Bloom","Soft Glow","Prism Refraction","Rainbow Refraction","Bokeh","Sun Rays","Light Sweep","Camera Flash","Halation","Light Streak"],
   "Motion & Camera": ["Motion Blur","Camera Shake","Handheld Camera","Zoom Pulse","Dolly Zoom","Spin Blur","Whip Pan","Directional Blur","Speed Trails","Motion Echo","Freeze Frame","Stutter","Push In","Pull Out"],
-  "Film & Retro": ["Film Grain","Dust & Scratches","VHS Tape","Retro DV","8mm Film","16mm Film","Projector Flicker","Gate Weave","Old Television","Film Jitter","Analog Noise","Tape Tracking"],
-  "Particles & Atmosphere": ["Sparkles","Floating Dust","Snowfall","Rainfall","Falling Petals","Fireflies","Smoke","Fog","Embers","Starfield","Confetti","Bubbles"],
+  "Film & Retro": ["Film Grain","Dust & Scratches","VHS Tape","8mm Film","16mm Film","Projector Flicker","Gate Weave","Old Television","Film Jitter","Analog Noise","Tape Tracking"],
+  "Particles & Atmosphere": ["Floating Dust","Snowfall","Rainfall","Falling Petals","Fireflies","Smoke","Fog","Embers","Starfield","Confetti","Bubbles"],
   "Focus & Optical": ["Gaussian Blur","Radial Blur","Tilt Shift","Background Blur","Vignette","Chromatic Aberration","Lens Distortion","Focus Pull","Soft Focus","Sharpen","Miniature Focus","Depth Blur"],
   "Stylized & Creative": ["Neon Glow","Edge Detect","Cartoon","Pencil Sketch","Posterize","Duotone","Halftone","Pixelate","Mosaic","Silhouette","Thermal Vision","Infrared","Comic Book","Watercolour"],
   "Transform & Mirror": ["Mirror","Kaleidoscope","Split Screen","Quad Screen","Clone","Infinite Zoom","Pinch","Twirl","Bulge","Perspective Warp","Squeeze","Tiled Mirror"],
