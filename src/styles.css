@@ -12030,3 +12030,80 @@ body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>butto
 .nexus-shell .nexus-effect-thumb>em{z-index:3}
 .nexus-shell .nexus-creative-selected{z-index:4}
 @media(max-width:520px){.nexus-shell .nexus-creative-library-tabs>button{padding:7px 10px;font-size:9px}}
+
+
+/* Reference-led creative library: larger image cards, denser browse controls, and clear reference context. */
+.nexus-shell .nexus-creative-reference-note{
+  display:flex;align-items:center;gap:9px;min-width:0;padding:8px 10px;
+  border:1px solid rgba(255,255,255,.09);border-radius:10px;
+  background:linear-gradient(110deg,rgba(135,95,220,.11),rgba(255,255,255,.025));
+}
+.nexus-shell .nexus-creative-reference-note>span{
+  flex:0 0 auto;padding:4px 6px;border-radius:5px;background:rgba(181,145,255,.14);
+  color:#d9c8ff;font-size:8px;font-weight:800;letter-spacing:.1em;
+}
+.nexus-shell .nexus-creative-reference-note>small{
+  color:var(--nx-muted,#aaa);font-size:10px;line-height:1.35;
+}
+.nexus-shell .nexus-creative-asset-grid{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:10px!important;align-items:start!important;
+}
+.nexus-shell .nexus-creative-asset-grid>button{
+  position:relative;display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  min-width:0!important;padding:5px!important;gap:6px!important;
+  border:1px solid rgba(255,255,255,.075)!important;border-radius:12px!important;
+  background:rgba(255,255,255,.025)!important;text-align:left!important;
+  transition:border-color .16s ease,background .16s ease,transform .16s ease!important;
+}
+.nexus-shell .nexus-creative-asset-grid>button:hover{
+  border-color:rgba(190,157,255,.42)!important;background:rgba(255,255,255,.055)!important;
+}
+.nexus-shell .nexus-creative-asset-grid>button.active{
+  border-color:var(--accent-a,#a923ed)!important;background:rgba(151,105,226,.13)!important;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--accent-a,#a923ed) 38%,transparent)!important;
+}
+.nexus-shell .nexus-creative-asset-grid .nexus-creative-art{
+  position:relative;display:block!important;width:100%!important;aspect-ratio:4/3!important;
+  min-height:0!important;overflow:hidden!important;border-radius:8px!important;
+  background:linear-gradient(135deg,#252039,#10131c)!important;
+}
+.nexus-shell .nexus-creative-asset-grid .nexus-creative-art>img{
+  position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover;
+  transform:scale(1.015);transition:transform .22s ease,filter .22s ease;
+}
+.nexus-shell .nexus-creative-asset-grid>button:hover .nexus-creative-art>img{transform:scale(1.07)}
+.nexus-shell .nexus-creative-asset-grid .nexus-creative-art>em{
+  position:absolute;left:6px;bottom:6px;z-index:3;max-width:calc(100% - 12px);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 5px;
+  border:1px solid rgba(255,255,255,.15);border-radius:5px;
+  background:rgba(8,9,15,.72);backdrop-filter:blur(8px);
+  color:#fff;font-size:8px;font-style:normal;font-weight:650;
+}
+.nexus-shell .nexus-creative-asset-grid>button>b{
+  display:block;width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  color:var(--nx-text,#f7f5fb);font-size:10px!important;font-weight:700!important;line-height:1.25;
+}
+.nexus-shell .nexus-creative-asset-grid>button>small{
+  display:block!important;color:var(--nx-muted,#aaa);font-size:8px!important;line-height:1.25;
+}
+.nexus-shell .nexus-creative-asset-grid .nexus-asset-favourite{
+  position:absolute;top:9px;right:9px;z-index:5;display:grid;place-items:center;
+  width:25px;height:25px;border:1px solid rgba(255,255,255,.18);border-radius:50%;
+  background:rgba(8,9,15,.7);color:#fff;backdrop-filter:blur(8px);
+}
+.nexus-shell .nexus-creative-browser{gap:10px!important}
+.nexus-shell .nexus-creative-section-head{align-items:center}
+.nexus-shell .nexus-creative-section-head>div{min-width:0}
+.nexus-shell .nexus-creative-section-head>div>b{font-size:14px}
+.nexus-shell .nexus-creative-section-head>div>small{font-size:10px;line-height:1.35}
+.nexus-shell .nexus-creative-category-strip>button{padding:7px 10px!important;font-size:9px!important}
+@media(max-width:760px){
+  .nexus-shell .nexus-creative-asset-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .nexus-shell .nexus-creative-asset-grid>button{padding:4px!important;gap:5px!important}
+  .nexus-shell .nexus-creative-asset-grid .nexus-creative-art{aspect-ratio:1/1!important}
+  .nexus-shell .nexus-creative-asset-grid>button>b{font-size:10px!important}
+}
+@media(max-width:360px){
+  .nexus-shell .nexus-creative-asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
