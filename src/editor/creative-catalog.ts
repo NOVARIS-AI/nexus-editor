@@ -15,7 +15,11 @@ export const NEXUS_EFFECT_CATALOG = build("effect", {
   "Stylized & Creative": ["Neon Glow","Edge Detect","Cartoon","Pencil Sketch","Posterize","Duotone","Halftone","Pixelate","Mosaic","Silhouette","Thermal Vision","Infrared","Comic Book","Watercolour"],
   "Transform & Mirror": ["Mirror","Kaleidoscope","Split Screen","Quad Screen","Clone","Infinite Zoom","Pinch","Twirl","Bulge","Perspective Warp","Squeeze","Tiled Mirror"],
   "Texture & Surface": ["Scanlines","Digital Noise","Compression Texture","RGB Noise","Grid Overlay","Crosshatch","Paper Texture","Canvas Texture","Concrete Texture","Glitter Texture","Cracked Glass","Prismatic Texture"],
-  "Distortion & Warp": ["Wave Warp","Ripple","Fisheye","Liquid Warp","Heat Haze","Displacement","Turbulence","Jelly Warp","Barrel Distortion","Swirl Warp","Pinch Warp","Wobble"]
+  "Distortion & Warp": ["Wave Warp","Ripple","Fisheye","Liquid Warp","Heat Haze","Displacement","Turbulence","Jelly Warp","Barrel Distortion","Swirl Warp","Pinch Warp","Wobble"],
+  "Atmosphere & Glow": ["Volumetric Light","God Rays","Soft Bloom","Dream Glow","Prismatic Bloom","Neon Trails","Laser Lines","Glowing Edges","Light Orbs","Holographic Glow","Aurora Glow","Radiant Pulse"],
+  "Colour & Stylize": ["Duotone Shift","Tri-tone","Solarize","Colour Negative","Selective Colour","Vintage Print","Lomo","Crossfade Colour","Pastel Wash","Rich Shadows","Matte Highlights","Cinema Grade"],
+  "Motion & Time": ["Frame Echo","Time Slice","Long Exposure","Ghost Trail","Speed Smear","Temporal Blend","Freeze Pulse","Flash Stutter","Rolling Shutter","Motion Poster","Loop Warp","Time Ripple"],
+  "Texture & Detail": ["Fine Grain","Heavy Grain","Paper Fibres","Canvas Grain","Dust Specks","Scratch Pass","Glassy Surface","Metallic Sheen","Soft Halftone","Micro Contrast","Edge Glow","Surface Noise"]
 });
 
 export const NEXUS_OVERLAY_CATALOG = build("overlay", {
