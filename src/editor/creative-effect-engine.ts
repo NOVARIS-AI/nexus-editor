@@ -8,7 +8,7 @@ const CSS_EFFECTS: Record<string, string> = {
   "Soft Focus":"blur(.8px) brightness(1.05)", "Background Blur":"blur(2px)",
   "Vignette":"contrast(1.08)", "Chromatic Aberration":"saturate(1.14) contrast(1.06)",
   "RGB Split":"saturate(1.25) contrast(1.08)", "Channel Shift":"saturate(1.25)",
-  "Glitch":"contrast(1.12) saturate(1.16)", "Digital Glitch":"contrast(1.18) saturate(1.22)",
+  "Glitch":"contrast(1.12) saturate(1.16)", "Retro DV":"saturate(.82) contrast(1.08)", "Digital Glitch":"contrast(1.18) saturate(1.22)",
   "VHS Distortion":"saturate(.82) contrast(1.08)", "Signal Interference":"contrast(1.12) saturate(.9)",
   "Pixel Sort":"contrast(1.18) saturate(1.12)", "Data Moshing":"contrast(1.2) saturate(1.18)",
   "Scan Distortion":"contrast(1.12)", "Static Burst":"contrast(1.1) saturate(.8)",
@@ -60,8 +60,8 @@ const CSS_EFFECTS: Record<string, string> = {
 
 const PARTICLE_NAMES = /snow|rain|dust|particle|ember|firefl|confetti|bubble|glitter|petal|leaf|starfield|sparkle|smoke|fog|bokeh|fireflies|falling/i;
 const LIGHT_NAMES = /flare|light|glow|rays|bloom|halation|prism|rainbow|streak|flash|aurora|laser|volumetric|neon trails/i;
-const FILM_NAMES = /grain|scratch|scanline|vhs|tape|projector|analog|static|noise|old television|film jitter/i;
-const GLITCH_NAMES = /glitch|rgb split|channel shift|signal interference|pixel sort|data moshing|databend|corrupt|error screen|scan distortion|bit crush/i;
+const FILM_NAMES = /grain|scratch|scanline|vhs|tape|projector|analog|static|noise|old television|film jitter|retro dv/i;
+const GLITCH_NAMES = /glitch|rgb split|chromatic aberration|channel shift|signal interference|pixel sort|data moshing|databend|corrupt|error screen|scan distortion|bit crush/i;
 const MOTION_NAMES = /shake|whip pan|zoom pulse|dolly zoom|spin blur|motion echo|stutter|speed trail|frame echo|time slice|ghost trail|rolling shutter|handheld|freeze frame|freeze pulse|push in|pull out|speed smear|motion poster|radiant pulse|wobble/i;
 const OPTICAL_NAMES = /blur|focus|bokeh|chromatic|lens|fisheye|distortion|warp|ripple|twirl|bulge|pinch|kaleidoscope|mirror|tilt shift|sharpen|squeeze|perspective|cracked glass/i;
 const STYLIZED_NAMES = /cartoon|sketch|posterize|duotone|tri-tone|crossfade colour|halftone|pixelate|mosaic|silhouette|thermal|infrared|comic|watercolour|solarize|negative/i;
