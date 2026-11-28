@@ -12387,3 +12387,53 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-context-controls,body>.nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-context-controls{gap:7px!important}
   body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-action-row{min-height:68px}
 }
+
+
+/* Screenshot-matched CapCut mobile Text editor */
+.nexus-capcut-text-panel{gap:8px}
+.nexus-capcut-editor{gap:9px}
+.nexus-capcut-input-row{display:flex;align-items:center;gap:8px;padding:5px 7px;background:#303030;border:1px solid rgba(255,255,255,.07);border-radius:9px;min-height:38px}
+.nexus-capcut-input-row input{flex:1;min-width:0;height:28px;border:0;outline:0;background:transparent;color:#f7f7f7;font-size:12px}
+.nexus-capcut-input-row input::placeholder{color:#aaa}
+.nexus-capcut-input-row>button{width:28px;height:28px;border:0;border-radius:7px;background:transparent;color:#e5e5e5;font-size:19px}
+.nexus-capcut-tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.1);padding:0 0 1px}
+.nexus-capcut-tabs::-webkit-scrollbar,.nexus-capcut-style-categories::-webkit-scrollbar{display:none}
+.nexus-capcut-tabs>button{position:relative;flex:0 0 auto;padding:8px 12px 9px;border:0;border-radius:0;background:transparent;color:#aaa;font-size:10px;font-weight:600}
+.nexus-capcut-tabs>button.active{color:#fff;background:transparent}
+.nexus-capcut-tabs>button.active:after{content:"";position:absolute;left:28%;right:28%;bottom:0;height:2px;border-radius:2px;background:#43d8dc}
+.nexus-capcut-fonts{display:flex;gap:7px;overflow-x:auto;padding:4px 1px 6px;scrollbar-width:none}
+.nexus-capcut-fonts>button{flex:0 0 65px;min-height:53px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:1px solid rgba(255,255,255,.09);border-radius:7px;background:#292929;color:#f3f3f3}
+.nexus-capcut-fonts>button.active{border:1px solid #41d7dc;background:#173638}
+.nexus-capcut-fonts>button>b{font-size:20px;line-height:1.1}
+.nexus-capcut-fonts>button>small{font-size:8px;color:#bbb}
+.nexus-capcut-style-content{display:flex;flex-direction:column;gap:8px}
+.nexus-capcut-style-categories{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.08)}
+.nexus-capcut-style-categories>button{flex:0 0 auto;padding:7px 10px;border:0;background:transparent;color:#aaa;font-size:9px;white-space:nowrap}
+.nexus-capcut-style-categories>button.active{color:#40d5da}
+.nexus-capcut-colours{display:flex;gap:9px;overflow-x:auto;padding:5px 2px;scrollbar-width:none}
+.nexus-capcut-colours>button{flex:0 0 23px;width:23px;height:23px;border:1px solid rgba(255,255,255,.35);border-radius:50%;box-shadow:none}
+.nexus-capcut-style-tools{display:flex;gap:6px;overflow-x:auto}
+.nexus-capcut-style-tools>button{flex:0 0 auto;padding:7px 10px;border:1px solid rgba(255,255,255,.12);border-radius:7px;background:#292929;color:#ddd;font-size:9px}
+.nexus-capcut-slider{display:flex!important;align-items:center;gap:10px!important;margin:0!important}
+.nexus-capcut-slider>span{flex:0 0 43px;color:#bcbcbc;font-size:9px}
+.nexus-capcut-slider>input{flex:1;min-width:0;accent-color:#3ed4d8}
+.nexus-capcut-effect-grid,.nexus-capcut-animation-grid{display:flex;gap:7px;overflow-x:auto;padding:4px 1px 6px;scrollbar-width:none}
+.nexus-capcut-effect-grid>button,.nexus-capcut-animation-grid>button{flex:0 0 59px;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:#292929;color:#eee}
+.nexus-capcut-effect-grid>button>span{display:flex;align-items:center;justify-content:center;min-width:34px;min-height:24px;font-size:18px;font-weight:750}
+.nexus-capcut-effect-grid>button>small,.nexus-capcut-animation-grid>button>small{font-size:8px;color:#bbb;white-space:nowrap}
+.nexus-capcut-animation-content{display:flex;flex-direction:column;gap:7px}
+.nexus-capcut-animation-modes{display:flex;gap:18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.nexus-capcut-animation-modes>button{padding:6px 4px;border:0;border-bottom:2px solid transparent;background:transparent;color:#aaa;font-size:10px}
+.nexus-capcut-animation-modes>button.active{border-bottom-color:#40d5da;color:#fff}
+.nexus-capcut-animation-grid>button{flex-basis:62px;min-height:58px}
+.nexus-capcut-animation-grid>button>span{width:28px;height:26px;display:grid;place-items:center;border-radius:6px;background:#414141;color:#eee;font-size:11px}
+.nexus-capcut-animation-grid>button.active{border-color:#40d5da;background:#173638}
+.nexus-capcut-keyboard-hint{padding:5px 3px;color:#888;font-size:9px}
+.nexus-capcut-template-row{display:flex;gap:7px;overflow-x:auto}
+.nexus-capcut-template-row>button{padding:9px 14px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#292929;color:#eee;font-size:10px}
+@media(max-width:760px){
+  body>.nexus-mobile-tool-sheet[data-tool="text"]:not(.is-closed){max-height:min(32dvh,220px)!important;min-height:180px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="text"]:not(.is-closed)>.nexus-mobile-sheet-body{max-height:calc(32dvh - 48px)!important;overflow-y:auto!important}
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-text-panel{gap:7px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-editor{gap:7px!important}
+}
