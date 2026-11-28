@@ -325,26 +325,6 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       if (vignette > 0) { const radius = Math.hypot(dw, dh) * .68; const gradient = ctx.createRadialGradient(0, 0, radius * .18, 0, 0, radius); gradient.addColorStop(0, "rgba(0,0,0,0)"); gradient.addColorStop(.62, "rgba(0,0,0,0)"); gradient.addColorStop(1, `rgba(0,0,0,${vignette / 100 * .82})`); ctx.fillStyle = gradient; ctx.fillRect(-dw/2, -dh/2, dw, dh); }
       drawCreativeEffect(ctx, -dw/2, -dh/2, dw, dh, time, visualEffect, effectIntensity);
       ctx.restore();
-      }
-      if (visualEffect === "Glitch") {
-        ctx.save(); ctx.globalAlpha = .2 * effectIntensity;
-        const bandY = Math.abs(Math.sin(time * 17)) * dh * .7 - dh * .35;
-        ctx.fillStyle = "#ff315d"; ctx.fillRect(-dw/2, bandY, dw, Math.max(2, dh*.012));
-        ctx.fillStyle = "#38e8ff"; ctx.fillRect(-dw/2, bandY + dh*.018, dw, Math.max(2, dh*.008));
-        ctx.restore();
-      }
-      if (visualEffect === "Chromatic Aberration") {
-        ctx.save(); ctx.globalAlpha = .16 * effectIntensity;
-        ctx.fillStyle = "#ff315d"; ctx.fillRect(-dw/2, -dh/2, Math.max(2,dw*.012), dh);
-        ctx.fillStyle = "#26e8ff"; ctx.fillRect(dw/2-Math.max(2,dw*.012), -dh/2, Math.max(2,dw*.012), dh);
-        ctx.restore();
-      }
-      if (visualEffect === "Sparkle") {
-        ctx.save(); ctx.globalAlpha = .82 * effectIntensity; ctx.strokeStyle = "#fff7cf"; ctx.lineWidth = Math.max(1, Math.min(dw,dh)*.004);
-        for (let i=0;i<7;i++) { const x = Math.sin(i*91.7+1.3)*dw*.42, y = Math.cos(i*47.3+2.1)*dh*.4; const pulse = .5 + .5*Math.sin(time*3+i*1.7); const r = (3+pulse*7)*effectIntensity; ctx.beginPath(); ctx.moveTo(x-r,y); ctx.lineTo(x+r,y); ctx.moveTo(x,y-r); ctx.lineTo(x,y+r); ctx.stroke(); }
-        ctx.restore();
-      }
-      ctx.restore();
     };
     const trackOrder = (clip: TimelineClip) => trackFor(clip)?.order ?? 0;
     const orderedVisualClips = input.clips.filter(clip => { const asset = assets.get(clip.assetId); return !!asset && asset.kind !== "audio" && !trackHidden(clip); }).sort((a,b)=>trackOrder(a)-trackOrder(b)||a.start-b.start);
