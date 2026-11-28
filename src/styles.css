@@ -13951,3 +13951,243 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
     white-space:normal!important;line-height:1.15!important
   }
 }
+
+
+/* CapCut-style mobile tool drawer: sit ABOVE the fixed 88px tool dock, never over it. */
+@media (max-width:760px) {
+  body > .nexus-mobile-tool-sheet[data-tool="audio"]:not(.is-closed),
+  body > .nexus-mobile-tool-sheet[data-tool="effects"]:not(.is-closed),
+  body > .nexus-mobile-tool-sheet[data-tool="filters"]:not(.is-closed) {
+    position:fixed!important;
+    inset-inline:0!important;
+    top:auto!important;
+    bottom:calc(88px + env(safe-area-inset-bottom))!important;
+    width:100vw!important;
+    max-width:100vw!important;
+    height:min(224px,34dvh)!important;
+    min-height:174px!important;
+    max-height:min(224px,34dvh)!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    padding:5px 11px 7px!important;
+    margin:0!important;
+    overflow:hidden!important;
+    border:1px solid #303744!important;
+    border-bottom:0!important;
+    border-radius:16px 16px 0 0!important;
+    background:#11151c!important;
+    box-shadow:0 -12px 38px #000b!important;
+    z-index:2147483002!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-mobile-sheet-head,
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-mobile-sheet-head,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-mobile-sheet-head {
+    flex:0 0 29px!important;
+    min-height:29px!important;
+    height:29px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    padding:0 2px!important;
+    border-bottom:1px solid #29313d!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] > .nexus-mobile-sheet-body,
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] > .nexus-mobile-sheet-body,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] > .nexus-mobile-sheet-body {
+    display:flex!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    min-width:0!important;
+    width:100%!important;
+    padding:4px 0 0!important;
+    overflow:hidden!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-context-controls,
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:5px!important;
+    min-width:0!important;
+    min-height:0!important;
+    width:100%!important;
+    padding:0!important;
+    overflow:hidden!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-library {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:4px!important;
+    min-height:0!important;
+    width:100%!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-heading {
+    display:flex!important;
+    flex:0 0 22px!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    padding:0 2px!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-heading small,
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-library>small {
+    font-size:8px!important;
+    line-height:1.15!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-carousel {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:8px!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:2px 1px 5px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-card {
+    display:grid!important;
+    flex:0 0 194px!important;
+    grid-template-columns:36px minmax(0,1fr)!important;
+    grid-template-rows:1fr auto!important;
+    width:194px!important;
+    min-width:194px!important;
+    min-height:0!important;
+    gap:5px!important;
+    padding:7px!important;
+    border:1px solid #354050!important;
+    border-radius:10px!important;
+    background:#1b222d!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-art {
+    display:grid!important;
+    place-items:center!important;
+    width:36px!important;
+    height:36px!important;
+    border-radius:8px!important;
+    background:linear-gradient(145deg,#245768,#67458d)!important;
+    color:#fff!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-meta {
+    display:flex!important;
+    flex-direction:column!important;
+    gap:2px!important;
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-meta b {
+    color:#fff!important;font-size:10px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-meta small {
+    color:#b7c0ce!important;font-size:8px!important;white-space:nowrap!important
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-actions {
+    display:flex!important;
+    grid-column:1/-1!important;
+    flex-direction:row!important;
+    gap:5px!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-actions button {
+    flex:1 1 0!important;min-width:0!important;min-height:25px!important;
+    border:1px solid #3c4859!important;border-radius:7px!important;
+    background:#263140!important;color:#fff!important;font-size:9px!important
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-track-actions button:last-child {
+    background:#175565!important;border-color:#267889!important
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-context-controls > .nexus-effect-group:not(.nexus-audio-library) {
+    display:none!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip {
+    display:flex!important;
+    flex:0 0 29px!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:7px!important;
+    width:100%!important;
+    min-width:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:1px 0 5px!important;
+    scrollbar-width:none!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intensity,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity {
+    display:grid!important;
+    flex:0 0 29px!important;
+    grid-template-columns:1fr auto!important;
+    gap:1px 8px!important;
+    width:100%!important;
+    margin:0!important;
+    color:#fff!important;
+    font-size:9px!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intensity input,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity input {
+    grid-column:1/-1!important;width:100%!important;height:9px!important;margin:0!important
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:8px!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:2px 0 4px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid>button,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel>button {
+    display:flex!important;
+    flex:0 0 76px!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    width:76px!important;
+    min-width:76px!important;
+    max-width:76px!important;
+    min-height:78px!important;
+    gap:3px!important;
+    padding:3px!important;
+    border:1px solid #394454!important;
+    border-radius:8px!important;
+    background:#202834!important;
+    color:#fff!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-art,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-art {
+    display:grid!important;
+    flex:0 0 54px!important;
+    width:100%!important;
+    min-height:54px!important;
+    aspect-ratio:1/1!important;
+    border-radius:6px!important;
+    overflow:hidden!important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid>button>b,
+  body > .nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel>button>b {
+    display:block!important;color:#fff!important;font-size:8px!important;line-height:1.1!important
+  }
+}
