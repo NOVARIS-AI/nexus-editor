@@ -12907,3 +12907,22 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb,
   body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-effect-thumb{min-height:68px!important}
 }
+
+/* Expanded clip-editing command centre */
+.nexus-edit-capcut-actions{grid-template-columns:repeat(5,minmax(0,1fr));}
+.nexus-edit-capcut-actions>button{min-height:68px;gap:5px;padding:7px 4px;}
+.nexus-edit-capcut-actions>button .nexus-edit-action-glyph{font-size:18px;}
+.nexus-edit-adjustment{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.1);border-radius:13px;background:rgba(255,255,255,.045);}
+.nexus-edit-adjustment>label{display:grid;grid-template-columns:minmax(90px,1fr) minmax(0,2fr);align-items:center;gap:10px;font-size:11px;}
+.nexus-edit-adjustment input[type=range]{width:100%;min-width:0;accent-color:var(--nx-accent,#b99aff);}
+.nexus-edit-adjustment input[type=color]{width:100%;height:34px;border:0;background:transparent;}
+.nexus-edit-adjustment>small{font-size:10px;line-height:1.45;color:var(--nx-muted,#aaa);}
+.nexus-edit-adjustment>.nexus-capcut-pills{display:flex;flex-wrap:wrap;gap:6px;}
+.nexus-edit-adjustment>.nexus-capcut-pills>button,.nexus-edit-adjustment>button{min-height:34px;padding:7px 10px;border:1px solid rgba(255,255,255,.13);border-radius:9px;background:rgba(255,255,255,.06);color:inherit;font-size:10px;}
+.nexus-edit-adjustment>.nexus-capcut-pills>button.active{border-color:var(--nx-accent,#b99aff);background:rgba(160,120,235,.18);}
+@media(max-width:700px){
+ .nexus-edit-capcut-actions{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+ .nexus-edit-capcut-actions>button{min-height:59px;font-size:9px;}
+ .nexus-edit-adjustment{padding:10px;gap:9px;}
+ .nexus-edit-adjustment>label{grid-template-columns:1fr;gap:5px;}
+}
