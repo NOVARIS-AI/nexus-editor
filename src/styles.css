@@ -12809,3 +12809,64 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
     font-size:10px!important;
   }
 }
+
+
+/* Final mobile Text drawer corrections: full-width controls, real swatches and safe slider space. */
+@media (max-width:760px) {
+  body>.nexus-mobile-tool-sheet[data-tool="text"]:not(.is-closed)>.nexus-mobile-sheet-body {
+    width:100%!important;
+    max-width:100%!important;
+    padding:5px 8px calc(30px + env(safe-area-inset-bottom))!important;
+    box-sizing:border-box!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-text-panel,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-editor,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-input-row,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-tabs,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-style-content,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-animation-content,
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-keyboard-hint {
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    grid-column:1/-1!important;
+    box-sizing:border-box!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-colours {
+    display:flex!important;
+    width:100%!important;
+    min-width:0!important;
+    flex-wrap:nowrap!important;
+    gap:9px!important;
+    overflow-x:auto!important;
+    padding:7px 3px 10px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-colours>button {
+    flex:0 0 25px!important;
+    width:25px!important;
+    min-width:25px!important;
+    height:25px!important;
+    min-height:25px!important;
+    padding:0!important;
+    background-color:var(--swatch-color, currentColor)!important;
+    border:1.5px solid rgba(255,255,255,.35)!important;
+    border-radius:50%!important;
+    box-shadow:0 0 0 1px rgba(0,0,0,.35)!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-slider {
+    width:100%!important;
+    min-height:34px!important;
+    padding:3px 0!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-slider>input {
+    display:block!important;
+    min-width:0!important;
+    min-height:24px!important;
+    width:100%!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="text"] .nexus-capcut-style-content {
+    padding-bottom:12px!important;
+  }
+}
+/* The timeline's own add-clip (+) control remains the single media entry point. */
+.editor-preview-meta {display:none!important;}
