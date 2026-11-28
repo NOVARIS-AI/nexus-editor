@@ -5,7 +5,7 @@ import { getCreativeEffectCss, hasCreativeEffectProcessor } from "./creative-eff
 
 describe("creative effect processors", () => {
   it("provides a live processor or dedicated legacy renderer for every effect card", () => {
-    const dedicated = new Set(NEXUS_VIDEO_EFFECTS.map(effect => effect.name));
+    const dedicated = new Set<string>(NEXUS_VIDEO_EFFECTS.map(effect => effect.name));
     const missing = NEXUS_EFFECT_CATALOG
       .filter(item => item.kind === "effect")
       .map(item => item.name)
