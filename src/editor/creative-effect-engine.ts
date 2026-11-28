@@ -143,11 +143,14 @@ export function drawCreativeEffect(
       ctx.globalAlpha = .28 * alpha; ctx.fillStyle = "#ffe8b0";
       ctx.fillRect(x, cy, width, Math.max(1, height * .004));
     }
-  } else if (TEXTURE_NAMES.test(name)) {\n    ctx.globalAlpha = .12 * alpha; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;\n    const spacing = /grid/i.test(name) ? Math.max(12, Math.round(width / 18)) : Math.max(8, Math.round(width / 34));\n    for (let gx = x; gx < x + width; gx += spacing) { ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + height); ctx.stroke(); }\n    if (/grain|fibres|paper|noise|surface/i.test(name)) { ctx.globalAlpha = .12 * alpha; ctx.fillStyle = "#fff"; for (let i=0;i<72;i++) { const px=x+((i*67+key*3)%997)/997*width, py=y+((i*131+key*5)%991)/991*height; ctx.fillRect(px,py,1.2,1.2); } }\n  } else if (MOTION_NAMES.test(name) && /echo|trail|stutter|freeze|speed smear|motion poster/i.test(name)) {
+  } else if (TEXTURE_NAMES.test(name)) {
+    ctx.globalAlpha = .12 * alpha; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;
+    const spacing = /grid/i.test(name) ? Math.max(12, Math.round(width / 18)) : Math.max(8, Math.round(width / 34));
+    for (let gx = x; gx < x + width; gx += spacing) { ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + height); ctx.stroke(); }
+    if (/grain|fibres|paper|noise|surface/i.test(name)) { ctx.globalAlpha = .12 * alpha; ctx.fillStyle = "#fff"; for (let i=0;i<72;i++) { const px=x+((i*67+key*3)%997)/997*width, py=y+((i*131+key*5)%991)/991*height; ctx.fillRect(px,py,1.2,1.2); } }\n  } else if (MOTION_NAMES.test(name) && /echo|trail|stutter|freeze|speed smear|motion poster/i.test(name)) {
     ctx.globalAlpha = .14 * alpha; ctx.fillStyle = "#d6eaff";
     const offset = Math.sin(time * 8 + key) * width * .012;
     ctx.fillRect(x + offset, y, width, height);
-  }
   }
   ctx.restore();
 }
