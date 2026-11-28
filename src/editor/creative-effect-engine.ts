@@ -3,7 +3,7 @@
  * Effects are deterministic for a given frame time so exported frames are stable.
  */
 const CSS_EFFECTS: Record<string, string> = {
-  "Blur":"blur(3px)", "Gaussian Blur":"blur(4px)", "Radial Blur":"blur(2px) saturate(1.12)",
+  "Gaussian Blur":"blur(4px)", "Radial Blur":"blur(2px) saturate(1.12)",
   "Motion Blur":"blur(1.4px)", "Directional Blur":"blur(1.8px)", "Spin Blur":"blur(2px)",
   "Soft Focus":"blur(.8px) brightness(1.05)", "Background Blur":"blur(2px)",
   "Vignette":"contrast(1.08)", "Chromatic Aberration":"saturate(1.14) contrast(1.06)",
@@ -147,10 +147,7 @@ export function drawCreativeEffect(
     ctx.globalAlpha = .14 * alpha; ctx.fillStyle = "#d6eaff";
     const offset = Math.sin(time * 8 + key) * width * .012;
     ctx.fillRect(x + offset, y, width, height);
-  } else if (/vignette/i.test(name)) {
-    const gradient = ctx.createRadialGradient(x + width/2, y + height/2, Math.min(width,height)*.18, x + width/2, y + height/2, Math.hypot(width,height)*.62);
-    gradient.addColorStop(0,"rgba(0,0,0,0)"); gradient.addColorStop(1,"rgba(0,0,0," + (.62 * alpha) + ")");
-    ctx.fillStyle = gradient; ctx.fillRect(x,y,width,height);
+  }
   }
   ctx.restore();
 }
