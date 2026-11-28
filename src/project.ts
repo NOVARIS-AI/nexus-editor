@@ -132,7 +132,8 @@ export function clipSourceAtTimeline(clip: TimelineClip, timelineTime: number) {
   return clip.reverse ? clip.sourceOut - sourceDelta : clip.sourceIn + sourceDelta;
 }
 export function clipTimelineAtSource(clip: TimelineClip, sourceTime: number) {
-  return sourceTravelTime(clip, Math.max(0, Math.min(clip.sourceOut - clip.sourceIn, sourceTime - clip.sourceIn)));
+  const delta = clip.reverse ? clip.sourceOut - sourceTime : sourceTime - clip.sourceIn;
+  return sourceTravelTime(clip, Math.max(0, Math.min(clip.sourceOut - clip.sourceIn, delta)));
 }
 export function timelineDuration(clips: TimelineClip[]) {
   return clips.reduce((max, clip) => Math.max(max, clip.start + clipDuration(clip)), 0);
