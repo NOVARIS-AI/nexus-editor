@@ -13256,3 +13256,127 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   .editor-tool-dock.is-edit-open,
   .editor-tool-dock.is-audio-open {display:none!important}
 }
+
+
+/* Restore horizontal CapCut-style browse strips for sound, effects and filters. */
+@media (max-width:760px) {
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-effect-categories {
+    display:flex!important;
+    flex:0 0 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:7px!important;
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    white-space:nowrap!important;
+    padding:3px 1px 8px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-effect-categories::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip>button,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip>button,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-effect-categories>button {
+    flex:0 0 auto!important;
+    width:auto!important;
+    min-width:max-content!important;
+    min-height:30px!important;
+    padding:6px 11px!important;
+    white-space:nowrap!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel {
+    display:flex!important;
+    flex:0 0 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:9px!important;
+    width:100%!important;
+    min-width:0!important;
+    max-width:100%!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:3px 2px 9px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid>button,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel>button {
+    flex:0 0 82px!important;
+    width:82px!important;
+    min-width:82px!important;
+    max-width:82px!important;
+    min-height:102px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:5px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid .nexus-creative-art,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel .nexus-creative-art {
+    flex:0 0 72px!important;
+    width:100%!important;
+    min-height:72px!important;
+    aspect-ratio:1/1!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-grid {
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:8px!important;
+    width:100%!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:4px 1px 9px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-grid::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item {
+    flex:0 0 220px!important;
+    min-width:220px!important;
+    max-width:220px!important;
+    display:flex!important;
+    flex-direction:column!important;
+    justify-content:space-between!important;
+    gap:9px!important;
+    padding:10px!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+    border-radius:10px!important;
+    background:rgba(255,255,255,.045)!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item>.nexus-speed-presets {
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    gap:7px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item>.nexus-speed-presets>button {
+    flex:1 1 0!important;
+    min-width:0!important;
+    white-space:nowrap!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser {
+    display:flex!important;
+    flex-direction:column!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:7px!important;
+    width:100%!important;
+    min-width:0!important;
+  }
+}
