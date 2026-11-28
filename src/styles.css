@@ -12926,3 +12926,333 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
  .nexus-edit-adjustment{padding:10px;gap:9px;}
  .nexus-edit-adjustment>label{grid-template-columns:1fr;gap:5px;}
 }
+
+
+/* CapCut mobile workspace: compact, non-overlapping edit/audio strips and horizontal visual galleries. */
+@media (max-width:760px) {
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]:not(.is-closed),
+  body>.nexus-mobile-tool-sheet[data-tool="audio"]:not(.is-closed) {
+    position:fixed!important;
+    inset-inline:0!important;
+    bottom:env(safe-area-inset-bottom, 0px)!important;
+    width:100vw!important;
+    height:68px!important;
+    min-height:68px!important;
+    max-height:68px!important;
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:0!important;
+    padding:0 8px!important;
+    overflow:hidden!important;
+    border-radius:0!important;
+    border:0!important;
+    border-top:1px solid #29313c!important;
+    background:#12151c!important;
+    box-shadow:0 -8px 24px #0008!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-sheet-drag-handle,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-sheet-drag-handle,
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-mobile-sheet-head,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-mobile-sheet-head {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"]>.nexus-mobile-sheet-body {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    width:100%!important;
+    min-width:0!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    margin:0!important;
+    padding:0!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]>.nexus-mobile-sheet-body::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"]>.nexus-mobile-sheet-body::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-edit-action-row,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-capcut-tabs {
+    display:flex!important;
+    flex:1 0 auto!important;
+    flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    align-items:center!important;
+    gap:10px!important;
+    width:max-content!important;
+    min-width:100%!important;
+    height:64px!important;
+    max-height:64px!important;
+    margin:0!important;
+    padding:0 3px!important;
+    overflow:visible!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-edit-action-row>button:not(.nexus-subtoolbar-back),
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-capcut-tabs>button:not(.nexus-subtoolbar-back) {
+    display:flex!important;
+    flex:0 0 62px!important;
+    flex-direction:column!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:4px!important;
+    width:62px!important;
+    min-width:62px!important;
+    height:58px!important;
+    min-height:58px!important;
+    padding:4px 2px!important;
+    border:0!important;
+    border-radius:8px!important;
+    background:transparent!important;
+    color:#f3f4f6!important;
+    opacity:1!important;
+    font-size:10px!important;
+    line-height:1.1!important;
+    white-space:nowrap!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-edit-action-row>button.active,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-capcut-tabs>button.active {
+    color:#55d9e8!important;
+    background:#1d2a32!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-subtoolbar-back {
+    display:flex!important;
+    flex:0 0 38px!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:38px!important;
+    min-width:38px!important;
+    height:48px!important;
+    min-height:48px!important;
+    padding:0!important;
+    border:1px solid #303b49!important;
+    border-radius:9px!important;
+    background:#1d222d!important;
+    color:#fff!important;
+    font-size:21px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]:has(.nexus-edit-adjustment),
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="sounds"],
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="effects"],
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="copyright"],
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="extract"],
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="voiceover"] {
+    height:min(260px,34dvh)!important;
+    min-height:180px!important;
+    max-height:min(260px,34dvh)!important;
+    bottom:env(safe-area-inset-bottom, 0px)!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]:has(.nexus-edit-adjustment)>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="sounds"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="effects"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="copyright"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="extract"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="voiceover"]>.nexus-mobile-sheet-body {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:auto!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="sounds"] .nexus-audio-capcut-tabs,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="effects"] .nexus-audio-capcut-tabs,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="copyright"] .nexus-audio-capcut-tabs,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="extract"] .nexus-audio-capcut-tabs,
+  body>.nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="voiceover"] .nexus-audio-capcut-tabs {
+    order:0!important;
+    flex:0 0 auto!important;
+    min-width:100%!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-context-controls {
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow:auto!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]:has(.nexus-edit-adjustment) .nexus-edit-action-row {
+    flex:0 0 auto!important;
+    min-width:max-content!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"]:has(.nexus-edit-adjustment) .nexus-edit-adjustment {
+    flex:1 1 auto!important;
+    min-width:0!important;
+    overflow:auto!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"]:not(.is-closed),
+  body>.nexus-mobile-tool-sheet[data-tool="effects"]:not(.is-closed) {
+    height:min(252px,34dvh)!important;
+    min-height:210px!important;
+    max-height:min(252px,34dvh)!important;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-mobile-sheet-head,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-mobile-sheet-head {
+    min-height:34px!important;
+    padding:0 2px 5px!important;
+    margin:0!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"]>.nexus-mobile-sheet-body,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"]>.nexus-mobile-sheet-body {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    min-height:0!important;
+    max-height:none!important;
+    padding:3px 2px 4px!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-group,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-group {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-direction:column!important;
+    gap:6px!important;
+    min-height:0!important;
+    width:100%!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-reference-note,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-reference-note,
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-search,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-search {
+    display:none!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-category-strip,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-category-strip {
+    display:flex!important;
+    flex:0 0 32px!important;
+    flex-wrap:nowrap!important;
+    gap:7px!important;
+    width:100%!important;
+    overflow-x:auto!important;
+    padding:0 0 3px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intensity {
+    display:grid!important;
+    flex:0 0 32px!important;
+    grid-template-columns:1fr auto!important;
+    align-items:center!important;
+    gap:2px 8px!important;
+    width:100%!important;
+    margin:0!important;
+    padding:0!important;
+    color:#fff!important;
+    font-size:10px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-intensity input,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-intensity input {
+    grid-column:1/-1!important;
+    width:100%!important;
+    min-width:0!important;
+    height:13px!important;
+    margin:0!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid {
+    display:flex!important;
+    flex:1 1 auto!important;
+    flex-wrap:nowrap!important;
+    align-items:stretch!important;
+    gap:9px!important;
+    width:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:2px 0 4px!important;
+    scrollbar-width:none!important;
+    -webkit-overflow-scrolling:touch!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-filter-carousel::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-grid::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button {
+    display:flex!important;
+    flex:0 0 78px!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    justify-content:flex-start!important;
+    gap:4px!important;
+    width:78px!important;
+    min-width:78px!important;
+    height:100%!important;
+    min-height:0!important;
+    padding:4px!important;
+    border:1px solid #394354!important;
+    border-radius:10px!important;
+    background:#202632!important;
+    color:#fff!important;
+    opacity:1!important;
+    overflow:hidden!important;
+    text-align:center!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b {
+    order:2!important;
+    display:block!important;
+    width:100%!important;
+    color:#fff!important;
+    opacity:1!important;
+    font-size:10px!important;
+    line-height:1.15!important;
+    white-space:normal!important;
+    text-align:center!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>small,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>small {
+    display:none!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid .nexus-creative-art,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid .nexus-creative-art {
+    order:1!important;
+    display:grid!important;
+    place-items:center!important;
+    flex:1 1 auto!important;
+    width:100%!important;
+    min-height:0!important;
+    aspect-ratio:1/1!important;
+    border-radius:8px!important;
+    background:#293343!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-art img,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-art img {
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    object-fit:cover!important;
+    opacity:1!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-art i,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-art i {
+    position:absolute!important;
+    display:grid!important;
+    place-items:center!important;
+    inset:0!important;
+    color:#fff!important;
+    opacity:.85!important;
+    font-size:24px!important;
+    pointer-events:none!important;
+  }
+  .editor-tool-dock.is-edit-open,
+  .editor-tool-dock.is-audio-open {display:none!important}
+}
