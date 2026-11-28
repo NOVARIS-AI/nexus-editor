@@ -70,8 +70,8 @@ const TEXTURE_NAMES = /texture|grid overlay|paper fibres|canvas grain|micro cont
 export function hasCreativeEffectProcessor(name: string): boolean {
   return !!CSS_EFFECTS[name] || PARTICLE_NAMES.test(name) || LIGHT_NAMES.test(name) ||
     FILM_NAMES.test(name) || GLITCH_NAMES.test(name) || MOTION_NAMES.test(name) ||
-    OPTICAL_NAMES.test(name) || STYLIZED_NAMES.test(name) ||
-    /mirror|screen|clone|zoom|transform|texture|surface|warp|distortion|atmosphere|weather/i.test(name);
+    OPTICAL_NAMES.test(name) || STYLIZED_NAMES.test(name) || TEXTURE_NAMES.test(name) ||
+    /mirror|screen|clone|zoom|transform|texture|surface|warp|distortion|atmosphere|weather|micro contrast|grid overlay|paper fibres/i.test(name);
 }
 
 export function hasCreativeEffectOverlay(name?: string): boolean {
@@ -90,6 +90,7 @@ export function getCreativeEffectCss(name?: string): string {
   if (LIGHT_NAMES.test(name)) return "brightness(1.06) saturate(1.14)";
   if (PARTICLE_NAMES.test(name)) return "contrast(1.04) saturate(1.08)";
   if (STYLIZED_NAMES.test(name)) return "contrast(1.22) saturate(1.18)";
+  if (TEXTURE_NAMES.test(name)) return "contrast(1.1) saturate(.96)";
   if (OPTICAL_NAMES.test(name)) return "contrast(1.08) saturate(1.12)";
   if (MOTION_NAMES.test(name)) return "contrast(1.08) saturate(1.08)";
   return hasCreativeEffectProcessor(name) ? "contrast(1.06) saturate(1.08)" : "none";
