@@ -74,6 +74,14 @@ export function hasCreativeEffectProcessor(name: string): boolean {
     /mirror|screen|clone|zoom|transform|texture|surface|warp|distortion|atmosphere|weather/i.test(name);
 }
 
+export function hasCreativeEffectOverlay(name?: string): boolean {
+  if (!name) return false;
+  return GLITCH_NAMES.test(name) || FILM_NAMES.test(name) || PARTICLE_NAMES.test(name) ||
+    LIGHT_NAMES.test(name) || TEXTURE_NAMES.test(name) ||
+    (MOTION_NAMES.test(name) && /echo|trail|stutter|freeze|speed smear|motion poster/i.test(name)) ||
+    /vignette/i.test(name);
+}
+
 export function getCreativeEffectCss(name?: string): string {
   if (!name || name === "none") return "none";
   if (CSS_EFFECTS[name]) return CSS_EFFECTS[name];
