@@ -62,9 +62,9 @@ const PARTICLE_NAMES = /snow|rain|dust|particle|ember|firefl|confetti|bubble|gli
 const LIGHT_NAMES = /flare|light|glow|rays|bloom|halation|prism|rainbow|streak|flash|aurora|laser|volumetric/i;
 const FILM_NAMES = /grain|scratch|scanline|vhs|tape|projector|analog|static|noise|old television|film jitter/i;
 const GLITCH_NAMES = /glitch|rgb split|channel shift|signal interference|pixel sort|data moshing|databend|corrupt|error screen|scan distortion|bit crush/i;
-const MOTION_NAMES = /shake|whip pan|zoom pulse|dolly zoom|spin blur|motion echo|stutter|speed trail|frame echo|time slice|ghost trail|rolling shutter/i;
-const OPTICAL_NAMES = /blur|focus|bokeh|chromatic|lens|fisheye|distortion|warp|ripple|twirl|bulge|pinch|kaleidoscope|mirror/i;
-const STYLIZED_NAMES = /cartoon|sketch|posterize|duotone|halftone|pixelate|mosaic|silhouette|thermal|infrared|comic|watercolour|solarize|negative/i;
+const MOTION_NAMES = /shake|whip pan|zoom pulse|dolly zoom|spin blur|motion echo|stutter|speed trail|frame echo|time slice|ghost trail|rolling shutter|handheld|freeze frame|freeze pulse|push in|pull out|speed smear|motion poster|radiant pulse|wobble/i;
+const OPTICAL_NAMES = /blur|focus|bokeh|chromatic|lens|fisheye|distortion|warp|ripple|twirl|bulge|pinch|kaleidoscope|mirror|tilt shift|sharpen|squeeze|perspective|cracked glass/i;
+const STYLIZED_NAMES = /cartoon|sketch|posterize|duotone|tri-tone|crossfade colour|halftone|pixelate|mosaic|silhouette|thermal|infrared|comic|watercolour|solarize|negative/i;\nconst TEXTURE_NAMES = /texture|grid overlay|paper fibres|canvas grain|micro contrast|surface noise|metallic sheen|glassy surface|crosshatch|grain|scratch|cracked glass/i;
 
 export function hasCreativeEffectProcessor(name: string): boolean {
   return !!CSS_EFFECTS[name] || PARTICLE_NAMES.test(name) || LIGHT_NAMES.test(name) ||
@@ -143,7 +143,7 @@ export function drawCreativeEffect(
       ctx.globalAlpha = .28 * alpha; ctx.fillStyle = "#ffe8b0";
       ctx.fillRect(x, cy, width, Math.max(1, height * .004));
     }
-  } else if (MOTION_NAMES.test(name) && /echo|trail|stutter/i.test(name)) {
+  } else if (TEXTURE_NAMES.test(name)) {\n    ctx.globalAlpha = .12 * alpha; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;\n    const spacing = /grid/i.test(name) ? Math.max(12, Math.round(width / 18)) : Math.max(8, Math.round(width / 34));\n    for (let gx = x; gx < x + width; gx += spacing) { ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + height); ctx.stroke(); }\n    if (/grain|fibres|paper|noise|surface/i.test(name)) { ctx.globalAlpha = .12 * alpha; ctx.fillStyle = "#fff"; for (let i=0;i<72;i++) { const px=x+((i*67+key*3)%997)/997*width, py=y+((i*131+key*5)%991)/991*height; ctx.fillRect(px,py,1.2,1.2); } }\n  } else if (MOTION_NAMES.test(name) && /echo|trail|stutter|freeze|speed smear|motion poster/i.test(name)) {
     ctx.globalAlpha = .14 * alpha; ctx.fillStyle = "#d6eaff";
     const offset = Math.sin(time * 8 + key) * width * .012;
     ctx.fillRect(x + offset, y, width, height);
