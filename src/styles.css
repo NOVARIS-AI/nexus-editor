@@ -12221,3 +12221,90 @@ body > .nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser {
   50% { translate: 2px -1px }
   75% { translate: -1px -2px }
 }
+
+
+/* NEXUS Editor mobile polish: compact creative drawers and useful asset previews. */
+@media (max-width: 760px) {
+  body > .nexus-mobile-tool-sheet {
+    max-height: min(44dvh, 360px) !important;
+    padding: 9px 11px calc(10px + env(safe-area-inset-bottom)) !important;
+    gap: 7px !important;
+  }
+  body > .nexus-mobile-tool-sheet:not(.is-closed) > .nexus-mobile-sheet-body {
+    padding: 8px 10px calc(12px + env(safe-area-inset-bottom)) !important;
+    gap: 8px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 7px !important;
+    padding: 2px 0 8px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid > button {
+    min-height: 0 !important;
+    padding: 5px !important;
+    gap: 3px !important;
+    border-radius: 9px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid .nexus-creative-art {
+    min-height: 48px !important;
+    aspect-ratio: 1.8 / 1 !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid > button > b {
+    font-size: 9px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid > button > small {
+    font-size: 8px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-transition-group {
+    padding: 9px !important;
+    margin-top: 4px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-transition-group .nexus-speed-presets {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-transition-group .nexus-speed-presets button {
+    white-space: normal !important;
+    min-width: 0 !important;
+    min-height: 34px !important;
+    padding: 6px 7px !important;
+    line-height: 1.25 !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="text"] .nexus-effect-group {
+    padding: 9px !important;
+    margin: 0 !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="text"] .nexus-effect-group label {
+    gap: 5px !important;
+    margin: 7px 0 !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="text"] .nexus-effect-group textarea {
+    min-height: 58px !important;
+  }
+  .editor-bottom-tools[data-tool="text"] > .nexus-context-controls {
+    display: none !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-effect-group {
+    padding: 9px !important;
+    margin: 0 !important;
+  }
+  body > .nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-effect-categories {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+}
+body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
+  position: absolute !important;
+  z-index: 2 !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  color: rgba(255,255,255,.94) !important;
+  font-size: 25px !important;
+  font-style: normal !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2px 12px rgba(0,0,0,.65) !important;
+  pointer-events: none !important;
+}
