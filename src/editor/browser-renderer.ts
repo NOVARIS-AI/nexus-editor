@@ -306,7 +306,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
       const exposure = clip.exposure ?? 0, temperature = clip.temperature ?? 0, tint = clip.tint ?? 0, highlights = clip.highlights ?? 0, shadows = clip.shadows ?? 0;
       const gradedBrightness = Math.max(.2, Math.min(2.5, (clip.brightness ?? 100) / 100 * Math.pow(2, exposure) * (1 + shadows / 650 - highlights / 900)));
       const gradedContrast = Math.max(.4, Math.min(2, (clip.contrast ?? 100) / 100 * (1 + highlights / 450 - shadows / 700)));
-      ctx.filter = [filter, getCreativeEffectCss(visualEffect), `brightness(${gradedBrightness})`, `contrast(${gradedContrast})`, `saturate(${(clip.saturation ?? 100)/100})`, temperature ? `sepia(${Math.abs(temperature)/260})` : "", temperature ? `hue-rotate(${-temperature*.28}deg)` : "", tint ? `hue-rotate(${tint*.32}deg)` : "", (transitionBlur + effectBlur) ? `blur(${transitionBlur + effectBlur}px)` : ""].filter(Boolean).join(" ");
+      ctx.filter = [filter, getCreativeEffectCss(visualEffect), `brightness(${gradedBrightness})`, `contrast(${gradedContrast})`, `saturate(${(clip.saturation ?? 100)/100})`, temperature ? `sepia(${Math.abs(temperature)/260})` : "", temperature ? `hue-rotate(${-temperature*.28}deg)` : "", tint ? `hue-rotate(${tint*.32}deg)` : "", (transitionBlur + effectBlur) ? `blur(${transitionBlur + effectBlur}px)` : ""].filter(value => Boolean(value) && value !== "none").join(" ");
       if (transitionStyle === "wipe") {
         const reveal = Math.max(.001, Math.min(1, transitionProgress));
         ctx.beginPath(); ctx.rect(0,0,canvas.width*reveal,canvas.height); ctx.clip();
