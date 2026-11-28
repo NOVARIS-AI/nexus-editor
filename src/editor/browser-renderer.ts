@@ -404,7 +404,7 @@ export async function renderTimeline(input: RenderInput): Promise<Blob> {
           if (!clip) { node.element.pause(); return; }
           const timing = timingFor(clip);
           const localTime = time - clip.start;
-          const active = localTime >= 0 && localTime < timing.duration && !clip.muted && !trackMuted(clip);
+          const active = localTime >= 0 && localTime < timing.duration && !clip.reverse && !clip.muted && !trackMuted(clip);
           if (!active) {
             node.gain.gain.setTargetAtTime(0, audioContext!.currentTime, 0.02);
             node.element.pause();
