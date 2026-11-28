@@ -12515,3 +12515,256 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   background:#173638!important;
   box-shadow:0 0 0 1px rgba(64,213,218,.18)!important;
 }
+
+
+/* CapCut-inspired mobile workspaces for every remaining editor tool.
+   Existing processors and event handlers stay intact; this layer changes presentation only. */
+@media (max-width:760px) {
+  body>.nexus-mobile-tool-sheet:not(.is-closed):not([data-tool="text"]) {
+    max-height:min(43dvh,360px)!important;
+    min-height:190px!important;
+    padding:8px 10px calc(7px + env(safe-area-inset-bottom))!important;
+    gap:6px!important;
+    overflow:hidden!important;
+  }
+  body>.nexus-mobile-tool-sheet:not(.is-closed):not([data-tool="text"])>.nexus-mobile-sheet-body {
+    max-height:calc(43dvh - 49px)!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    padding:4px 7px calc(12px + env(safe-area-inset-bottom))!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-context-controls {
+    display:flex!important;
+    flex-direction:column!important;
+    gap:9px!important;
+    min-width:0!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group {
+    margin:0!important;
+    padding:10px!important;
+    border:1px solid rgba(255,255,255,.09)!important;
+    border-radius:11px!important;
+    background:rgba(255,255,255,.035)!important;
+    box-shadow:none!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group>p {
+    margin:4px 0 8px!important;
+    font-size:10px!important;
+    line-height:1.35!important;
+    color:rgba(235,235,245,.62)!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group>small {
+    font-size:9px!important;
+    line-height:1.35!important;
+    color:rgba(235,235,245,.58)!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group label {
+    display:grid!important;
+    grid-template-columns:minmax(75px,auto) minmax(0,1fr)!important;
+    align-items:center!important;
+    gap:8px!important;
+    margin:7px 0!important;
+    font-size:10px!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group label input[type="range"] {
+    grid-column:1/-1!important;
+    width:100%!important;
+    margin:0!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-group button,
+  body>.nexus-mobile-tool-sheet .nexus-speed-presets button,
+  body>.nexus-mobile-tool-sheet .nexus-effect-categories button {
+    min-height:32px!important;
+    padding:7px 10px!important;
+    border-radius:8px!important;
+    font-size:10px!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-categories,
+  body>.nexus-mobile-tool-sheet .nexus-speed-presets {
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    overflow-x:auto!important;
+    gap:6px!important;
+    padding:2px 1px 6px!important;
+    scrollbar-width:none!important;
+  }
+  body>.nexus-mobile-tool-sheet .nexus-effect-categories::-webkit-scrollbar,
+  body>.nexus-mobile-tool-sheet .nexus-speed-presets::-webkit-scrollbar {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-grid {
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item {
+    min-width:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:8px!important;
+    padding:9px!important;
+    border:1px solid rgba(255,255,255,.09)!important;
+    border-radius:10px!important;
+    background:rgba(255,255,255,.04)!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item>div:first-child {
+    display:grid!important;
+    gap:3px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item b {font-size:10px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item small {font-size:8px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item .nexus-speed-presets {gap:5px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-item .nexus-speed-presets button {flex:1!important;min-height:29px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-generated-grid~small {display:block!important;margin-top:7px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-browser,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-browser {
+    display:flex!important;
+    flex-direction:column!important;
+    gap:8px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-reference-note,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-reference-note {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-section-head,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-section-head,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-section-head {margin:0!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-search,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-search,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-search {min-height:34px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-categories,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-categories,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-effect-categories {flex-wrap:nowrap!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+    max-height:190px!important;
+    overflow-y:auto!important;
+    padding:2px 1px 6px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid>button {
+    min-width:0!important;
+    padding:6px!important;
+    border-radius:9px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-effect-thumb {
+    min-height:54px!important;
+    aspect-ratio:4/3!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid>button>b {
+    font-size:9px!important;
+    line-height:1.2!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>small,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>small,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid>button>small {
+    font-size:7px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-active-control {
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:7px!important;
+    padding:10px!important;
+    border:1px solid rgba(255,255,255,.1)!important;
+    border-radius:11px!important;
+    background:rgba(255,255,255,.04)!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-value-head {
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip {
+    display:flex!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+    padding:3px 1px 8px!important;
+    scrollbar-width:none!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="adjust"] .nexus-adjust-icon-strip>button {
+    flex:0 0 66px!important;
+    min-height:58px!important;
+    border-radius:9px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="motion"] .nexus-effect-group {
+    display:flex!important;
+    flex-direction:column!important;
+    gap:8px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="motion"] .nexus-speed-presets,
+  body>.nexus-mobile-tool-sheet[data-tool="motion"] .nexus-effect-categories {flex-wrap:wrap!important}
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-tabs {
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    overflow-x:auto!important;
+    gap:6px!important;
+    padding:3px 1px 8px!important;
+    scrollbar-width:none!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-library {
+    max-height:205px!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-group {padding:8px 0!important}
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-row {
+    display:grid!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
+    gap:5px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-row button {
+    min-width:0!important;
+    min-height:58px!important;
+    padding:5px 2px!important;
+    border-radius:8px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-row button .nexus-sticker-glyph {font-size:25px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="stickers"] .nexus-sticker-row button small {font-size:8px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-capcut-editor {gap:8px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-capcut-layer-actions {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="overlay"] .nexus-capcut-layer-actions>button {
+    min-height:34px!important;
+    padding:6px!important;
+    font-size:9px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-effect-library-head {padding:4px 2px 8px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-live-studio-section,
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-post-live-cleanup {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-background-grid {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-background-grid>button {
+    min-width:0!important;
+    min-height:62px!important;
+    padding:5px!important;
+    border-radius:9px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-background-grid>button>span {height:34px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-effect-group>p {font-size:9px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-edit-action-row {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="edit"] .nexus-edit-action-row>button {
+    min-height:55px!important;
+    border-radius:10px!important;
+  }
+}
+@media (min-width:761px) {
+  .nexus-mobile-tool-sheet .nexus-effect-group {border-radius:13px}
+}
