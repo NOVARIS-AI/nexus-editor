@@ -12869,3 +12869,41 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
 }
 /* The timeline's own add-clip (+) control remains the single media entry point. */
 .editor-preview-meta {display:none!important;}
+
+
+/* CapCut tool drawers: keep clip, audio and overlay controls readable on touch screens. */
+.nexus-edit-capcut-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.nexus-edit-capcut-actions>button{display:flex;min-width:0;min-height:66px;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(255,255,255,.045);color:var(--nx-text,#fff);font-size:10px}
+.nexus-edit-capcut-actions>button.active{border-color:var(--nx-accent,#b99aff);background:rgba(160,120,235,.14)}
+.nexus-edit-capcut-actions>button:disabled{opacity:.38}
+.nexus-edit-action-glyph{font-size:19px;line-height:1}
+.nexus-audio-capcut-tabs{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:3px 1px 9px;scrollbar-width:none}
+.nexus-audio-capcut-tabs::-webkit-scrollbar,.nexus-capcut-overlay-actions::-webkit-scrollbar{display:none}
+.nexus-audio-capcut-tabs>button{flex:0 0 auto;display:flex;align-items:center;gap:7px;min-height:42px;padding:8px 12px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(255,255,255,.045);color:var(--nx-text,#fff);font-size:11px}
+.nexus-audio-capcut-tabs>button.active{border-color:var(--nx-accent,#b99aff);background:rgba(160,120,235,.16)}
+.nexus-capcut-overlay-actions{display:flex;gap:7px;overflow-x:auto;overscroll-behavior-x:contain;padding:3px 1px 9px;scrollbar-width:none}
+.nexus-capcut-overlay-actions>button{flex:0 0 72px;display:flex;min-height:62px;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(255,255,255,.1);border-radius:11px;background:rgba(255,255,255,.045);color:var(--nx-text,#fff);font-size:18px}
+.nexus-capcut-overlay-actions>button span{font-size:9px;font-weight:650;white-space:nowrap}
+.nexus-capcut-overlay-actions>button:disabled{opacity:.4}
+.nexus-capcut-layer-order{font-size:10px;color:var(--nx-muted,#aaa);padding:2px 3px}
+@media(max-width:700px){
+  .nexus-edit-capcut-actions{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .nexus-edit-capcut-actions>button{min-height:62px;font-size:9px}
+  .nexus-audio-capcut-tabs>button{min-height:40px;padding:7px 10px;font-size:10px}
+  .nexus-capcut-overlay-actions>button{flex-basis:68px;min-height:60px}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid{
+    max-height:min(38dvh,320px)!important;
+    gap:8px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>b,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid>button>b{font-size:10px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-creative-asset-grid>button>small,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-creative-asset-grid>button>small,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-creative-asset-grid>button>small{font-size:8px!important}
+  body>.nexus-mobile-tool-sheet[data-tool="filters"] .nexus-effect-thumb,
+  body>.nexus-mobile-tool-sheet[data-tool="effects"] .nexus-effect-thumb,
+  body>.nexus-mobile-tool-sheet[data-tool="transitions"] .nexus-effect-thumb{min-height:68px!important}
+}
