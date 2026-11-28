@@ -59,7 +59,7 @@ const CSS_EFFECTS: Record<string, string> = {
 };
 
 const PARTICLE_NAMES = /snow|rain|dust|particle|ember|firefl|confetti|bubble|glitter|petal|leaf|starfield|sparkle|smoke|fog|bokeh|fireflies|falling/i;
-const LIGHT_NAMES = /flare|light|glow|rays|bloom|halation|prism|rainbow|streak|flash|aurora|laser|volumetric/i;
+const LIGHT_NAMES = /flare|light|glow|rays|bloom|halation|prism|rainbow|streak|flash|aurora|laser|volumetric|neon trails/i;
 const FILM_NAMES = /grain|scratch|scanline|vhs|tape|projector|analog|static|noise|old television|film jitter/i;
 const GLITCH_NAMES = /glitch|rgb split|channel shift|signal interference|pixel sort|data moshing|databend|corrupt|error screen|scan distortion|bit crush/i;
 const MOTION_NAMES = /shake|whip pan|zoom pulse|dolly zoom|spin blur|motion echo|stutter|speed trail|frame echo|time slice|ghost trail|rolling shutter|handheld|freeze frame|freeze pulse|push in|pull out|speed smear|motion poster|radiant pulse|wobble/i;
