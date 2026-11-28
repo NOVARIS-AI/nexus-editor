@@ -119,13 +119,17 @@ export function clipDuration(clip: TimelineClip) {
 export function clipSourceAtTimeline(clip: TimelineClip, timelineTime: number) {
   const span = Math.max(0, clip.sourceOut - clip.sourceIn);
   const target = Math.max(0, Math.min(clipDuration(clip), timelineTime));
-  if (!clip.speedCurve?.length) return clip.sourceIn + target * Math.max(.1, clip.speed || 1);
-  let low = 0, high = span;
-  for (let i = 0; i < 28; i++) {
-    const mid = (low + high) / 2;
-    if (sourceTravelTime(clip, mid) < target) low = mid; else high = mid;
+  let sourceDelta: number;
+  if (!clip.speedCurve?.length) sourceDelta = target * Math.max(.1, clip.speed || 1);
+  else {
+    let low = 0, high = span;
+    for (let i = 0; i < 28; i++) {
+      const mid = (low + high) / 2;
+      if (sourceTravelTime(clip, mid) < target) low = mid; else high = mid;
+    }
+    sourceDelta = (low + high) / 2;
   }
-  return clip.sourceIn + (low + high) / 2;
+  return clip.reverse ? clip.sourceOut - sourceDelta : clip.sourceIn + sourceDelta;
 }
 export function clipTimelineAtSource(clip: TimelineClip, sourceTime: number) {
   return sourceTravelTime(clip, Math.max(0, Math.min(clip.sourceOut - clip.sourceIn, sourceTime - clip.sourceIn)));
