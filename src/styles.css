@@ -12741,7 +12741,11 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   }
   body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-effect-library-head {padding:4px 2px 8px!important}
   body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-live-studio-section,
-  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-post-live-cleanup {display:none!important}
+  body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-post-live-cleanup {
+    max-height:130px!important;
+    overflow:auto!important;
+    padding:8px!important;
+  }
   body>.nexus-mobile-tool-sheet[data-tool="background"] .nexus-background-grid {
     display:grid!important;
     grid-template-columns:repeat(3,minmax(0,1fr))!important;
