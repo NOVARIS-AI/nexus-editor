@@ -12772,3 +12772,40 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
 @media (min-width:761px) {
   .nexus-mobile-tool-sheet .nexus-effect-group {border-radius:13px}
 }
+
+
+@media (max-width:760px) {
+  body>.nexus-mobile-tool-sheet[data-tool="media"] .nexus-mobile-sheet-body {
+    display:flex!important;
+    flex-direction:column!important;
+    gap:10px!important;
+  }
+  body>.nexus-mobile-tool-sheet[data-tool="media"] .nexus-mobile-sheet-body>button {
+    min-height:54px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    border:1px solid rgba(255,255,255,.12)!important;
+    border-radius:11px!important;
+    background:rgba(255,255,255,.05)!important;
+    font-size:11px!important;
+  }
+  body>.nexus-inline-tool-controls {
+    display:flex!important;
+    align-items:center!important;
+    gap:7px!important;
+    overflow-x:auto!important;
+    padding:9px!important;
+    border:1px solid rgba(255,255,255,.1)!important;
+    border-radius:13px!important;
+    background:rgba(18,18,27,.97)!important;
+    box-shadow:0 12px 35px rgba(0,0,0,.3)!important;
+  }
+  body>.nexus-inline-tool-controls>button {
+    flex:0 0 auto!important;
+    min-width:50px!important;
+    min-height:36px!important;
+    border-radius:8px!important;
+    font-size:10px!important;
+  }
+}
