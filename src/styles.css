@@ -14209,7 +14209,7 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
     height:auto!important;
     min-height:0!important;
     max-height:none!important;
-    padding:0 10px calc(7px + env(safe-area-inset-bottom))!important;
+    padding:0 14px calc(2px + env(safe-area-inset-bottom))!important;
     margin:0!important;
     overflow:visible!important;
     border:0!important;
@@ -14240,16 +14240,16 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
   }
   body > .nexus-mobile-tool-sheet[data-tool="audio"] .nexus-audio-capcut-tabs {
     display:flex!important;
-    flex:0 0 54px!important;
+    flex:0 0 48px!important;
     flex-direction:row!important;
     flex-wrap:nowrap!important;
     align-items:center!important;
     gap:12px!important;
     width:100%!important;
     min-width:0!important;
-    height:54px!important;
-    min-height:54px!important;
-    padding:7px 2px!important;
+    height:48px!important;
+    min-height:48px!important;
+    padding:4px 0 2px!important;
     overflow-x:auto!important;
     overflow-y:hidden!important;
     white-space:nowrap!important;
@@ -14292,11 +14292,11 @@ body > .nexus-mobile-tool-sheet .nexus-creative-art > i {
     background:#1c222c!important;
   }
   /* The initial Audio state is only the short icon strip; keep the timeline exposed. */
-  body > .nexus-mobile-tool-sheet[data-tool="audio"][data-subtool=""]:not([data-expanded="true"]) {
-    height:61px!important;min-height:61px!important;max-height:61px!important
+  body > .nexus-mobile-tool-sheet[data-tool="audio"][data-subtool=""] {
+    height:52px!important;min-height:52px!important;max-height:52px!important
   }
-  body > .nexus-mobile-tool-sheet[data-tool="audio"][data-subtool=""]:not([data-expanded="true"]) .nexus-mobile-sheet-body {
-    height:54px!important;max-height:54px!important;overflow:hidden!important
+  body > .nexus-mobile-tool-sheet[data-tool="audio"][data-subtool=""] .nexus-mobile-sheet-body {
+    height:48px!important;max-height:48px!important;overflow:hidden!important
   }
   /* Only Sounds and Sound FX open the content drawer. */
   body > .nexus-mobile-tool-sheet[data-tool="audio"][data-subtool="sounds"],
