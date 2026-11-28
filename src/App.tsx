@@ -1735,12 +1735,14 @@ export default function App() {
       setStatus("Place the playhead at least one frame inside the selected clip to trim its start.");
       return;
     }
-    const sourceIn = clipSourceAtTimeline(selectedClip, offset);
-    if (sourceIn >= selectedClip.sourceOut - 0.001) {
+    const sourcePoint = clipSourceAtTimeline(selectedClip, offset);
+    if (sourcePoint <= selectedClip.sourceIn + 0.001 || sourcePoint >= selectedClip.sourceOut - 0.001) {
       setStatus("The start trim must leave at least one frame of media.");
       return;
     }
-    const trimmed = { ...selectedClip, start: playhead, sourceIn };
+    const trimmed = selectedClip.reverse
+      ? { ...selectedClip, start: playhead, sourceOut: sourcePoint }
+      : { ...selectedClip, start: playhead, sourceIn: sourcePoint };
     applyClipChange(clips.map(item => item.id === selectedClip.id ? trimmed : item), "Clip start trimmed to the playhead. Undo is available.");
     setPlayhead(trimmed.start);
   }
@@ -1751,8 +1753,10 @@ export default function App() {
     const length = clipDuration(selectedClip);
     const startOffset = Math.max(0, Math.min(precisionTrim.startOffset, length - frame));
     const endOffset = Math.max(startOffset + frame, Math.min(length, precisionTrim.endOffset));
-    const sourceIn = clipSourceAtTimeline(selectedClip, startOffset);
-    const sourceOut = clipSourceAtTimeline(selectedClip, endOffset);
+    const sourceAtStart = clipSourceAtTimeline(selectedClip, startOffset);
+    const sourceAtEnd = clipSourceAtTimeline(selectedClip, endOffset);
+    const sourceIn = selectedClip.reverse ? sourceAtEnd : sourceAtStart;
+    const sourceOut = selectedClip.reverse ? sourceAtStart : sourceAtEnd;
     if (sourceOut <= sourceIn + 0.001) { setStatus("Choose a valid range of at least one frame."); return; }
     const next = { ...selectedClip, start: selectedClip.start + startOffset, sourceIn, sourceOut };
     applyClipChange(clips.map(item => item.id === selectedClip.id ? next : item), "Precision trim applied at frame accuracy.");
