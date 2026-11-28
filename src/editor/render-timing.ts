@@ -39,7 +39,7 @@ export function compileClipTiming(clip: TimelineClip): CompiledClipTiming {
     const duration = span / baseSpeed;
     return {
       duration,
-      sourceAtTimeline: seconds => sourceIn + Math.max(0, Math.min(duration, seconds)) * baseSpeed,
+      sourceAtTimeline: seconds => { const forward = sourceIn + Math.max(0, Math.min(duration, seconds)) * baseSpeed; return clip.reverse ? sourceIn + span - (forward - sourceIn) : forward; },
       speedAtSource
     };
   }
@@ -66,7 +66,8 @@ export function compileClipTiming(clip: TimelineClip): CompiledClipTiming {
       }
       const left = table[low], right = table[high];
       const mix = (target - left.timeline) / Math.max(0.000001, right.timeline - left.timeline);
-      return sourceIn + left.source + (right.source - left.source) * Math.max(0, Math.min(1, mix));
+      const forward = sourceIn + left.source + (right.source - left.source) * Math.max(0, Math.min(1, mix));
+      return clip.reverse ? sourceIn + span - (forward - sourceIn) : forward;
     }
   };
 }
